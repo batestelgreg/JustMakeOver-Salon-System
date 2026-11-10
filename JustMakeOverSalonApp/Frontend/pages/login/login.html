@@ -1,0 +1,81 @@
+<!-- Kani nga login page kay para sa secure sign-in sa salon system. -->
+<div class="login">
+    <section class="login__brand" aria-hidden="true">
+        <div class="login__brand-content">
+            <img src="/images/logo.png" alt="Just MakeOver Salon and Spa logo" class="login__logo">
+            <h1 class="login__brand-title">Just MakeOver</h1>
+            <p class="login__brand-tag">Beauty Salon &amp; Spa</p>
+            <p class="login__brand-text">
+                Your premium salon operations workspace for inventory,
+                requisitions, purchasing, and receiving &mdash; all in one system.
+            </p>
+        </div>
+    </section>
+
+    <section class="login__panel">
+        <!-- Kani nga card kay para sa username ug password sign-in. -->
+        <form class="login__card" id="loginForm" novalidate>
+            <img src="/images/logo.png" alt="Just MakeOver Salon logo" class="login__card-logo">
+            <h2 class="login__title">Welcome back</h2>
+            <p class="login__subtitle">Sign in with your salon account to continue.</p>
+
+            <div class="form-field">
+                <label class="form-field__label" for="loginUsername">Username</label>
+                <input class="form-field__input" type="text" id="loginUsername"
+                       name="username" autocomplete="username" maxlength="50"
+                       placeholder="Enter your username">
+                <span class="form-field__error" data-error-for="username" role="alert"></span>
+            </div>
+
+            <div class="form-field">
+                <label class="form-field__label" for="loginPassword">Password</label>
+                <input class="form-field__input" type="password" id="loginPassword"
+                       name="password" autocomplete="current-password" maxlength="128"
+                       placeholder="Enter your password">
+                <span class="form-field__error" data-error-for="password" role="alert"></span>
+            </div>
+
+            <button type="submit" class="btn btn--primary u-full-width login__submit" id="loginSubmit">
+                Sign in
+            </button>
+
+            <p class="login__hint">
+                Accounts are locked for 15 minutes after 5 failed sign-in attempts.
+                Contact the administrator if you cannot access your account.
+            </p>
+        </form>
+
+        <!-- Kani nga card kay para sa required password change sa first login. -->
+        <form class="login__card u-hidden" id="changePasswordForm" novalidate>
+            <h2 class="login__title">Set a new password</h2>
+            <p class="login__subtitle">
+                For security, you must change your password before continuing.
+            </p>
+
+            <div class="form-field">
+                <label class="form-field__label" for="changeCurrent">Current password</label>
+                <input class="form-field__input" type="password" id="changeCurrent"
+                       name="currentPassword" autocomplete="current-password">
+                <span class="form-field__error" data-error-for="currentPassword" role="alert"></span>
+            </div>
+
+            <div class="form-field">
+                <label class="form-field__label" for="changeNew">New password</label>
+                <input class="form-field__input" type="password" id="changeNew"
+                       name="newPassword" autocomplete="new-password">
+                <span class="form-field__error" data-error-for="newPassword" role="alert"></span>
+            </div>
+
+            <div class="form-field">
+                <label class="form-field__label" for="changeConfirm">Confirm new password</label>
+                <input class="form-field__input" type="password" id="changeConfirm"
+                       name="confirmPassword" autocomplete="new-password">
+                <span class="form-field__error" data-error-for="confirmPassword" role="alert"></span>
+            </div>
+
+            <button type="submit" class="btn btn--primary u-full-width login__submit" id="changeSubmit">
+                Update password and continue
+            </button>
+        </form>
+    </section>
+</div>

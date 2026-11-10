@@ -1,0 +1,57 @@
+/* 
+   Kani nga tokens.css kay nagdala sa tanang brand colors ug
+   shared design tokens sa Just MakeOver Salon System.
+ */
+
+:root {
+    /* Kani mga color tokens kay base sa logo ug brand palette. */
+    --color-navy: #101D2D;
+    --color-navy-soft: #16263A;
+    --color-teal: #145273;
+    --color-teal-dark: #0E3D57;
+    --color-gold: #F6A832;
+    --color-gold-soft: #F8BC5C;
+    --color-white: #FFFFFF;
+    --color-bg: #F5F7FA;
+    --color-text: #202B38;
+    --color-text-muted: #667085;
+    --color-border: #E1E6EC;
+    --color-success: #218653;
+    --color-warning: #C98216;
+    --color-error: #C63C3C;
+
+    /* Kani mga tints kay para sa soft backgrounds ug status badges. */
+    --color-teal-tint: #E8F1F6;
+    --color-gold-tint: #FDF2DF;
+    --color-success-tint: #E7F3EC;
+    --color-warning-tint: #FBF0DC;
+    --color-error-tint: #FAE9E9;
+
+    /* Kani mga shadows kay para sa cards ug floating panels. */
+    --shadow-sm: 0 1px 3px rgba(16, 29, 45, 0.08);
+    --shadow-md: 0 4px 14px rgba(16, 29, 45, 0.10);
+    --shadow-lg: 0 16px 40px rgba(16, 29, 45, 0.18);
+
+    /* Kani mga radius tokens kay para sa consistent card shapes. */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 18px;
+    --radius-pill: 999px;
+
+    /* Kani nga spacing tokens kay para sa consistent gaps. */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 24px;
+    --space-6: 32px;
+    --space-7: 48px;
+
+    /* Kani nga font stacks kay para sa premium salon typography. */
+    --font-display: "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
+    --font-body: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+
+    --sidebar-width: 264px;
+    --topbar-height: 64px;
+    --transition-fast: 160ms ease;
+}

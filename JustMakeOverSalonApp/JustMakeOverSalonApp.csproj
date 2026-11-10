@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{28DDAE4B-F086-40AE-9196-0CCE776E237A}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>JustMakeOverSalonApp</RootNamespace>
+    <AssemblyName>JustMakeOverSalonApp</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <Deterministic>true</Deterministic>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Microsoft.Web.WebView2.Core, Version=1.0.4314.35, Culture=neutral, PublicKeyToken=2a8ab48044d2601e, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Web.WebView2.1.0.4314.35\lib\net462\Microsoft.Web.WebView2.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Web.WebView2.WinForms, Version=1.0.4314.35, Culture=neutral, PublicKeyToken=2a8ab48044d2601e, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Web.WebView2.1.0.4314.35\lib\net462\Microsoft.Web.WebView2.WinForms.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Web.WebView2.Wpf, Version=1.0.4314.35, Culture=neutral, PublicKeyToken=2a8ab48044d2601e, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Web.WebView2.1.0.4314.35\lib\net462\Microsoft.Web.WebView2.Wpf.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Web.Extensions" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Deployment" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\JustMakeOverSalonApp.Core\JustMakeOverSalonApp.Core.csproj">
+      <Name>JustMakeOverSalonApp.Core</Name>
+      <Project>{8B2C0D5E-4A31-4F7B-9E6C-1D2A5F84B7A9}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Bridge\FrontendBridge.cs" />
+    <Compile Include="Bridge\OperationNames.cs" />
+    <Compile Include="Forms\MainForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="obj\Debug\.NETFramework,Version=v4.8.AssemblyAttributes.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Utilities\ErrorLog.cs" />
+    <EmbeddedResource Include="obj\Debug\JustMakeOverSalonApp.Properties.Resources.resources" />
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <None Include="bin\Debug\JustMakeOverSalonApp.exe.config" />
+    <None Include="obj\Debug\DesignTimeResolveAssemblyReferencesInput.cache" />
+    <None Include="obj\Debug\JustMake.30620788.Up2Date" />
+    <None Include="obj\Debug\JustMakeOverSalonApp.csproj.AssemblyReference.cache" />
+    <None Include="obj\Debug\JustMakeOverSalonApp.csproj.CoreCompileInputs.cache" />
+    <None Include="obj\Debug\JustMakeOverSalonApp.csproj.GenerateResource.cache" />
+    <None Include="packages.config" />
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <Compile Include="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="bin\Debug\Frontend\assets\css\components.css" />
+    <Content Include="bin\Debug\Frontend\assets\css\layout.css" />
+    <Content Include="bin\Debug\Frontend\assets\css\reset.css" />
+    <Content Include="bin\Debug\Frontend\assets\css\tokens.css" />
+    <Content Include="bin\Debug\Frontend\assets\css\utilities.css" />
+    <Content Include="bin\Debug\Frontend\assets\js\components\data-table.js" />
+    <Content Include="bin\Debug\Frontend\assets\js\components\form-validation.js" />
+    <Content Include="bin\Debug\Frontend\assets\js\components\header.js" />
+    <Content Include="bin\Debug\Frontend\assets\js\components\modal.js" />
+    <Content Include="bin\Debug\Frontend\assets\js\components\placeholder-page.js" />
+    <Content Include="bin\Debug\Frontend\assets\js\components\sidebar.js" />
+    <Content Include="bin\Debug\Frontend\assets\js\components\toast.js" />
+    <Content Include="bin\Debug\Frontend\assets\js\core\app.js" />
+    <Content Include="bin\Debug\Frontend\assets\js\core\bridge.js" />
+    <Content Include="bin\Debug\Frontend\assets\js\core\events.js" />
+    <Content Include="bin\Debug\Frontend\assets\js\core\router.js" />
+    <Content Include="bin\Debug\Frontend\assets\js\core\state.js" />
+    <Content Include="bin\Debug\Frontend\images\logo.png" />
+    <Content Include="bin\Debug\Frontend\index.html" />
+    <Content Include="bin\Debug\Frontend\pages\dashboard\dashboard.css" />
+    <Content Include="bin\Debug\Frontend\pages\dashboard\dashboard.html" />
+    <Content Include="bin\Debug\Frontend\pages\dashboard\dashboard.js" />
+    <Content Include="bin\Debug\Frontend\pages\login\login.css" />
+    <Content Include="bin\Debug\Frontend\pages\login\login.html" />
+    <Content Include="bin\Debug\Frontend\pages\login\login.js" />
+    <Content Include="bin\Debug\JustMakeOverSalonApp.Core.dll" />
+    <Content Include="bin\Debug\JustMakeOverSalonApp.Core.pdb" />
+    <Content Include="bin\Debug\JustMakeOverSalonApp.exe" />
+    <Content Include="bin\Debug\JustMakeOverSalonApp.pdb" />
+    <Content Include="bin\Debug\Microsoft.Web.WebView2.Core.dll" />
+    <Content Include="bin\Debug\Microsoft.Web.WebView2.Core.xml" />
+    <Content Include="bin\Debug\Microsoft.Web.WebView2.WinForms.dll" />
+    <Content Include="bin\Debug\Microsoft.Web.WebView2.WinForms.xml" />
+    <Content Include="bin\Debug\Microsoft.Web.WebView2.Wpf.dll" />
+    <Content Include="bin\Debug\Microsoft.Web.WebView2.Wpf.xml" />
+    <Content Include="bin\Debug\runtimes\win-arm64\native\WebView2Loader.dll" />
+    <Content Include="bin\Debug\runtimes\win-x64\native\WebView2Loader.dll" />
+    <Content Include="bin\Debug\runtimes\win-x86\native\WebView2Loader.dll" />
+    <Content Include="Frontend\**\*.*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Frontend\pages\users\users.html" />
+    <Content Include="Frontend\pages\users\users.js" />
+    <Content Include="obj\Debug\JustMakeOverSalonApp.csproj.FileListAbsolute.txt" />
+    <Content Include="obj\Debug\JustMakeOverSalonApp.exe" />
+    <Content Include="obj\Debug\JustMakeOverSalonApp.pdb" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="DataAccess\" />
+    <Folder Include="Models\" />
+    <Folder Include="obj\Debug\TempPE\" />
+    <Folder Include="Reporting\" />
+    <Folder Include="Repositories\" />
+    <Folder Include="Security\" />
+    <Folder Include="Services\" />
+    <Folder Include="Validation\" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Import Project="..\packages\Microsoft.Web.WebView2.1.0.4314.35\build\Microsoft.Web.WebView2.targets" Condition="Exists('..\packages\Microsoft.Web.WebView2.1.0.4314.35\build\Microsoft.Web.WebView2.targets')" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\Microsoft.Web.WebView2.1.0.4314.35\build\Microsoft.Web.WebView2.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Web.WebView2.1.0.4314.35\build\Microsoft.Web.WebView2.targets'))" />
+  </Target>
+</Project>

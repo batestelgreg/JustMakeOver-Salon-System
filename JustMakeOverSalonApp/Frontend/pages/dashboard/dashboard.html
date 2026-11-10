@@ -1,0 +1,39 @@
+<!-- Kani nga dashboard page kay nagpakita sa summary sa salon operations. -->
+<div class="dashboard">
+    <div class="page-header">
+        <div>
+            <h2 class="page-header__title" id="dashboardGreeting">Welcome back</h2>
+            <p class="page-header__subtitle">Here is the current overview of salon operations.</p>
+        </div>
+        <button type="button" class="btn btn--ghost" id="dashboardRefresh">
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+                <path fill="currentColor" d="M17.65 6.35A8 8 0 106 17.66l1.42-1.42A6 6 0 1112 6a5.9 5.9 0 014.2 1.8L13 11h7V4l-2.35 2.35z"/>
+            </svg>
+            Refresh
+        </button>
+    </div>
+
+    <!-- Kani nga grid kay para sa summary cards gikan sa database. -->
+    <div class="u-grid-4" id="summaryCards">
+        <div class="card page__loading">
+            <div class="spinner" aria-hidden="true"></div>
+            Loading summary&hellip;
+        </div>
+    </div>
+
+    <!-- Kani nga section kay para sa quick actions ug notices. -->
+    <div class="u-grid-2 u-mt-6">
+        <div class="card">
+            <h3 class="u-mb-4" style="font-size: 17px;">Quick actions</h3>
+            <div class="u-flex--gap" style="flex-wrap: wrap;" id="quickActions"></div>
+        </div>
+
+        <div class="card">
+            <h3 class="u-mb-4" style="font-size: 17px;">System status</h3>
+            <p class="u-text-muted" id="systemStatus">
+                The dashboard refreshes every time you open it, so the numbers
+                always reflect the live database.
+            </p>
+        </div>
+    </div>
+</div>

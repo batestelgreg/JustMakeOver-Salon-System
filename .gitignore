@@ -1,0 +1,26 @@
+## Visual Studio Workspace & Cache
+.vs/
+*.dtbcache.json
+.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+## Build Outputs (Bin ug Obj folders)
+[Bb]in/
+[Oo]bj/
+
+## NuGet Packages
+../packages/
+packages/
+
+## Local SQL Server Database Files
+*.mdf
+*.ldf
+*.bak
+
+## Operating System Temporary Files
+.DS_Store
+Thumbs.db
+[Tt]humbs.db
+[Dd]esktop.ini

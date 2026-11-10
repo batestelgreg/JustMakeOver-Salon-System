@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="JustMakeOverSalonApp/JustMakeOverSalonApp.csproj" Id="28ddae4b-f086-40ae-9196-0cce776e237a" />
+  <Project Path="JustMakeOverSalonApp.Core/JustMakeOverSalonApp.Core.csproj" Id="8b2c0d5e-4a31-4f7b-9e6c-1d2a5f84b7a9" />
+  <Folder Name="/Database/">
+    <File Path="Database/Migrations/V001_UserManagementAuditDashboard.sql" />
+  </Folder>
+</Solution>

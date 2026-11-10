@@ -1,0 +1,78 @@
+/* 
+   Kani nga utilities.css kay nagdala sa mga gamit nga helper
+   classes para sa spacing ug layout adjustments.
+ */
+
+.u-hidden {
+    display: none !important;
+}
+
+.u-flex {
+    display: flex;
+}
+
+.u-flex--between {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+}
+
+.u-flex--center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.u-flex--gap {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.u-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.u-grid-4 {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: var(--space-4);
+}
+
+.u-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: var(--space-4);
+}
+
+.u-mt-2 { margin-top: var(--space-2); }
+.u-mt-4 { margin-top: var(--space-4); }
+.u-mt-6 { margin-top: var(--space-6); }
+.u-mb-4 { margin-bottom: var(--space-4); }
+.u-mb-6 { margin-bottom: var(--space-6); }
+
+.u-text-muted { color: var(--color-text-muted); }
+.u-text-center { text-align: center; }
+.u-full-width { width: 100%; }
+
+/* Kani nga class kay para sa page headers sa matag module. */
+.page-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--space-4);
+    margin-bottom: var(--space-5);
+}
+
+.page-header__title {
+    font-size: 26px;
+}
+
+.page-header__subtitle {
+    color: var(--color-text-muted);
+    font-size: 14px;
+    margin-top: 4px;
+}

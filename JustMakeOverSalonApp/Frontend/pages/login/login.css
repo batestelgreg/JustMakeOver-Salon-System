@@ -1,0 +1,120 @@
+/* ============================================================
+   Kani nga login.css kay para sa split-screen login design sa
+   Just MakeOver Salon System.
+   ============================================================ */
+
+.login {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    min-height: 100vh;
+}
+
+/* Kani nga brand panel kay navy gradient nga may gold accents. */
+.login__brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background:
+        radial-gradient(900px 500px at 15% 85%, rgba(20, 82, 115, 0.55), transparent 60%),
+        radial-gradient(700px 420px at 85% 12%, rgba(246, 168, 50, 0.16), transparent 55%),
+        linear-gradient(160deg, var(--color-navy) 0%, #0B1522 100%);
+    padding: var(--space-7);
+}
+
+.login__brand-content {
+    max-width: 460px;
+    text-align: center;
+}
+
+.login__logo {
+    width: 140px;
+    margin: 0 auto var(--space-5);
+    background: var(--color-white);
+    padding: 10px;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+}
+
+.login__brand-title {
+    font-size: 40px;
+    color: var(--color-white);
+    letter-spacing: 0.02em;
+}
+
+.login__brand-tag {
+    margin-top: var(--space-2);
+    color: var(--color-gold);
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.login__brand-text {
+    margin-top: var(--space-5);
+    color: rgba(255, 255, 255, 0.68);
+    font-size: 15px;
+    line-height: 1.7;
+}
+
+/* Kani nga panel kay light side nga adunay login card. */
+.login__panel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-7) var(--space-6);
+    background: var(--color-bg);
+}
+
+.login__card {
+    width: min(420px, 100%);
+    background: var(--color-white);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    padding: var(--space-6);
+}
+
+.login__card-logo {
+    width: 64px;
+    margin: 0 auto var(--space-4);
+    display: none;
+}
+
+.login__title {
+    font-size: 26px;
+    margin-bottom: var(--space-1);
+}
+
+.login__subtitle {
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-5);
+    font-size: 14px;
+}
+
+.login__submit {
+    margin-top: var(--space-2);
+}
+
+.login__hint {
+    margin-top: var(--space-4);
+    font-size: 12px;
+    color: var(--color-text-muted);
+    text-align: center;
+    line-height: 1.6;
+}
+
+/* Kani nga responsive rule kay para sa narrow window sizes. */
+@media (max-width: 860px) {
+    .login {
+        grid-template-columns: 1fr;
+    }
+
+    .login__brand {
+        display: none;
+    }
+
+    .login__card-logo {
+        display: block;
+    }
+}

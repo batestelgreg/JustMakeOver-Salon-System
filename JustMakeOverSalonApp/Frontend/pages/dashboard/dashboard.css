@@ -1,0 +1,44 @@
+/* ============================================================
+   Kani nga dashboard.css kay para sa summary cards ug greeting
+   sa dashboard page.
+   ============================================================ */
+
+.dashboard .stat-card__icon--navy {
+    background: var(--color-teal-tint);
+    color: var(--color-teal);
+}
+
+.dashboard .stat-card__icon--gold {
+    background: var(--color-gold-tint);
+    color: var(--color-warning);
+}
+
+.dashboard .stat-card__icon--green {
+    background: var(--color-success-tint);
+    color: var(--color-success);
+}
+
+.dashboard .stat-card__icon--red {
+    background: var(--color-error-tint);
+    color: var(--color-error);
+}
+
+/* Kani nga quick action buttons kay para sa common tasks. */
+.quick-action {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 9px 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+    background: var(--color-white);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text);
+    transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.quick-action:hover {
+    border-color: var(--color-gold);
+    color: var(--color-warning);
+}

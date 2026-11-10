@@ -1,0 +1,93 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Users & Roles Management</title>
+    <!-- Kani nga CSS links kay para sa disenyo sa page ug mga components -->
+    <link rel="stylesheet" href="../../assets/css/tokens.css">
+    <link rel="stylesheet" href="../../assets/css/reset.css">
+    <link rel="stylesheet" href="../../assets/css/layout.css">
+    <link rel="stylesheet" href="../../assets/css/components.css">
+    <link rel="stylesheet" href="../../assets/css/utilities.css">
+</head>
+<body>
+    <!-- Kani nga container kay para sa Users and Roles module -->
+    <div class="page-container">
+        <div class="page-header">
+            <div class="header-title">
+                <h2>Users & Roles Management</h2>
+                <p>Manage employee accounts, access levels, and security roles.</p>
+            </div>
+            <div class="header-actions">
+                <button id="btnOpenAddUser" class="btn btn-primary">+ New User</button>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-body">
+                <table id="usersTable" class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Full Name</th>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Dinhi i-load ang mga user records gikan sa backend -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para sa paghimo og bag-ong user account -->
+    <div id="userModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <h3>Create New User Account</h3>
+            <form id="userForm">
+                <div class="form-group">
+                    <label>First Name</label>
+                    <input type="text" id="txtFirstName" required class="form-control" placeholder="Enter first name">
+                </div>
+                <div class="form-group">
+                    <label>Last Name</label>
+                    <input type="text" id="txtLastName" required class="form-control" placeholder="Enter last name">
+                </div>
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="txtUsername" required class="form-control" placeholder="Enter username">
+                </div>
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="txtEmail" required class="form-control" placeholder="Enter email address">
+                </div>
+                <div class="form-group">
+                    <label>Initial Password</label>
+                    <input type="password" id="txtPassword" required class="form-control" placeholder="Enter temporary password">
+                </div>
+                <div class="form-group">
+                    <label>User Role</label>
+                    <select id="selRole" class="form-control">
+                        <option value="2">Manager</option>
+                        <option value="3">Inventory Staff</option>
+                        <option value="4">Purchasing Staff</option>
+                        <option value="5">Staff</option>
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" id="btnCloseModal" class="btn btn-secondary">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="users.js"></script>
+</body>
+</html>
