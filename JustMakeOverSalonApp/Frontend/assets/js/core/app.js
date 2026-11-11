@@ -23,10 +23,22 @@ registerRoute('dashboard', {
     module: () => import('../../../pages/dashboard/dashboard.js')
 });
 
+registerRoute('users', {
+    title: 'Users & Roles',
+    subtitle: 'Manage accounts, access levels, and security roles',
+    module: () => import('../../../pages/users/users.js')
+});
+
+// Kani nga side-effect imports kay nag-register sa mga module routes.
+// Ang kada module dev kay nag-edit ug iya ra nga route file, dili ini.
+import '../routes/requisitions-route.js';
+import '../routes/inventory-route.js';
+import '../routes/purchasing-route.js';
+import '../routes/receiving-route.js';
+
 // Kani mga placeholder routes kay para sa modules nga i-build sa sunod phases.
 const upcomingModules = [
-    'inventory', 'requisitions', 'purchasing', 'receiving',
-    'notifications', 'reports', 'users', 'suppliers'
+    'notifications', 'reports', 'suppliers'
 ];
 
 upcomingModules.forEach((name) => {

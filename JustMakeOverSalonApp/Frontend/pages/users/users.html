@@ -1,93 +1,173 @@
-﻿<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Users & Roles Management</title>
-    <!-- Kani nga CSS links kay para sa disenyo sa page ug mga components -->
-    <link rel="stylesheet" href="../../assets/css/tokens.css">
-    <link rel="stylesheet" href="../../assets/css/reset.css">
-    <link rel="stylesheet" href="../../assets/css/layout.css">
-    <link rel="stylesheet" href="../../assets/css/components.css">
-    <link rel="stylesheet" href="../../assets/css/utilities.css">
-</head>
-<body>
-    <!-- Kani nga container kay para sa Users and Roles module -->
-    <div class="page-container">
-        <div class="page-header">
-            <div class="header-title">
-                <h2>Users & Roles Management</h2>
-                <p>Manage employee accounts, access levels, and security roles.</p>
-            </div>
-            <div class="header-actions">
-                <button id="btnOpenAddUser" class="btn btn-primary">+ New User</button>
-            </div>
+﻿<!-- Kani nga users page kay para sa user accounts ug roles management. -->
+<div class="users-page">
+    <div class="page-header">
+        <div>
+            <h2 class="page-header__title">Users &amp; Roles</h2>
+            <p class="page-header__subtitle">Manage employee accounts, access levels, and security roles.</p>
         </div>
-
-        <div class="card mt-4">
-            <div class="card-body">
-                <table id="usersTable" class="data-table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Full Name</th>
-                            <th>Username</th>
-                            <th>Email</th>
-                            <th>Role</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Dinhi i-load ang mga user records gikan sa backend -->
-                    </tbody>
-                </table>
-            </div>
+        <div class="u-flex--gap">
+            <button type="button" class="btn btn--ghost" id="btnNewRole" data-requires="settings.manage">+ New Role</button>
+            <button type="button" class="btn btn--primary" id="btnOpenAddUser" data-requires="users.create">+ New User</button>
         </div>
     </div>
 
-    <!-- Modal para sa paghimo og bag-ong user account -->
-    <div id="userModal" class="modal" style="display:none;">
-        <div class="modal-content">
-            <h3>Create New User Account</h3>
-            <form id="userForm">
-                <div class="form-group">
-                    <label>First Name</label>
-                    <input type="text" id="txtFirstName" required class="form-control" placeholder="Enter first name">
+    <!-- Kani nga card kay para sa user accounts table. -->
+    <div class="card">
+        <div class="users-toolbar">
+            <input type="search" id="userSearch" class="form-field__input users-toolbar__search"
+                   placeholder="Search name, username, email, or role&hellip;" autocomplete="off">
+        </div>
+        <div class="data-table" id="usersTableWrap">
+            <table id="usersTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Full Name</th>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Last Login</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTableBody">
+                    <tr><td colspan="8" class="data-table__empty">Loading users&hellip;</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Kani nga card kay para sa roles summary table. -->
+    <div class="card u-mt-6">
+        <h3 class="u-mb-4" style="font-size: 17px;">Roles</h3>
+        <div class="data-table">
+            <table id="rolesTable">
+                <thead>
+                    <tr>
+                        <th>Role</th>
+                        <th>Description</th>
+                        <th>Permissions</th>
+                        <th>Active Users</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="rolesTableBody">
+                    <tr><td colspan="6" class="data-table__empty">Loading roles&hellip;</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Kani nga modal kay para sa paghimo ug pag-edit sa user account. -->
+    <div id="userModal" class="modal-overlay u-hidden">
+        <div class="modal">
+            <div class="modal__header">
+                <h3 class="modal__title" id="userModalTitle">New User Account</h3>
+                <button type="button" class="modal__close" id="btnCloseUserModal" aria-label="Close">&times;</button>
+            </div>
+            <form id="userForm" novalidate>
+                <div class="modal__body">
+                    <input type="hidden" id="editUserID" value="">
+                    <div class="form-field">
+                        <label class="form-field__label" for="txtFirstName">First name</label>
+                        <input type="text" id="txtFirstName" class="form-field__input" maxlength="50" autocomplete="off">
+                    </div>
+                    <div class="form-field">
+                        <label class="form-field__label" for="txtLastName">Last name</label>
+                        <input type="text" id="txtLastName" class="form-field__input" maxlength="50" autocomplete="off">
+                    </div>
+                    <div class="form-field">
+                        <label class="form-field__label" for="txtMiddleName">Middle name <span class="u-text-muted">(optional)</span></label>
+                        <input type="text" id="txtMiddleName" class="form-field__input" maxlength="50" autocomplete="off">
+                    </div>
+                    <div class="form-field" id="fieldUsername">
+                        <label class="form-field__label" for="txtUsername">Username</label>
+                        <input type="text" id="txtUsername" class="form-field__input" maxlength="50" autocomplete="off">
+                    </div>
+                    <div class="form-field" id="fieldPassword">
+                        <label class="form-field__label" for="txtPassword">Initial password</label>
+                        <input type="password" id="txtPassword" class="form-field__input" autocomplete="new-password">
+                        <span class="form-field__error" id="errorPassword"></span>
+                    </div>
+                    <div class="form-field">
+                        <label class="form-field__label" for="txtEmail">Email address</label>
+                        <input type="text" id="txtEmail" class="form-field__input" maxlength="254" autocomplete="off">
+                    </div>
+                    <div class="form-field">
+                        <label class="form-field__label" for="selRole">Role</label>
+                        <select id="selRole" class="form-field__input"></select>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>Last Name</label>
-                    <input type="text" id="txtLastName" required class="form-control" placeholder="Enter last name">
-                </div>
-                <div class="form-group">
-                    <label>Username</label>
-                    <input type="text" id="txtUsername" required class="form-control" placeholder="Enter username">
-                </div>
-                <div class="form-group">
-                    <label>Email Address</label>
-                    <input type="email" id="txtEmail" required class="form-control" placeholder="Enter email address">
-                </div>
-                <div class="form-group">
-                    <label>Initial Password</label>
-                    <input type="password" id="txtPassword" required class="form-control" placeholder="Enter temporary password">
-                </div>
-                <div class="form-group">
-                    <label>User Role</label>
-                    <select id="selRole" class="form-control">
-                        <option value="2">Manager</option>
-                        <option value="3">Inventory Staff</option>
-                        <option value="4">Purchasing Staff</option>
-                        <option value="5">Staff</option>
-                    </select>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" id="btnCloseModal" class="btn btn-secondary">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save User</button>
+                <div class="modal__footer">
+                    <button type="button" class="btn btn--ghost" id="btnCancelUser">Cancel</button>
+                    <button type="submit" class="btn btn--primary" id="btnSaveUser">Save User</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <script src="users.js"></script>
-</body>
-</html>
+    <!-- Kani nga modal kay para sa admin password reset. -->
+    <div id="resetModal" class="modal-overlay u-hidden">
+        <div class="modal">
+            <div class="modal__header">
+                <h3 class="modal__title" id="resetModalTitle">Reset Password</h3>
+                <button type="button" class="modal__close" id="btnCloseResetModal" aria-label="Close">&times;</button>
+            </div>
+            <form id="resetForm" novalidate>
+                <div class="modal__body">
+                    <p class="u-text-muted u-mb-4" id="resetUserInfo"></p>
+                    <div class="form-field">
+                        <label class="form-field__label" for="txtNewPassword">Temporary password</label>
+                        <input type="password" id="txtNewPassword" class="form-field__input" autocomplete="new-password">
+                        <span class="form-field__error" id="errorNewPassword"></span>
+                    </div>
+                    <p class="u-text-muted" style="font-size: 12px;">
+                        The user will be required to change this password at the next sign-in.
+                    </p>
+                </div>
+                <div class="modal__footer">
+                    <button type="button" class="btn btn--ghost" id="btnCancelReset">Cancel</button>
+                    <button type="submit" class="btn btn--primary">Reset Password</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Kani nga modal kay para sa paghimo ug pag-edit sa role. -->
+    <div id="roleModal" class="modal-overlay u-hidden">
+        <div class="modal modal--wide">
+            <div class="modal__header">
+                <h3 class="modal__title" id="roleModalTitle">New Role</h3>
+                <button type="button" class="modal__close" id="btnCloseRoleModal" aria-label="Close">&times;</button>
+            </div>
+            <form id="roleForm" novalidate>
+                <div class="modal__body">
+                    <input type="hidden" id="editRoleID" value="">
+                    <div class="form-field">
+                        <label class="form-field__label" for="txtRoleName">Role name</label>
+                        <input type="text" id="txtRoleName" class="form-field__input" maxlength="50" autocomplete="off">
+                    </div>
+                    <div class="form-field">
+                        <label class="form-field__label" for="txtRoleDescription">Description</label>
+                        <input type="text" id="txtRoleDescription" class="form-field__input" maxlength="200" autocomplete="off">
+                    </div>
+                    <div class="form-field">
+                        <label class="form-field__label">Permissions</label>
+                        <div class="permissions-grid" id="permissionsGrid"></div>
+                    </div>
+                    <div class="form-field" id="fieldRoleActive">
+                        <label class="form-field__label u-flex--gap">
+                            <input type="checkbox" id="chkRoleActive" checked> Role is active
+                        </label>
+                    </div>
+                </div>
+                <div class="modal__footer">
+                    <button type="button" class="btn btn--ghost" id="btnCancelRole">Cancel</button>
+                    <button type="submit" class="btn btn--primary">Save Role</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
