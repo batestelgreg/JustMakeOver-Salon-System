@@ -62,9 +62,26 @@
       <Name>JustMakeOverSalonApp.Core</Name>
       <Project>{8B2C0D5E-4A31-4F7B-9E6C-1D2A5F84B7A9}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\JustMakeOverSalonApp.Requisition\JustMakeOverSalonApp.Requisition.csproj">
+      <Name>JustMakeOverSalonApp.Requisition</Name>
+      <Project>{A1000000-0000-4000-9000-000000000001}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\JustMakeOverSalonApp.Inventory\JustMakeOverSalonApp.Inventory.csproj">
+      <Name>JustMakeOverSalonApp.Inventory</Name>
+      <Project>{A1000000-0000-4000-9000-000000000002}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\JustMakeOverSalonApp.Purchasing\JustMakeOverSalonApp.Purchasing.csproj">
+      <Name>JustMakeOverSalonApp.Purchasing</Name>
+      <Project>{A1000000-0000-4000-9000-000000000003}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\JustMakeOverSalonApp.Delivery\JustMakeOverSalonApp.Delivery.csproj">
+      <Name>JustMakeOverSalonApp.Delivery</Name>
+      <Project>{A1000000-0000-4000-9000-000000000004}</Project>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Bridge\FrontendBridge.cs" />
+    <Compile Include="Bridge\Modules\UsersModule.cs" />
     <Compile Include="Bridge\OperationNames.cs" />
     <Compile Include="Forms\MainForm.cs">
       <SubType>Form</SubType>
