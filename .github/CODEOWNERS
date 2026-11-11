@@ -1,0 +1,17 @@
+﻿# Default: leader
+* @batestelgreg
+
+# Shared foundation
+/JustMakeOverSalonApp/Bridge/FrontendBridge.cs @batestelgreg
+/JustMakeOverSalonApp/Bridge/Modules/ @batestelgreg
+/JustMakeOverSalonApp.Core/ @batestelgreg
+/JustMakeOverSalonApp/Frontend/assets/js/core/ @batestelgreg
+/JustMakeOverSalonApp/Frontend/assets/js/routes/ @batestelgreg
+/Database/ @batestelgreg
+/.github/ @batestelgreg
+
+# Modules
+/JustMakeOverSalonApp.Inventory/ @batestelgreg
+/JustMakeOverSalonApp.Requisition/ @TwistedFate771
+/JustMakeOverSalonApp.Purchasing/ @renzolouis012
+/JustMakeOverSalonApp.Delivery/ @renzolouis012
