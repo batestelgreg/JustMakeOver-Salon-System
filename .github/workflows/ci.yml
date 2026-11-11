@@ -1,0 +1,24 @@
+﻿name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: microsoft/setup-msbuild@v2
+      - uses: nuget/setup-nuget@v2
+
+      - name: NuGet restore (packages.config)
+        run: nuget restore JustMakeOverSalonApp/JustMakeOverSalonApp.csproj -PackagesDirectory packages
+
+      - name: MSBuild restore (SDK projects)
+        run: msbuild JustMakeOverSalonApp.slnx -t:Restore -p:Configuration=Debug -v:m -nologo
+
+      - name: Build
+        run: msbuild JustMakeOverSalonApp.slnx -p:Configuration=Debug -v:m -nologo
