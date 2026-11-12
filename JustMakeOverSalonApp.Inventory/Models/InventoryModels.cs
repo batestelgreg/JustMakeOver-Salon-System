@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace JustMakeOverSalonApp.Inventory.Models
 {
@@ -86,5 +87,16 @@ namespace JustMakeOverSalonApp.Inventory.Models
         public int PendingRepFs { get; set; }
         public int PartialReservations { get; set; }
         public int RecentMovements { get; set; }
+    }
+
+    // Kani nga model kay nagdala sa tanang page data sa usa ka database call
+    // aron dili lima ka connections matag pag-load sa Inventory page.
+    public sealed class InventoryOverview
+    {
+        public IList<InventoryItemRecord> Items { get; set; }
+        public IList<CategoryRecord> Categories { get; set; }
+        public IList<ReservationRecord> Reservations { get; set; }
+        public IList<RepFRecord> RepFs { get; set; }
+        public IList<InventoryLogRecord> Logs { get; set; }
     }
 }

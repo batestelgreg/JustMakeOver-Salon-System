@@ -1,6 +1,7 @@
 using System;
 using System.Configuration;
 using System.Data.SqlClient;
+using JustMakeOverSalonApp.Core.Validation;
 
 namespace JustMakeOverSalonApp.Core.Data
 {
@@ -29,15 +30,36 @@ namespace JustMakeOverSalonApp.Core.Data
                     ConnectionName + "' in the application configuration file.");
             }
 
-            ConnectionString = settings.ConnectionString;
+            // Kani nga tuning kay para dili mo-hang ang app kung busy ang SQL:
+            // fast-fail nga 5 seconds ra, walay 15-second nga default timeout.
+            var builder = new SqlConnectionStringBuilder(settings.ConnectionString)
+            {
+                ConnectTimeout = 5,
+                Pooling = true
+            };
+
+            ConnectionString = builder.ConnectionString;
         }
 
         public SqlConnection CreateOpenConnection()
         {
             // Diri ibukas ang connection ug i-dispose ra sa tawag kung human na.
             var connection = new SqlConnection(ConnectionString);
-            connection.Open();
-            return connection;
+            try
+            {
+                connection.Open();
+                return connection;
+            }
+            catch (SqlException)
+            {
+                // Kani nga catch kay para ang connection timeout moabot nga
+                // friendly nga English message, dili raw nga exception nga
+                // mo-crash sa app. Gi-dispose ang connection sa wala pa throw.
+                connection.Dispose();
+
+                throw new BusinessException(
+                    "The application could not reach the database. Please try again in a moment.");
+            }
         }
     }
 }

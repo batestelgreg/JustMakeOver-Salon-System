@@ -22,6 +22,14 @@ namespace JustMakeOverSalonApp.Inventory.Services
                 throw new ArgumentNullException(nameof(repository));
         }
 
+        // Kani nga method nagkuha sa TANANG page data sa usa ra ka call.
+        // Kani nga optimization kay para paspas ang pag-load sa Inventory page.
+        public Task<InventoryOverview> LoadOverviewAsync(CurrentUser actor)
+        {
+            actor.RequirePermission(PermissionCodes.InventoryView);
+            return Task.Run(() => repository.LoadOverview(actor.UserID));
+        }
+
         // Kani nga method nagkuha sa tanang items ug stock balances.
         public Task<IList<InventoryItemRecord>> LoadItemsAsync(CurrentUser actor)
         {

@@ -21,6 +21,7 @@ namespace JustMakeOverSalonApp.Inventory.Operations
                 new Repositories.InventoryRepository(new SqlConnectionFactory()));
 
             // Kani nga mga operation kay ang bridge contract sa Inventory page.
+            registry.Register("InventoryOverview", HandleInventoryOverviewAsync);
             registry.Register("InventoryList", HandleInventoryListAsync);
             registry.Register("InventoryCategories", HandleInventoryCategoriesAsync);
             registry.Register("InventoryCreate", HandleInventoryCreateAsync);
@@ -32,6 +33,15 @@ namespace JustMakeOverSalonApp.Inventory.Operations
             registry.Register("InventoryReservations", HandleInventoryReservationsAsync);
             registry.Register("InventoryRepFs", HandleInventoryRepFsAsync);
             registry.Register("InventoryPanel", HandleInventoryPanelAsync);
+        }
+
+        // Kani nga handler nagdala sa TANANG page data sa usa ra ka response.
+        // Kani nga optimization kay para ang page load dili mo-hulat ug lima ka calls.
+        private async Task HandleInventoryOverviewAsync(Dictionary<string, object> payload, string requestID)
+        {
+            var actor = context.RequireUser();
+            var overview = await service.LoadOverviewAsync(actor);
+            context.SendResponse(requestID, true, overview, null);
         }
 
         // Kani nga handler nagdala sa tanang items ug stock balances.

@@ -58,11 +58,7 @@ namespace JustMakeOverSalonApp.Inventory.Repositories
                 {
                     while (reader.Read())
                     {
-                        categories.Add(new CategoryRecord
-                        {
-                            CategoryID = reader.GetInt32(0),
-                            CategoryName = reader.GetString(1)
-                        });
+                        categories.Add(MapCategory(reader));
                     }
                 }
             }
@@ -213,20 +209,7 @@ namespace JustMakeOverSalonApp.Inventory.Repositories
                 {
                     while (reader.Read())
                     {
-                        logs.Add(new InventoryLogRecord
-                        {
-                            LogID = reader.GetInt64(0),
-                            ItemName = reader.GetString(1),
-                            ItemCode = reader.GetString(2),
-                            TransactionType = reader.GetString(3),
-                            QuantityChange = reader.GetInt32(4),
-                            PreviousQuantity = reader.GetInt32(5),
-                            NewQuantity = reader.GetInt32(6),
-                            ReferenceType = reader.IsDBNull(7) ? null : reader.GetString(7),
-                            Remarks = reader.IsDBNull(8) ? null : reader.GetString(8),
-                            TransactionDate = reader.GetDateTime(9),
-                            UserName = reader.IsDBNull(10) ? null : reader.GetString(10)
-                        });
+                        logs.Add(MapLog(reader));
                     }
                 }
             }
@@ -250,17 +233,7 @@ namespace JustMakeOverSalonApp.Inventory.Repositories
                 {
                     while (reader.Read())
                     {
-                        reservations.Add(new ReservationRecord
-                        {
-                            ReservationID = reader.GetInt32(0),
-                            RequisitionID = reader.GetInt32(2),
-                            ItemName = reader.GetString(3),
-                            ItemCode = reader.GetString(4),
-                            QuantityReserved = reader.GetInt32(5),
-                            ReservationDate = reader.GetDateTime(6),
-                            Status = reader.GetString(7),
-                            RequestorName = reader.IsDBNull(8) ? null : reader.GetString(8)
-                        });
+                        reservations.Add(MapReservation(reader));
                     }
                 }
             }
@@ -284,16 +257,7 @@ namespace JustMakeOverSalonApp.Inventory.Repositories
                 {
                     while (reader.Read())
                     {
-                        repFs.Add(new RepFRecord
-                        {
-                            RepFID = reader.GetInt32(0),
-                            ItemID = reader.GetInt32(1),
-                            ItemName = reader.GetString(2),
-                            ItemCode = reader.GetString(3),
-                            QuantityNeeded = reader.GetInt32(4),
-                            DateGenerated = reader.GetDateTime(5),
-                            Status = reader.GetString(6)
-                        });
+                        repFs.Add(MapRepF(reader));
                     }
                 }
             }
@@ -332,6 +296,66 @@ namespace JustMakeOverSalonApp.Inventory.Repositories
             }
         }
 
+        // Kani nga method nagkuha sa TANANG page data sa usa ra ka database call.
+        // Kani nga optimization kay para ang page load kay usa lang ka connection
+        // instead sa lima nga magkasunod-sunod nga calls.
+        public InventoryOverview LoadOverview(int actorUserID)
+        {
+            var overview = new InventoryOverview
+            {
+                Items = new List<InventoryItemRecord>(),
+                Categories = new List<CategoryRecord>(),
+                Reservations = new List<ReservationRecord>(),
+                RepFs = new List<RepFRecord>(),
+                Logs = new List<InventoryLogRecord>()
+            };
+
+            using (var connection = connectionFactory.CreateOpenConnection())
+            using (var command = new SqlCommand("usp_Inventory_GetOverview", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            })
+            {
+                command.Parameters.Add("@ActorUserID", SqlDbType.Int).Value = actorUserID;
+
+                using (var reader = command.ExecuteReader())
+                {
+                    // Kani nga resultset kay para sa items.
+                    while (reader.Read())
+                    {
+                        overview.Items.Add(MapItem(reader));
+                    }
+
+                    // Kani nga NextResult kay para maabot ang sunod nga resultset.
+                    reader.NextResult();
+                    while (reader.Read())
+                    {
+                        overview.Categories.Add(MapCategory(reader));
+                    }
+
+                    reader.NextResult();
+                    while (reader.Read())
+                    {
+                        overview.Reservations.Add(MapReservation(reader));
+                    }
+
+                    reader.NextResult();
+                    while (reader.Read())
+                    {
+                        overview.RepFs.Add(MapRepF(reader));
+                    }
+
+                    reader.NextResult();
+                    while (reader.Read())
+                    {
+                        overview.Logs.Add(MapLog(reader));
+                    }
+                }
+            }
+
+            return overview;
+        }
+
         // Kani nga mapper nag-convert sa row ngadto sa InventoryItemRecord.
         private static InventoryItemRecord MapItem(SqlDataReader reader)
         {
@@ -350,6 +374,66 @@ namespace JustMakeOverSalonApp.Inventory.Repositories
                 QuantityReserved = reader.GetInt32(10),
                 QuantityAvailable = reader.GetInt32(11),
                 IsLowStock = reader.GetBoolean(12)
+            };
+        }
+
+        // Kani nga mapper nag-convert sa row ngadto sa CategoryRecord.
+        private static CategoryRecord MapCategory(SqlDataReader reader)
+        {
+            return new CategoryRecord
+            {
+                CategoryID = reader.GetInt32(0),
+                CategoryName = reader.GetString(1)
+            };
+        }
+
+        // Kani nga mapper nag-convert sa row ngadto sa InventoryLogRecord.
+        private static InventoryLogRecord MapLog(SqlDataReader reader)
+        {
+            return new InventoryLogRecord
+            {
+                LogID = reader.GetInt64(0),
+                ItemName = reader.GetString(1),
+                ItemCode = reader.GetString(2),
+                TransactionType = reader.GetString(3),
+                QuantityChange = reader.GetInt32(4),
+                PreviousQuantity = reader.GetInt32(5),
+                NewQuantity = reader.GetInt32(6),
+                ReferenceType = reader.IsDBNull(7) ? null : reader.GetString(7),
+                Remarks = reader.IsDBNull(9) ? null : reader.GetString(9),
+                TransactionDate = reader.GetDateTime(10),
+                UserName = reader.IsDBNull(11) ? null : reader.GetString(11)
+            };
+        }
+
+        // Kani nga mapper nag-convert sa row ngadto sa ReservationRecord.
+        private static ReservationRecord MapReservation(SqlDataReader reader)
+        {
+            return new ReservationRecord
+            {
+                ReservationID = reader.GetInt32(0),
+                RequisitionID = reader.GetInt32(2),
+                ItemName = reader.GetString(3),
+                ItemCode = reader.GetString(4),
+                QuantityReserved = reader.GetInt32(5),
+                ReservationDate = reader.GetDateTime(6),
+                Status = reader.GetString(7),
+                RequestorName = reader.IsDBNull(8) ? null : reader.GetString(8)
+            };
+        }
+
+        // Kani nga mapper nag-convert sa row ngadto sa RepFRecord.
+        private static RepFRecord MapRepF(SqlDataReader reader)
+        {
+            return new RepFRecord
+            {
+                RepFID = reader.GetInt32(0),
+                ItemID = reader.GetInt32(1),
+                ItemName = reader.GetString(2),
+                ItemCode = reader.GetString(3),
+                QuantityNeeded = reader.GetInt32(4),
+                DateGenerated = reader.GetDateTime(5),
+                Status = reader.GetString(6)
             };
         }
     }

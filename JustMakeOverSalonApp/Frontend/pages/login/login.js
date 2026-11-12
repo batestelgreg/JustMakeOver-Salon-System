@@ -52,7 +52,10 @@ export async function init(root) {
                     publish(AppEvents.LoginSucceeded, result);
                 }
             } catch (error) {
+                // Kani nga block kay nagpakita ug validation message sa form
+                // (inline + toast) — dili exception, friendly nga English lang.
                 showToast('error', error.message);
+                showInlineError(loginForm, 'password', error.message);
             }
         });
     };
@@ -106,7 +109,9 @@ export async function init(root) {
 
                 publish(AppEvents.LoginSucceeded, pendingSession);
             } catch (error) {
+                // Kani nga block kay validation message ra — dili exception.
                 showToast('error', error.message);
+                showInlineError(changeForm, 'currentPassword', error.message);
             }
         });
     };
@@ -114,6 +119,22 @@ export async function init(root) {
     // Kani nga wiring kay nagdugang sa form event listeners.
     loginForm.addEventListener('submit', loginHandler);
     changeForm.addEventListener('submit', changeHandler);
+}
+
+/**
+ * Kani nga helper kay nagpakita ug inline validation message sa form field.
+ * Kini kay para ang mali nga credentials dili mo-ingon nga exception,
+ * validation message ra nga English.
+ */
+function showInlineError(form, fieldName, message) {
+    const errorElement = form.querySelector('[data-error-for="' + fieldName + '"]');
+    const field = form.elements[fieldName]?.closest('.form-field');
+    if (errorElement) {
+        errorElement.textContent = message;
+    }
+    if (field) {
+        field.classList.add('form-field--error');
+    }
 }
 
 /**

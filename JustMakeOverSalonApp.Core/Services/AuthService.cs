@@ -67,10 +67,12 @@ namespace JustMakeOverSalonApp.Core.Services
                 return LoginResult.Failed("Invalid username or password.");
             }
 
-            userRepository.RecordSuccessfulLogin(user.UserID);
-
-            // Kani nga permissions kay gikan sa database, dili gikan sa frontend.
-            var permissions = userRepository.GetPermissions(user.UserID);
+            // Kani nga call kay ang optimized nga path: usa ra ka connection
+            // ang login mark, permissions ug audit log (kaniadto tolo).
+            var permissions = userRepository.CompleteSuccessfulLogin(
+                user.UserID,
+                "User signed in to the desktop application.",
+                ipAddress);
             var currentUser = new CurrentUser(
                 user.UserID,
                 user.Username,
@@ -79,12 +81,6 @@ namespace JustMakeOverSalonApp.Core.Services
                 user.RoleName,
                 user.MustChangePassword,
                 permissions);
-
-            auditRepository.LogAction(
-                user.UserID,
-                "LOGIN_SUCCEEDED",
-                "User signed in to the desktop application.",
-                ipAddress);
 
             return LoginResult.Successful(currentUser);
         }

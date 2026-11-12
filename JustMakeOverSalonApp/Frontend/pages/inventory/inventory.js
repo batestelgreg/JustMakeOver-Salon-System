@@ -40,26 +40,18 @@ export async function init(root) {
 }
 
 /**
- * Kani nga reload kay nagkuha sa items, reservations, RepFs ug logs gikan sa backend.
+ * Kani nga reload kay nagkuha sa TANANG page data sa usa ra ka bridge call
+ * (items + categories + reservations + RepFs + logs) aron paspas ang load.
  */
 async function reloadAll(root) {
     try {
-        const [itemsPayload, reservationsPayload, repFsPayload, logsPayload] = await Promise.all([
-            invoke('InventoryList'),
-            invoke('InventoryReservations'),
-            invoke('InventoryRepFs'),
-            invoke('InventoryLogs')
-        ]);
+        const overview = await invoke('InventoryOverview');
 
-        itemsData = itemsPayload.items || [];
-        reservationsData = reservationsPayload.reservations || [];
-        repFsData = repFsPayload.repFs || [];
-        logsData = logsPayload.logs || [];
-
-        if (categoriesData.length === 0) {
-            const categoriesPayload = await invoke('InventoryCategories');
-            categoriesData = categoriesPayload.categories || [];
-        }
+        itemsData = overview.items || [];
+        categoriesData = overview.categories || [];
+        reservationsData = overview.reservations || [];
+        repFsData = overview.repFs || [];
+        logsData = overview.logs || [];
 
         renderItemsTable(root);
         renderReservationsTable(root);

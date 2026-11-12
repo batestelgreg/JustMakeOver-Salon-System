@@ -103,8 +103,8 @@ BEGIN
            i.UnitOfMeasure, i.ReorderPoint, i.UnitPrice, i.IsActive,
            inv.QuantityOnHand, inv.QuantityReserved,
            (inv.QuantityOnHand - inv.QuantityReserved) AS QuantityAvailable,
-           CASE WHEN (inv.QuantityOnHand - inv.QuantityReserved) <= i.ReorderPoint
-                THEN 1 ELSE 0 END AS IsLowStock
+           CAST(CASE WHEN (inv.QuantityOnHand - inv.QuantityReserved) <= i.ReorderPoint
+                THEN 1 ELSE 0 END AS BIT) AS IsLowStock
     FROM ITEMS i
     INNER JOIN CATEGORIES c ON c.CategoryID = i.CategoryID
     INNER JOIN INVENTORY inv ON inv.ItemID = i.ItemID
@@ -744,6 +744,62 @@ BEGIN
     INNER JOIN ITEMS i ON i.ItemID = f.ItemID
     ORDER BY CASE WHEN f.Status = 'Pending' THEN 0 ELSE 1 END, f.DateGenerated DESC;
 END;
+GO
+
+/* ================================================================
+   13. OVERVIEW — usa ra ka call nga magdala sa tanang page data
+      (items + categories + reservations + RepFs + logs) aron
+      dili na magkagawas ang lima ka database connections matag
+      pag-load sa Inventory page.
+   ================================================================ */
+CREATE OR ALTER PROCEDURE usp_Inventory_GetOverview
+    @ActorUserID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM USERS u
+        INNER JOIN ROLE_PERMISSIONS rp ON rp.RoleID = u.RoleID
+        INNER JOIN PERMISSIONS p ON p.PermissionID = rp.PermissionID
+        WHERE u.UserID = @ActorUserID AND u.IsActive = 1
+          AND p.PermissionCode = N'inventory.view'
+    )
+        THROW 50329, 'You do not have permission to view inventory.', 1;
+
+    -- Kani nga resultset kay para sa items nga may live stock balance.
+    EXEC usp_Inventory_GetAll @ActorUserID = @ActorUserID;
+
+    -- Kani nga resultset kay para sa category dropdown.
+    EXEC usp_Inventory_GetCategories @ActorUserID = @ActorUserID;
+
+    -- Kani nga resultset kay para sa active reservations.
+    EXEC usp_Inventory_GetReservations @ActorUserID = @ActorUserID;
+
+    -- Kani nga resultset kay para sa replenishment requests.
+    EXEC usp_Inventory_GetRepFs @ActorUserID = @ActorUserID;
+
+    -- Kani nga resultset kay para sa recent stock movements.
+    EXEC usp_Inventory_GetLogs @ActorUserID = @ActorUserID;
+END;
+GO
+
+/* ================================================================
+   INDEXES — para paspas ang mga linya nga kanunay gipangita sa
+   inventory queries (logs, notifications, repfs, reservations).
+   ================================================================ */
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_INVENTORY_LOGS_Date')
+    CREATE INDEX IX_INVENTORY_LOGS_Date ON dbo.INVENTORY_LOGS (TransactionDate DESC, ItemID);
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_NOTIFICATIONS_Recipient')
+    CREATE INDEX IX_NOTIFICATIONS_Recipient ON dbo.NOTIFICATIONS (RecipientUserID, IsRead);
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_REPF_Item_Status')
+    CREATE INDEX IX_REPF_Item_Status ON dbo.REPLENISHMENT_REQUESTS (ItemID, Status);
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_RESERVATIONS_Detail')
+    CREATE INDEX IX_RESERVATIONS_Detail ON dbo.INVENTORY_RESERVATIONS (RequisitionDetailID, Status);
 GO
 
 /* ================================================================
