@@ -45,7 +45,8 @@ namespace JustMakeOverSalonApp.Inventory.Services
         }
 
         // Kani nga method nag-himo ug bag-ong inventory item.
-        public Task<int> CreateItemAsync(
+        // Ang ItemCode kay auto-generated sa backend, dili gikan sa user.
+        public Task<CreateItemResult> CreateItemAsync(
             CurrentUser actor, string itemCode, string itemName,
             int categoryID, string unitOfMeasure, int reorderPoint,
             decimal unitPrice, int initialQuantity)
@@ -54,7 +55,7 @@ namespace JustMakeOverSalonApp.Inventory.Services
 
             return Task.Run(() =>
             {
-                ValidateItemDetails(itemCode, itemName, unitOfMeasure);
+                ValidateItemName(unitOfMeasure, itemName);
 
                 if (reorderPoint < 0)
                 {
@@ -75,7 +76,7 @@ namespace JustMakeOverSalonApp.Inventory.Services
                     actor.UserID,
                     new InventoryItemRecord
                     {
-                        ItemCode = itemCode.Trim(),
+                        ItemCode = string.IsNullOrWhiteSpace(itemCode) ? null : itemCode.Trim(),
                         ItemName = itemName.Trim(),
                         CategoryID = categoryID,
                         UnitOfMeasure = unitOfMeasure.Trim(),
@@ -83,6 +84,40 @@ namespace JustMakeOverSalonApp.Inventory.Services
                         UnitPrice = unitPrice
                     },
                     initialQuantity);
+            });
+        }
+
+        // Kani nga method nag-generate sa sunod nga ItemCode para sa form preview.
+        public Task<string> GetNextItemCodeAsync(CurrentUser actor)
+        {
+            actor.RequirePermission(PermissionCodes.InventoryCreate);
+            return Task.Run(() => repository.GetNextItemCode(actor.UserID));
+        }
+
+        // Kani nga method nag-save sa category (create o rename + toggle).
+        public Task<int> SaveCategoryAsync(
+            CurrentUser actor, int categoryID, string categoryName, bool isActive)
+        {
+            actor.RequirePermission(PermissionCodes.SettingsManage);
+
+            return Task.Run(() =>
+            {
+                if (string.IsNullOrWhiteSpace(categoryName))
+                {
+                    throw new BusinessException("The category name is required.");
+                }
+
+                if (categoryName.Trim().Length > 100)
+                {
+                    throw new BusinessException(
+                        "The category name must be 100 characters or less.");
+                }
+
+                return repository.SaveCategory(
+                    actor.UserID,
+                    categoryID > 0 ? categoryID : (int?)null,
+                    categoryName,
+                    isActive);
             });
         }
 
@@ -237,7 +272,7 @@ namespace JustMakeOverSalonApp.Inventory.Services
             return Task.Run(() => repository.LoadPanel(actor.UserID));
         }
 
-        // Kani nga validator kay para sa item form details.
+        // Kani nga validator kay para sa item form details nga may item code.
         private static void ValidateItemDetails(
             string itemCode, string itemName, string unitOfMeasure)
         {
@@ -252,6 +287,12 @@ namespace JustMakeOverSalonApp.Inventory.Services
                     "The item code must be 30 characters or less.");
             }
 
+            ValidateItemName(unitOfMeasure, itemName);
+        }
+
+        // Kani nga validator kay para sa create nga auto-generated code ra.
+        private static void ValidateItemName(string unitOfMeasure, string itemName)
+        {
             if (string.IsNullOrWhiteSpace(itemName))
             {
                 throw new BusinessException("The item name is required.");

@@ -42,7 +42,8 @@ namespace JustMakeOverSalonApp.Inventory.Repositories
             return items;
         }
 
-        // Kani nga method nagkuha sa categories para sa item form.
+        // Kani nga method nagkuha sa categories (active + counts) para sa
+        // item form dropdown ug settings list.
         public IList<CategoryRecord> LoadCategories(int actorUserID)
         {
             var categories = new List<CategoryRecord>();
@@ -66,8 +67,46 @@ namespace JustMakeOverSalonApp.Inventory.Repositories
             return categories;
         }
 
-        // Kani nga method nag-himo ug bag-ong item ug mo-return sa ItemID.
-        public int CreateItem(int actorUserID, InventoryItemRecord item, int initialQuantity)
+        // Kani nga method nag-generate sa sunod nga auto ItemCode.
+        public string GetNextItemCode(int actorUserID)
+        {
+            using (var connection = connectionFactory.CreateOpenConnection())
+            using (var command = new SqlCommand("usp_Inventory_GetNextItemCode", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            })
+            {
+                command.Parameters.Add("@ActorUserID", SqlDbType.Int).Value = actorUserID;
+
+                using (var reader = command.ExecuteReader())
+                {
+                    return reader.Read() ? reader.GetString(0) : string.Empty;
+                }
+            }
+        }
+
+        // Kani nga method nag-save sa category (create o rename + toggle).
+        public int SaveCategory(int actorUserID, int? categoryID, string categoryName, bool isActive)
+        {
+            using (var connection = connectionFactory.CreateOpenConnection())
+            using (var command = new SqlCommand("usp_Inventory_SaveCategory", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            })
+            {
+                command.Parameters.Add("@ActorUserID", SqlDbType.Int).Value = actorUserID;
+                command.Parameters.Add("@CategoryID", SqlDbType.Int).Value =
+                    categoryID.HasValue ? (object)categoryID.Value : DBNull.Value;
+                command.Parameters.Add("@CategoryName", SqlDbType.NVarChar, 100).Value = categoryName;
+                command.Parameters.Add("@IsActive", SqlDbType.Bit).Value = isActive;
+
+                var result = command.ExecuteScalar();
+                return Convert.ToInt32(result);
+            }
+        }
+
+        // Kani nga method nag-himo ug bag-ong item ug mo-return sa ItemID + code.
+        public CreateItemResult CreateItem(int actorUserID, InventoryItemRecord item, int initialQuantity)
         {
             using (var connection = connectionFactory.CreateOpenConnection())
             using (var command = new SqlCommand("usp_Inventory_CreateItem", connection)
@@ -76,7 +115,8 @@ namespace JustMakeOverSalonApp.Inventory.Repositories
             })
             {
                 command.Parameters.Add("@ActorUserID", SqlDbType.Int).Value = actorUserID;
-                command.Parameters.Add("@ItemCode", SqlDbType.VarChar, 30).Value = item.ItemCode;
+                command.Parameters.Add("@ItemCode", SqlDbType.VarChar, 30).Value =
+                    string.IsNullOrWhiteSpace(item.ItemCode) ? (object)DBNull.Value : item.ItemCode;
                 command.Parameters.Add("@ItemName", SqlDbType.NVarChar, 200).Value = item.ItemName;
                 command.Parameters.Add("@CategoryID", SqlDbType.Int).Value = item.CategoryID;
                 command.Parameters.Add("@UnitOfMeasure", SqlDbType.NVarChar, 40).Value = item.UnitOfMeasure;
@@ -86,8 +126,20 @@ namespace JustMakeOverSalonApp.Inventory.Repositories
                 command.Parameters["@UnitPrice"].Scale = 2;
                 command.Parameters.Add("@InitialQuantity", SqlDbType.Int).Value = initialQuantity;
 
-                var result = command.ExecuteScalar();
-                return Convert.ToInt32(result);
+                using (var reader = command.ExecuteReader())
+                {
+                    if (!reader.Read())
+                    {
+                        throw new InvalidOperationException(
+                            "The item creation did not return a result.");
+                    }
+
+                    return new CreateItemResult
+                    {
+                        ItemID = reader.GetInt32(0),
+                        ItemCode = reader.GetString(1)
+                    };
+                }
             }
         }
 
@@ -383,7 +435,9 @@ namespace JustMakeOverSalonApp.Inventory.Repositories
             return new CategoryRecord
             {
                 CategoryID = reader.GetInt32(0),
-                CategoryName = reader.GetString(1)
+                CategoryName = reader.GetString(1),
+                IsActive = reader.GetBoolean(2),
+                ItemCount = reader.GetInt32(3)
             };
         }
 

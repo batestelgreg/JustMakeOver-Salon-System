@@ -80,6 +80,15 @@ BEGIN
 END;
 GO
 
+-- Kani nga ALTER kay para sa Settings module: toggle-able ang categories.
+-- Naka-guard aron idempotent ang migration.
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.CATEGORIES') AND name = 'IsActive')
+BEGIN
+    ALTER TABLE dbo.CATEGORIES
+        ADD IsActive BIT NOT NULL DEFAULT (1);
+END;
+GO
+
 /* ================================================================
    1. ITEM LIST — tanang items uban ang live stock balance.
    ================================================================ */
@@ -121,6 +130,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
+    -- Kani nga check kay para makita ra sa settings.manage O inventory.view.
     IF NOT EXISTS (
         SELECT 1
         FROM USERS u
@@ -129,9 +139,127 @@ BEGIN
         WHERE u.UserID = @ActorUserID AND u.IsActive = 1
           AND p.PermissionCode = N'inventory.view'
     )
-        THROW 50301, 'You do not have permission to view inventory.', 1;
+       AND NOT EXISTS (
+        SELECT 1
+        FROM USERS u
+        INNER JOIN ROLE_PERMISSIONS rp ON rp.RoleID = u.RoleID
+        INNER JOIN PERMISSIONS p ON p.PermissionID = rp.PermissionID
+        WHERE u.UserID = @ActorUserID AND u.IsActive = 1
+          AND p.PermissionCode = N'settings.manage'
+    )
+        THROW 50301, 'You do not have permission to view categories.', 1;
 
-    SELECT CategoryID, CategoryName FROM CATEGORIES ORDER BY CategoryName;
+    SELECT c.CategoryID, c.CategoryName, c.IsActive,
+           (SELECT COUNT(*) FROM ITEMS i WHERE i.CategoryID = c.CategoryID) AS ItemCount
+    FROM CATEGORIES c
+    ORDER BY c.CategoryName;
+END;
+GO
+
+/* ================================================================
+   2b. NEXT ITEM CODE — auto-generate nga ItemCode para sa form.
+   ================================================================ */
+CREATE OR ALTER PROCEDURE usp_Inventory_GetNextItemCode
+    @ActorUserID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM USERS u
+        INNER JOIN ROLE_PERMISSIONS rp ON rp.RoleID = u.RoleID
+        INNER JOIN PERMISSIONS p ON p.PermissionID = rp.PermissionID
+        WHERE u.UserID = @ActorUserID AND u.IsActive = 1
+          AND p.PermissionCode = N'inventory.create'
+    )
+        THROW 50330, 'You do not have permission to create inventory items.', 1;
+
+    -- Kani nga block kay mo-generate sa sunod nga ITM-### code.
+    DECLARE @MaxNum INT = (
+        SELECT MAX(TRY_CAST(SUBSTRING(ItemCode, 5, 10) AS INT))
+        FROM ITEMS
+        WHERE ItemCode LIKE 'ITM-[0-9]%'
+    );
+
+    DECLARE @Candidate VARCHAR(30) =
+        'ITM-' + RIGHT('000' + CAST(ISNULL(@MaxNum, 0) + 1 AS VARCHAR(10)), 3);
+
+    WHILE EXISTS (SELECT 1 FROM ITEMS WHERE ItemCode = @Candidate)
+    BEGIN
+        SET @MaxNum = ISNULL(@MaxNum, 0) + 1;
+        SET @Candidate = 'ITM-' + RIGHT('000' + CAST(@MaxNum AS VARCHAR(10)), 3);
+    END;
+
+    SELECT @Candidate AS NextItemCode;
+END;
+GO
+
+/* ================================================================
+   2c. CATEGORY SAVE — para sa Settings module: create o rename
+      ug category, ug toggle sa active state.
+   ================================================================ */
+CREATE OR ALTER PROCEDURE usp_Inventory_SaveCategory
+    @ActorUserID INT,
+    @CategoryID INT = NULL,
+    @CategoryName NVARCHAR(100),
+    @IsActive BIT = 1
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    IF NULLIF(LTRIM(RTRIM(@CategoryName)), '') IS NULL
+        THROW 50331, 'The category name is required.', 1;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM USERS u
+        INNER JOIN ROLE_PERMISSIONS rp ON rp.RoleID = u.RoleID
+        INNER JOIN PERMISSIONS p ON p.PermissionID = rp.PermissionID
+        WHERE u.UserID = @ActorUserID AND u.IsActive = 1
+          AND p.PermissionCode = N'settings.manage'
+    )
+        THROW 50332, 'You do not have permission to manage categories.', 1;
+
+    IF @CategoryID IS NULL
+       AND EXISTS (SELECT 1 FROM CATEGORIES WHERE CategoryName = LTRIM(RTRIM(@CategoryName)))
+        THROW 50333, 'A category with that name already exists.', 1;
+
+    IF @CategoryID IS NOT NULL
+       AND EXISTS (
+           SELECT 1 FROM CATEGORIES
+           WHERE CategoryName = LTRIM(RTRIM(@CategoryName)) AND CategoryID <> @CategoryID)
+        THROW 50333, 'A category with that name already exists.', 1;
+
+    IF @CategoryID IS NULL
+    BEGIN
+        -- Kani nga branch kay para sa pag-himo ug bag-ong category.
+        INSERT INTO CATEGORIES (CategoryName, IsActive)
+        VALUES (LTRIM(RTRIM(@CategoryName)), @IsActive);
+
+        INSERT INTO USER_AUDIT_LOGS (ActorUserID, TargetUserID, ActionType, Description)
+        VALUES (@ActorUserID, @ActorUserID, 'CATEGORY_CREATED',
+                CONCAT('Category "', LTRIM(RTRIM(@CategoryName)), '" created.'));
+
+        SELECT SCOPE_IDENTITY() AS CategoryID;
+        RETURN;
+    END;
+
+    IF NOT EXISTS (SELECT 1 FROM CATEGORIES WHERE CategoryID = @CategoryID)
+        THROW 50334, 'The category could not be found.', 1;
+
+    -- Kani nga branch kay para sa rename ug active toggle sa category.
+    UPDATE CATEGORIES
+    SET CategoryName = LTRIM(RTRIM(@CategoryName)), IsActive = @IsActive
+    WHERE CategoryID = @CategoryID;
+
+    INSERT INTO USER_AUDIT_LOGS (ActorUserID, TargetUserID, ActionType, Description)
+    VALUES (@ActorUserID, @ActorUserID, 'CATEGORY_UPDATED',
+            CONCAT('Category ID ', @CategoryID, ' updated to "',
+                   LTRIM(RTRIM(@CategoryName)), '".'));
+
+    SELECT @CategoryID AS CategoryID;
 END;
 GO
 
@@ -140,7 +268,7 @@ GO
    ================================================================ */
 CREATE OR ALTER PROCEDURE usp_Inventory_CreateItem
     @ActorUserID INT,
-    @ItemCode VARCHAR(30),
+    @ItemCode VARCHAR(30) = NULL,
     @ItemName NVARCHAR(200),
     @CategoryID INT,
     @UnitOfMeasure NVARCHAR(40),
@@ -152,10 +280,30 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
+    -- Kani nga block kay para sa auto-generation sa ItemCode kung wala gihatag.
     IF NULLIF(LTRIM(RTRIM(@ItemCode)), '') IS NULL
-       OR NULLIF(LTRIM(RTRIM(@ItemName)), '') IS NULL
+    BEGIN
+        DECLARE @MaxNum INT = (
+            SELECT MAX(TRY_CAST(SUBSTRING(ItemCode, 5, 10) AS INT))
+            FROM ITEMS
+            WHERE ItemCode LIKE 'ITM-[0-9]%'
+        );
+
+        DECLARE @Candidate VARCHAR(30) =
+            'ITM-' + RIGHT('000' + CAST(ISNULL(@MaxNum, 0) + 1 AS VARCHAR(10)), 3);
+
+        WHILE EXISTS (SELECT 1 FROM ITEMS WHERE ItemCode = @Candidate)
+        BEGIN
+            SET @MaxNum = ISNULL(@MaxNum, 0) + 1;
+            SET @Candidate = 'ITM-' + RIGHT('000' + CAST(@MaxNum AS VARCHAR(10)), 3);
+        END;
+
+        SET @ItemCode = @Candidate;
+    END;
+
+    IF NULLIF(LTRIM(RTRIM(@ItemName)), '') IS NULL
        OR NULLIF(LTRIM(RTRIM(@UnitOfMeasure)), '') IS NULL
-        THROW 50302, 'Item code, name, and unit of measure are required.', 1;
+        THROW 50302, 'Item name and unit of measure are required.', 1;
 
     IF @ReorderPoint < 0 OR @UnitPrice < 0 OR @InitialQuantity < 0
         THROW 50303, 'Reorder point, unit price, and quantity cannot be negative.', 1;
@@ -196,7 +344,8 @@ BEGIN
 
     COMMIT TRANSACTION;
 
-    SELECT @NewItemID AS ItemID;
+    -- Kani nga result kay para makita sa frontend ang generated code.
+    SELECT @NewItemID AS ItemID, @ItemCode AS ItemCode;
 END;
 GO
 

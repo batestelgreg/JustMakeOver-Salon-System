@@ -24,6 +24,8 @@ namespace JustMakeOverSalonApp.Inventory.Operations
             registry.Register("InventoryOverview", HandleInventoryOverviewAsync);
             registry.Register("InventoryList", HandleInventoryListAsync);
             registry.Register("InventoryCategories", HandleInventoryCategoriesAsync);
+            registry.Register("InventoryNextCode", HandleInventoryNextCodeAsync);
+            registry.Register("InventoryCategorySave", HandleInventoryCategorySaveAsync);
             registry.Register("InventoryCreate", HandleInventoryCreateAsync);
             registry.Register("InventoryUpdate", HandleInventoryUpdateAsync);
             registry.Register("InventoryAdjust", HandleInventoryAdjustAsync);
@@ -52,12 +54,32 @@ namespace JustMakeOverSalonApp.Inventory.Operations
             context.SendResponse(requestID, true, new { items }, null);
         }
 
-        // Kani nga handler nagdala sa categories para sa item form.
+        // Kani nga handler nagdala sa categories (list + counts) sa settings.
         private async Task HandleInventoryCategoriesAsync(Dictionary<string, object> payload, string requestID)
         {
             var actor = context.RequireUser();
             var categories = await service.LoadCategoriesAsync(actor);
             context.SendResponse(requestID, true, new { categories }, null);
+        }
+
+        // Kani nga handler nag-generate sa sunod nga auto ItemCode.
+        private async Task HandleInventoryNextCodeAsync(Dictionary<string, object> payload, string requestID)
+        {
+            var actor = context.RequireUser();
+            var nextCode = await service.GetNextItemCodeAsync(actor);
+            context.SendResponse(requestID, true, new { nextCode }, null);
+        }
+
+        // Kani nga handler nag-save sa category (create o rename + toggle).
+        private async Task HandleInventoryCategorySaveAsync(Dictionary<string, object> payload, string requestID)
+        {
+            var actor = context.RequireUser();
+            var categoryID = await service.SaveCategoryAsync(
+                actor,
+                context.GetValueAsInt(payload, "categoryID"),
+                context.GetValueAsString(payload, "categoryName"),
+                context.GetValueAsString(payload, "isActive") != "false");
+            context.SendResponse(requestID, true, new { categoryID }, null);
         }
 
         // Kani nga handler nag-himo ug bag-ong inventory item.

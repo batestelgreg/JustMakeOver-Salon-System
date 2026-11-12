@@ -35,6 +35,7 @@ import '../routes/requisitions-route.js';
 import '../routes/inventory-route.js';
 import '../routes/purchasing-route.js';
 import '../routes/receiving-route.js';
+import '../routes/settings-route.js';
 
 // Kani mga placeholder routes kay para sa modules nga i-build sa sunod phases.
 const upcomingModules = [
