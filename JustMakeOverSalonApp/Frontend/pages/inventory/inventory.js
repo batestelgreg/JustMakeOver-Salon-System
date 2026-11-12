@@ -326,16 +326,32 @@ function wireModalClosers(root) {
 
 /**
  * Kani nga modal kay para sa paghimo ug pag-edit sa item.
+ * Ang ItemCode kay AUTO-GENERATED: readonly ang textbox, ang bag-ong
+ * items kay naay preview gikan sa backend (InventoryNextCode).
  */
-function openItemModal(root, item) {
+async function openItemModal(root, item) {
     const modal = root.querySelector('#itemModal');
     const isEdit = item !== null;
     root.querySelector('#itemModalTitle').textContent = isEdit
         ? 'Edit Item: ' + item.ItemName
         : 'New Inventory Item';
 
+    const codeInput = root.querySelector('#txtItemCode');
+    codeInput.value = isEdit ? item.ItemCode : 'Generating…';
+
+    // Kani nga call kay para sa auto-generated code preview sa bag-ong item.
+    if (!isEdit) {
+        try {
+            const payload = await invoke('InventoryNextCode');
+            codeInput.value = payload.nextCode || 'ITM-000';
+        } catch {
+            // Kani nga catch kay para dili mo-crash ang modal kung fail ang preview;
+            // ang final code kay gihapon generated sa backend sa pag-save.
+            codeInput.value = 'Auto-generated on save';
+        }
+    }
+
     root.querySelector('#editItemID').value = isEdit ? item.ItemID : '';
-    root.querySelector('#txtItemCode').value = isEdit ? item.ItemCode : '';
     root.querySelector('#txtItemName').value = isEdit ? item.ItemName : '';
     root.querySelector('#txtUnitOfMeasure').value = isEdit ? item.UnitOfMeasure : '';
     root.querySelector('#txtReorderPoint').value = isEdit ? item.ReorderPoint : 0;
@@ -349,7 +365,6 @@ function openItemModal(root, item) {
     }
 
     fillCategorySelect(root, isEdit ? item.CategoryID : 0);
-    root.querySelector('#errorItemCode').textContent = '';
     root.querySelector('#errorItemName').textContent = '';
     modal.classList.remove('u-hidden');
 }
@@ -364,7 +379,8 @@ function fillCategorySelect(root, selectedID) {
     }
 
     select.innerHTML = '';
-    categoriesData.forEach((category) => {
+    // Kani nga filter kay para sa active ra nga categories sa item form.
+    categoriesData.filter((category) => category.IsActive).forEach((category) => {
         const option = document.createElement('option');
         option.value = category.CategoryID;
         option.textContent = category.CategoryName;
@@ -387,16 +403,11 @@ function wireItemForm(root) {
         const isEdit = editItemID !== '';
         const saveButton = root.querySelector('#btnSaveItem');
 
-        const itemCode = root.querySelector('#txtItemCode').value.trim();
         const itemName = root.querySelector('#txtItemName').value.trim();
         const unitOfMeasure = root.querySelector('#txtUnitOfMeasure').value.trim();
 
         // Kani nga client-side checks kay para sa maayo nga user experience ra;
         // ang real nga validation kay sa C# service ug sa database.
-        if (!itemCode) {
-            root.querySelector('#errorItemCode').textContent = 'The item code is required.';
-            return;
-        }
         if (!itemName) {
             root.querySelector('#errorItemName').textContent = 'The item name is required.';
             return;
@@ -408,7 +419,9 @@ function wireItemForm(root) {
 
         const payload = {
             itemID: editItemID,
-            itemCode,
+            // Kani nga itemCode kay auto-generated sa backend (empty = generate).
+            // Sa edit, i-pass ang existing code kay readonly ang textbox.
+            itemCode: isEdit ? root.querySelector('#txtItemCode').value.trim() : '',
             itemName,
             categoryID: root.querySelector('#selItemCategory').value,
             unitOfMeasure,
@@ -424,8 +437,10 @@ function wireItemForm(root) {
 
         saveButton.disabled = true;
         try {
-            await invoke(isEdit ? 'InventoryUpdate' : 'InventoryCreate', payload);
-            showToast('success', isEdit ? 'The item was updated.' : 'The item was created.');
+            const result = await invoke(isEdit ? 'InventoryUpdate' : 'InventoryCreate', payload);
+            showToast('success', isEdit
+                ? 'The item was updated.'
+                : 'The item was created with code ' + (result?.itemCode || '') + '.');
             root.querySelector('#itemModal').classList.add('u-hidden');
             await reloadAll(root);
         } catch (error) {

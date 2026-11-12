@@ -21,11 +21,13 @@ namespace JustMakeOverSalonApp.Inventory.Models
         public bool IsLowStock { get; set; }
     }
 
-    // Kani nga model kay para sa category dropdown.
+    // Kani nga model kay para sa category dropdown ug settings list.
     public sealed class CategoryRecord
     {
         public int CategoryID { get; set; }
         public string CategoryName { get; set; }
+        public bool IsActive { get; set; }
+        public int ItemCount { get; set; }
     }
 
     // Kani nga model kay para sa stock movement logs.
@@ -76,6 +78,13 @@ namespace JustMakeOverSalonApp.Inventory.Models
         public int ReservedQuantity { get; set; }
         public int ShortageQuantity { get; set; }
         public int? RepFID { get; set; }
+    }
+
+    // Kani nga model kay para sa result sa item creation (generated code).
+    public sealed class CreateItemResult
+    {
+        public int ItemID { get; set; }
+        public string ItemCode { get; set; }
     }
 
     // Kani nga model kay para sa dashboard inventory panel summary.

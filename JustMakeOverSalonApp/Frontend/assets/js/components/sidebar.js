@@ -27,6 +27,7 @@ const NAVIGATION_SECTIONS = [
         title: 'Administration',
         items: [
             { name: 'users', label: 'Users & Roles', permission: 'users.view' },
+            { name: 'settings', label: 'Settings', permission: 'settings.manage' },
             { name: 'suppliers', label: 'Suppliers', permission: 'suppliers.view' },
             { name: 'reports', label: 'Reports', permission: 'reports.view' }
         ]
@@ -43,7 +44,8 @@ const ICON_PATHS = {
     notifications: 'M12 22a2 2 0 002-2h-4a2 2 0 002 2zm6-6V11a6 6 0 00-5-5.9V4a1 1 0 10-2 0v1.1A6 6 0 006 11v5l-2 2v1h16v-1l-2-2z',
     users: 'M16 11a4 4 0 10-8 0 4 4 0 008 0zm-8 8a8 8 0 0116 0H8zM2 12a3 3 0 106 0 3 3 0 00-6 0z',
     suppliers: 'M2 20V8l5 4 5-6 5 6 5-4v12H2z',
-    reports: 'M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2zm3 12h2V9H8v6zm4 0h2V7h-2v8zm4 0h2v-4h-2v4z'
+    reports: 'M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2zm3 12h2V9H8v6zm4 0h2V7h-2v8zm4 0h2v-4h-2v4z',
+    settings: 'M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z'
 };
 
 function createIcon(name) {
