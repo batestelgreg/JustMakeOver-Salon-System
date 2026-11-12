@@ -1,0 +1,104 @@
+﻿<section class="page-container">
+    <div class="page-header">
+        <div>
+            <h1>Requisitions</h1>
+            <p>Request items and track requisition approvals.</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h2>Available Items</h2>
+            <p>Select items that you need for your department.</p>
+        </div>
+
+        <div class="inventory-toolbar">
+            <input type="text"
+                   id="requisitionSearch"
+                   class="form-field__input inventory-toolbar__search"
+                   placeholder="Search items...">
+        </div>
+
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Item Code</th>
+                        <th>Item Name</th>
+                        <th>Unit</th>
+                        <th>Unit Price</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+
+                <tbody id="availableItemsBody">
+                    <tr>
+                        <td colspan="5">Loading items...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+
+    <div class="card">
+        <div class="card-header">
+            <h2>Selected Items</h2>
+            <p>Items you want to include in your requisition.</p>
+        </div>
+
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Item Name</th>
+                        <th>Unit</th>
+                        <th>Quantity</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+
+                <tbody id="selectedItemsBody">
+                    <tr>
+                        <td colspan="4">No items selected yet.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+
+    <div class="card">
+        <div class="card-header">
+            <h2>Requisition Details</h2>
+            <p>Provide the reason and required date for your request.</p>
+        </div>
+
+        <div class="form-field">
+            <label for="requiredDate">Required Date</label>
+            <input type="date"
+                   id="requiredDate"
+                   class="form-field__input"
+                   required>
+        </div>
+
+        <div class="form-field">
+            <label for="justification">Justification</label>
+            <textarea id="justification"
+                      class="form-field__input"
+                      rows="4"
+                      placeholder="Explain why these items are needed..."
+                      required></textarea>
+        </div>
+
+        <div style="margin-top: 16px;">
+            <button type="button"
+                    id="submitRequisition"
+                    class="btn btn--primary">
+                Submit Requisition
+            </button>
+        </div>
+    </div>
+
+
+</section>
