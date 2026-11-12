@@ -1,0 +1,258 @@
+<!-- Kani nga inventory page kay para sa items, stock movements, reservations ug RepFs. -->
+<div class="inventory-page">
+    <div class="page-header">
+        <div>
+            <h2 class="page-header__title">Inventory</h2>
+            <p class="page-header__subtitle">Live stock levels, reservations, and replenishment requests.</p>
+        </div>
+        <div class="u-flex--gap">
+            <button type="button" class="btn btn--ghost" id="btnRefreshInventory">Refresh</button>
+            <button type="button" class="btn btn--primary" id="btnOpenAddItem" data-requires="inventory.create">+ New Item</button>
+        </div>
+    </div>
+
+    <!-- Kani nga card kay para sa items table nga may live stock balance. -->
+    <div class="card">
+        <div class="inventory-toolbar">
+            <input type="search" id="itemSearch" class="form-field__input inventory-toolbar__search"
+                   placeholder="Search item code, name, or category&hellip;" autocomplete="off">
+        </div>
+        <div class="data-table">
+            <table id="itemsTable">
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Item</th>
+                        <th>Category</th>
+                        <th>Unit</th>
+                        <th>On Hand</th>
+                        <th>Reserved</th>
+                        <th>Available</th>
+                        <th>Reorder Point</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="itemsTableBody">
+                    <tr><td colspan="10" class="data-table__empty">Loading items&hellip;</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Kani nga card kay para sa active reservations gikan sa issuance. -->
+    <div class="card u-mt-6">
+        <h3 class="u-mb-4" style="font-size: 17px;">Reservations</h3>
+        <div class="data-table">
+            <table id="reservationsTable">
+                <thead>
+                    <tr>
+                        <th>Reservation</th>
+                        <th>Item</th>
+                        <th>Requisition</th>
+                        <th>Reserved Qty</th>
+                        <th>Requestor</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="reservationsTableBody">
+                    <tr><td colspan="7" class="data-table__empty">Loading reservations&hellip;</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Kani nga card kay para sa replenishment requests (RepF) nga padulong sa Purchasing. -->
+    <div class="card u-mt-6">
+        <h3 class="u-mb-4" style="font-size: 17px;">Replenishment Requests (RepF)</h3>
+        <div class="data-table">
+            <table id="repfsTable">
+                <thead>
+                    <tr>
+                        <th>RepF #</th>
+                        <th>Item</th>
+                        <th>Qty Needed</th>
+                        <th>Generated</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="repfsTableBody">
+                    <tr><td colspan="5" class="data-table__empty">Loading replenishment requests&hellip;</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Kani nga card kay para sa stock movement logs. -->
+    <div class="card u-mt-6">
+        <h3 class="u-mb-4" style="font-size: 17px;">Recent Stock Movements</h3>
+        <div class="data-table">
+            <table id="logsTable">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Item</th>
+                        <th>Type</th>
+                        <th>Change</th>
+                        <th>Balance</th>
+                        <th>Reference</th>
+                        <th>By</th>
+                        <th>Remarks</th>
+                    </tr>
+                </thead>
+                <tbody id="logsTableBody">
+                    <tr><td colspan="8" class="data-table__empty">Loading movements&hellip;</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Kani nga modal kay para sa paghimo ug pag-edit sa item. -->
+    <div id="itemModal" class="modal-overlay u-hidden">
+        <div class="modal">
+            <div class="modal__header">
+                <h3 class="modal__title" id="itemModalTitle">New Inventory Item</h3>
+                <button type="button" class="modal__close" id="btnCloseItemModal" aria-label="Close">&times;</button>
+            </div>
+            <form id="itemForm" novalidate>
+                <div class="modal__body">
+                    <input type="hidden" id="editItemID" value="">
+                    <div class="form-field">
+                        <label class="form-field__label" for="txtItemCode">Item code</label>
+                        <input type="text" id="txtItemCode" class="form-field__input" maxlength="30" autocomplete="off">
+                        <span class="form-field__error" id="errorItemCode"></span>
+                    </div>
+                    <div class="form-field">
+                        <label class="form-field__label" for="txtItemName">Item name</label>
+                        <input type="text" id="txtItemName" class="form-field__input" maxlength="200" autocomplete="off">
+                        <span class="form-field__error" id="errorItemName"></span>
+                    </div>
+                    <div class="form-field">
+                        <label class="form-field__label" for="selItemCategory">Category</label>
+                        <select id="selItemCategory" class="form-field__input"></select>
+                    </div>
+                    <div class="form-field">
+                        <label class="form-field__label" for="txtUnitOfMeasure">Unit of measure</label>
+                        <input type="text" id="txtUnitOfMeasure" class="form-field__input" maxlength="40" autocomplete="off">
+                    </div>
+                    <div class="u-grid-2">
+                        <div class="form-field">
+                            <label class="form-field__label" for="txtReorderPoint">Reorder point</label>
+                            <input type="number" id="txtReorderPoint" class="form-field__input" min="0" value="0">
+                        </div>
+                        <div class="form-field">
+                            <label class="form-field__label" for="txtUnitPrice">Unit price</label>
+                            <input type="number" id="txtUnitPrice" class="form-field__input" min="0" step="0.01" value="0">
+                        </div>
+                    </div>
+                    <div class="form-field" id="fieldInitialQuantity">
+                        <label class="form-field__label" for="txtInitialQuantity">Initial quantity</label>
+                        <input type="number" id="txtInitialQuantity" class="form-field__input" min="0" value="0">
+                    </div>
+                    <div class="form-field u-hidden" id="fieldItemActive">
+                        <label class="form-field__label u-flex--gap">
+                            <input type="checkbox" id="chkItemActive" checked> Item is active
+                        </label>
+                    </div>
+                </div>
+                <div class="modal__footer">
+                    <button type="button" class="btn btn--ghost" id="btnCancelItem">Cancel</button>
+                    <button type="submit" class="btn btn--primary" id="btnSaveItem">Save Item</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Kani nga modal kay para sa manual stock adjustment. -->
+    <div id="adjustModal" class="modal-overlay u-hidden">
+        <div class="modal">
+            <div class="modal__header">
+                <h3 class="modal__title">Adjust Stock</h3>
+                <button type="button" class="modal__close" id="btnCloseAdjustModal" aria-label="Close">&times;</button>
+            </div>
+            <form id="adjustForm" novalidate>
+                <div class="modal__body">
+                    <p class="u-text-muted u-mb-4" id="adjustItemInfo"></p>
+                    <div class="form-field">
+                        <label class="form-field__label" for="txtAdjustQuantity">Quantity change (use a negative number to reduce)</label>
+                        <input type="number" id="txtAdjustQuantity" class="form-field__input" step="1" value="1">
+                        <span class="form-field__error" id="errorAdjustQuantity"></span>
+                    </div>
+                    <div class="form-field">
+                        <label class="form-field__label" for="txtAdjustRemarks">Remarks</label>
+                        <input type="text" id="txtAdjustRemarks" class="form-field__input" maxlength="1000" autocomplete="off">
+                    </div>
+                </div>
+                <div class="modal__footer">
+                    <button type="button" class="btn btn--ghost" id="btnCancelAdjust">Cancel</button>
+                    <button type="submit" class="btn btn--primary">Apply Adjustment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Kani nga modal kay para sa issuance (flowchart Figure 8.A). -->
+    <div id="issueModal" class="modal-overlay u-hidden">
+        <div class="modal">
+            <div class="modal__header">
+                <h3 class="modal__title">Issue Stock</h3>
+                <button type="button" class="modal__close" id="btnCloseIssueModal" aria-label="Close">&times;</button>
+            </div>
+            <form id="issueForm" novalidate>
+                <div class="modal__body">
+                    <p class="u-text-muted u-mb-4" id="issueItemInfo"></p>
+                    <div class="form-field">
+                        <label class="form-field__label" for="txtIssueQuantity">Quantity to issue</label>
+                        <input type="number" id="txtIssueQuantity" class="form-field__input" min="1" value="1">
+                        <span class="form-field__error" id="errorIssueQuantity"></span>
+                    </div>
+                    <div class="form-field">
+                        <label class="form-field__label" for="txtIssueRequisition">Approved requisition # <span class="u-text-muted">(optional)</span></label>
+                        <input type="number" id="txtIssueRequisition" class="form-field__input" min="1" autocomplete="off">
+                    </div>
+                    <div class="form-field">
+                        <label class="form-field__label" for="txtIssueEstimate">Estimated restock date <span class="u-text-muted">(for shortages)</span></label>
+                        <input type="date" id="txtIssueEstimate" class="form-field__input">
+                    </div>
+                </div>
+                <div class="modal__footer">
+                    <button type="button" class="btn btn--ghost" id="btnCancelIssue">Cancel</button>
+                    <button type="submit" class="btn btn--primary">Issue Stock</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Kani nga modal kay para sa receiving (flowchart Figure 8.B). -->
+    <div id="receiveModal" class="modal-overlay u-hidden">
+        <div class="modal">
+            <div class="modal__header">
+                <h3 class="modal__title">Record Received Stock</h3>
+                <button type="button" class="modal__close" id="btnCloseReceiveModal" aria-label="Close">&times;</button>
+            </div>
+            <form id="receiveForm" novalidate>
+                <div class="modal__body">
+                    <p class="u-text-muted u-mb-4" id="receiveItemInfo"></p>
+                    <div class="form-field">
+                        <label class="form-field__label" for="txtReceiveQuantity">Quantity received</label>
+                        <input type="number" id="txtReceiveQuantity" class="form-field__input" min="1" value="1">
+                        <span class="form-field__error" id="errorReceiveQuantity"></span>
+                    </div>
+                    <div class="form-field">
+                        <label class="form-field__label" for="selReceiveRepF">Against replenishment request <span class="u-text-muted">(optional)</span></label>
+                        <select id="selReceiveRepF" class="form-field__input"><option value="">None</option></select>
+                    </div>
+                    <div class="form-field">
+                        <label class="form-field__label" for="txtReceiveRemarks">Remarks</label>
+                        <input type="text" id="txtReceiveRemarks" class="form-field__input" maxlength="1000" autocomplete="off">
+                    </div>
+                </div>
+                <div class="modal__footer">
+                    <button type="button" class="btn btn--ghost" id="btnCancelReceive">Cancel</button>
+                    <button type="submit" class="btn btn--primary">Record Receipt</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

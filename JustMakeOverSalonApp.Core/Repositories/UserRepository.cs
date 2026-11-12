@@ -68,6 +68,70 @@ namespace JustMakeOverSalonApp.Core.Repositories
             }
         }
 
+        // Kani nga method kay ang OPTIMIZED nga success path: usa ra ka connection
+        // ang magdala sa login mark, permissions ug audit log (kaniadto tolo ka
+        // magkasunod-sunod nga connections — mao na ang naka-pahinay ang login).
+        public IList<string> CompleteSuccessfulLogin(
+            int userID, string description, string ipAddress)
+        {
+            var permissions = new List<string>();
+
+            using (var connection = connectionFactory.CreateOpenConnection())
+            {
+                // Kani nga step kay nag-reset sa failed attempts ug nag-log sa LastLogin.
+                using (var markCommand = new SqlCommand(
+                    StoredProcedureNames.LoginSucceeded, connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                })
+                {
+                    markCommand.Parameters.Add("@UserID", SqlDbType.Int).Value = userID;
+                    markCommand.ExecuteNonQuery();
+                }
+
+                // Kani nga step kay nagkuha sa role ug permissions sa active user.
+                using (var permissionCommand = new SqlCommand(
+                    StoredProcedureNames.GetUserPermissions, connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                })
+                {
+                    permissionCommand.Parameters.Add("@UserID", SqlDbType.Int).Value = userID;
+
+                    using (var reader = permissionCommand.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            var code = reader["PermissionCode"] as string;
+                            if (!string.IsNullOrWhiteSpace(code))
+                            {
+                                permissions.Add(code);
+                            }
+                        }
+                    }
+                }
+
+                // Kani nga step kay nag-log sa LOGIN_SUCCEEDED sa audit trail.
+                using (var auditCommand = new SqlCommand(
+                    StoredProcedureNames.AuditLogAction, connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                })
+                {
+                    auditCommand.Parameters.Add("@ActorUserID", SqlDbType.Int).Value = userID;
+                    auditCommand.Parameters.Add("@ActionType", SqlDbType.VarChar, 50)
+                        .Value = "LOGIN_SUCCEEDED";
+                    auditCommand.Parameters.Add("@Description", SqlDbType.NVarChar, 500)
+                        .Value = description ?? (object)DBNull.Value;
+                    auditCommand.Parameters.Add("@IPAddress", SqlDbType.VarChar, 45)
+                        .Value = ipAddress ?? (object)DBNull.Value;
+                    auditCommand.ExecuteNonQuery();
+                }
+            }
+
+            return permissions;
+        }
+
         public void ChangePasswordHash(int userID, string newHash)
         {
             // Kani nga procedure kay nag-update sa password hash ug MustChangePassword flag.
