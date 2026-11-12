@@ -456,7 +456,11 @@ namespace JustMakeOverSalonApp.Inventory.Repositories
                 ReferenceType = reader.IsDBNull(7) ? null : reader.GetString(7),
                 Remarks = reader.IsDBNull(9) ? null : reader.GetString(9),
                 TransactionDate = reader.GetDateTime(10),
-                UserName = reader.IsDBNull(11) ? null : reader.GetString(11)
+                UserName = reader.IsDBNull(11) ? null : reader.GetString(11),
+
+                // Kani nga duha kay computed columns sa GetLogs (display format).
+                Reference = reader.IsDBNull(12) ? null : reader.GetString(12),
+                Source = reader.IsDBNull(13) ? null : reader.GetString(13)
             };
         }
 

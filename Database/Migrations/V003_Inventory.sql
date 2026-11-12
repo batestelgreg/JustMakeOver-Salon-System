@@ -67,17 +67,65 @@ IF NOT EXISTS (SELECT 1 FROM INVENTORY WHERE ItemID = 6)
 GO
 
 -- Kani nga log seed kay para sa initial stock entries (traceable ang tanan).
-IF NOT EXISTS (SELECT 1 FROM INVENTORY_LOGS WHERE TransactionType = 'Initial Stock')
+IF NOT EXISTS (SELECT 1 FROM INVENTORY_LOGS WHERE ReferenceType = 'INITIAL')
+   AND NOT EXISTS (SELECT 1 FROM INVENTORY_LOGS WHERE ReferenceType = 'SEED' AND Remarks = N'Initial inventory setup.')
 BEGIN
     INSERT INTO INVENTORY_LOGS (ItemID, UserID, TransactionType, QuantityChange, PreviousQuantity, NewQuantity, ReferenceType, Remarks, TransactionDate)
     SELECT inv.ItemID,
            (SELECT TOP (1) UserID FROM USERS ORDER BY UserID),
-           'Stock In', inv.QuantityOnHand, 0, inv.QuantityOnHand, 'SEED', 'Initial stock from migration V003.', SYSDATETIME()
+           'Stock In', inv.QuantityOnHand, 0, inv.QuantityOnHand, 'SEED', N'Initial inventory setup.', SYSDATETIME()
     FROM INVENTORY inv
     WHERE NOT EXISTS (
-        SELECT 1 FROM INVENTORY_LOGS l WHERE l.ItemID = inv.ItemID AND l.ReferenceType = 'SEED'
+        SELECT 1 FROM INVENTORY_LOGS l WHERE l.ItemID = inv.ItemID AND l.ReferenceType IN ('SEED', 'INITIAL')
     );
 END;
+GO
+
+/* ================================================================
+   DATA FIX — pag-standardize sa legacy log display values.
+   Kani nga UPDATE kay display metadata ra (ReferenceType + Remarks);
+   dili mohikap ang stock balances, walay delete, walay duplicate.
+   Idempotent: ang WHERE conditions dili na mo-match paghuman.
+   ================================================================ */
+-- Kani nga update kay para sa seed logs: human-readable nga remarks.
+UPDATE INVENTORY_LOGS
+SET Remarks = N'Initial inventory setup.'
+WHERE ReferenceType = 'SEED'
+  AND Remarks = N'Initial stock from migration V003.';
+
+-- Kani nga update kay para sa item-creation initial stock: klaro nga tag.
+UPDATE INVENTORY_LOGS
+SET ReferenceType = 'INITIAL', Remarks = N'Initial inventory setup.'
+WHERE ReferenceType = 'MANUAL'
+  AND TransactionType = 'Stock In'
+  AND Remarks = N'Item created with initial stock.';
+
+-- Kani nga update kay para sa mga adjustment rows: self-referencing ADJ number.
+UPDATE INVENTORY_LOGS
+SET ReferenceType = 'ADJUSTMENT',
+    ReferenceID = InventoryLogID,
+    Remarks = ISNULL(NULLIF(LTRIM(RTRIM(Remarks)), ''), N'Inventory quantity manually adjusted.')
+WHERE TransactionType = 'Adjustment'
+  AND ReferenceType IN ('MANUAL', 'ADJUSTMENT')
+  AND (ReferenceID IS NULL OR ReferenceID <> InventoryLogID);
+
+-- Kani nga update kay para sa initial stock rows: self-referencing reference
+-- number (ang log row mismo ang tinuod nga initial stock record).
+UPDATE INVENTORY_LOGS
+SET ReferenceID = InventoryLogID
+WHERE ReferenceType IN ('SEED', 'INITIAL')
+  AND (ReferenceID IS NULL OR ReferenceID <> InventoryLogID);
+
+-- Kani nga cleanup kay para sa duplicate seed log nga gihimo sa daan nga
+-- guard (TransactionType = 'Initial Stock' nga dili jpewan mo-match).
+-- Log row ra kini nga duplicate; ang stock balance dili gihikapkan.
+DELETE l
+FROM INVENTORY_LOGS l
+WHERE l.ReferenceType = 'SEED'
+  AND EXISTS (
+      SELECT 1 FROM INVENTORY_LOGS x
+      WHERE x.ItemID = l.ItemID AND x.ReferenceType = 'INITIAL'
+  );
 GO
 
 -- Kani nga ALTER kay para sa Settings module: toggle-able ang categories.
@@ -334,9 +382,10 @@ BEGIN
     INSERT INTO INVENTORY (ItemID, QuantityOnHand, QuantityReserved)
     VALUES (@NewItemID, @InitialQuantity, 0);
 
+    -- Kani nga log kay para sa initial stock sa bag-ong item.
     INSERT INTO INVENTORY_LOGS (ItemID, UserID, TransactionType, QuantityChange, PreviousQuantity, NewQuantity, ReferenceType, Remarks, TransactionDate)
-    VALUES (@NewItemID, @ActorUserID, 'Stock In', @InitialQuantity, 0, @InitialQuantity, 'MANUAL',
-            'Item created with initial stock.', SYSDATETIME());
+    VALUES (@NewItemID, @ActorUserID, 'Stock In', @InitialQuantity, 0, @InitialQuantity, 'INITIAL',
+            N'Initial inventory setup.', SYSDATETIME());
 
     INSERT INTO USER_AUDIT_LOGS (ActorUserID, TargetUserID, ActionType, Description)
     VALUES (@ActorUserID, @ActorUserID, 'INVENTORY_ITEM_CREATED',
@@ -429,10 +478,16 @@ BEGIN
     )
         THROW 50313, 'You do not have permission to adjust inventory stock.', 1;
 
+    IF NOT EXISTS (SELECT 1 FROM ITEMS WHERE ItemID = @ItemID AND IsActive = 1)
+        THROW 50315, 'The item is inactive or was not found.', 1;
+
     BEGIN TRANSACTION;
 
     DECLARE @OnHand INT = (SELECT QuantityOnHand FROM INVENTORY WHERE ItemID = @ItemID);
     DECLARE @Reserved INT = (SELECT QuantityReserved FROM INVENTORY WHERE ItemID = @ItemID);
+
+    IF @OnHand IS NULL
+        THROW 50316, 'No stock record exists for this item yet.', 1;
 
     IF (@OnHand + @QuantityChange) < @Reserved
         THROW 50314, 'The adjustment would make the stock lower than the reserved quantity.', 1;
@@ -441,9 +496,19 @@ BEGIN
     SET QuantityOnHand = QuantityOnHand + @QuantityChange, LastUpdated = SYSDATETIME()
     WHERE ItemID = @ItemID;
 
-    INSERT INTO INVENTORY_LOGS (ItemID, UserID, TransactionType, QuantityChange, PreviousQuantity, NewQuantity, ReferenceType, Remarks, TransactionDate)
-    VALUES (@ItemID, @ActorUserID, 'Adjustment', @QuantityChange, @OnHand, @OnHand + @QuantityChange, 'MANUAL',
-            NULLIF(LTRIM(RTRIM(@Remarks)), ''), SYSDATETIME());
+    -- Kani nga insert kay para sa adjustment log; ang log row mismo ang
+    -- ADJ record, mao nga i-self-reference ang ID.
+    DECLARE @AdjustmentLogID INT;
+
+    INSERT INTO INVENTORY_LOGS (ItemID, UserID, TransactionType, QuantityChange, PreviousQuantity, NewQuantity, ReferenceType, ReferenceID, Remarks, TransactionDate)
+    VALUES (@ItemID, @ActorUserID, 'Adjustment', @QuantityChange, @OnHand, @OnHand + @QuantityChange, 'ADJUSTMENT', 0,
+            ISNULL(NULLIF(LTRIM(RTRIM(@Remarks)), ''), N'Inventory quantity manually adjusted.'), SYSDATETIME());
+
+    -- Kani nga update kay para mahimong ADJ-#### ang reference niini.
+    SET @AdjustmentLogID = SCOPE_IDENTITY();
+    UPDATE INVENTORY_LOGS
+    SET ReferenceID = @AdjustmentLogID
+    WHERE InventoryLogID = @AdjustmentLogID AND ReferenceID = 0;
 
     INSERT INTO USER_AUDIT_LOGS (ActorUserID, TargetUserID, ActionType, Description)
     VALUES (@ActorUserID, @ActorUserID, 'INVENTORY_ADJUSTED',
@@ -541,10 +606,14 @@ BEGIN
         SET QuantityReserved = QuantityReserved + @RemainingQty, LastUpdated = SYSDATETIME()
         WHERE ItemID = @ItemID;
 
+        -- Kani nga remarks kay para makita nga issuance reservation kini.
         INSERT INTO INVENTORY_LOGS (ItemID, UserID, TransactionType, QuantityChange, PreviousQuantity, NewQuantity, ReferenceType, ReferenceID, Remarks, TransactionDate)
         VALUES (@ItemID, @ActorUserID, 'Reservation', @RemainingQty, @Reserved, @Reserved + @RemainingQty,
                 CASE WHEN @RequisitionID IS NULL THEN 'MANUAL' ELSE 'REQUISITION' END, @RequisitionID,
-                CONCAT('Reserved ', @RemainingQty, ' unit(s) for issuance.'), SYSDATETIME());
+                CASE WHEN @RequisitionID IS NULL
+                     THEN CONCAT('Stock reserved for issuance: ', @RemainingQty, ' unit(s).')
+                     ELSE N'Stock reserved for approved requisition.'
+                END, SYSDATETIME());
 
         IF @RequisitionDetailID IS NOT NULL
         BEGIN
@@ -577,10 +646,12 @@ BEGIN
         SET QuantityReserved = QuantityReserved + @Available, LastUpdated = SYSDATETIME()
         WHERE ItemID = @ItemID;
 
+        -- Kani nga remarks kay para sa partial reservation sa issuance.
         INSERT INTO INVENTORY_LOGS (ItemID, UserID, TransactionType, QuantityChange, PreviousQuantity, NewQuantity, ReferenceType, ReferenceID, Remarks, TransactionDate)
         VALUES (@ItemID, @ActorUserID, 'Reservation', @Available, @Reserved, @Reserved + @Available,
                 CASE WHEN @RequisitionID IS NULL THEN 'MANUAL' ELSE 'REQUISITION' END, @RequisitionID,
-                CONCAT('Partial reservation: only ', @Available, ' of ', @RemainingQty, ' unit(s) available.'), SYSDATETIME());
+                CONCAT('Partial reservation: only ', @Available, ' of ', @RemainingQty,
+                       ' unit(s) available. Replenishment request generated.'), SYSDATETIME());
 
         -- Kani nga reservation row kay para sa partial nga na-reserve lang.
         IF @RequisitionDetailID IS NOT NULL
@@ -710,10 +781,20 @@ BEGIN
     SET QuantityOnHand = QuantityOnHand + @QuantityReceived, LastUpdated = SYSDATETIME()
     WHERE ItemID = @ItemID;
 
+    -- Kani nga insert kay para sa receiving log. Kung walá nga RepF,
+    -- ang log row mismo ang Receiving Record (RR-####) — self-referencing.
+    DECLARE @ReceiveLogID INT;
+
     INSERT INTO INVENTORY_LOGS (ItemID, UserID, TransactionType, QuantityChange, PreviousQuantity, NewQuantity, ReferenceType, ReferenceID, Remarks, TransactionDate)
     VALUES (@ItemID, @ActorUserID, 'Stock In', @QuantityReceived, @OnHand, @OnHand + @QuantityReceived,
-            CASE WHEN @RepFID IS NULL THEN 'MANUAL' ELSE 'REPLENISHMENT' END, @RepFID,
-            NULLIF(LTRIM(RTRIM(@Remarks)), ''), SYSDATETIME());
+            CASE WHEN @RepFID IS NULL THEN 'RECEIVING' ELSE 'REPLENISHMENT' END, ISNULL(@RepFID, 0),
+            ISNULL(NULLIF(LTRIM(RTRIM(@Remarks)), ''), N'Items received and added to inventory.'), SYSDATETIME());
+
+    -- Kani nga update kay para mahimong RR-#### ang reference niini.
+    SET @ReceiveLogID = SCOPE_IDENTITY();
+    UPDATE INVENTORY_LOGS
+    SET ReferenceID = @ReceiveLogID
+    WHERE InventoryLogID = @ReceiveLogID AND ReferenceID = 0;
 
     IF @RepFID IS NOT NULL
     BEGIN
@@ -825,10 +906,34 @@ BEGIN
     )
         THROW 50324, 'You do not have permission to view inventory logs.', 1;
 
+    -- Kani nga computed columns kay para sa display: Source ug Reference
+    -- format (RF-/RefP-/RR-/ADJ-) base sa tinuod nga transaction records.
+    -- Walay fake numbers: SEED/INITIAL walay reference kay wala man silay
+    -- baliton nga transaction record, so NULL (mo-display ug — sa frontend).
     SELECT TOP (100) l.InventoryLogID, i.ItemName, i.ItemCode, l.TransactionType,
            l.QuantityChange, l.PreviousQuantity, l.NewQuantity,
            l.ReferenceType, l.ReferenceID, l.Remarks, l.TransactionDate,
-           CONCAT(u.FirstName, ' ', u.LastName) AS UserName
+           CONCAT(u.FirstName, ' ', u.LastName) AS UserName,
+           CASE
+               WHEN l.ReferenceType = 'REQUISITION' AND l.ReferenceID IS NOT NULL
+                   THEN 'RF-' + RIGHT('0000' + CAST(l.ReferenceID AS VARCHAR(10)), 4)
+               WHEN l.ReferenceType = 'REPLENISHMENT' AND l.ReferenceID IS NOT NULL
+                   THEN 'RefP-' + RIGHT('0000' + CAST(l.ReferenceID AS VARCHAR(10)), 4)
+               WHEN l.ReferenceType = 'RECEIVING' AND l.ReferenceID IS NOT NULL
+                   THEN 'RR-' + RIGHT('0000' + CAST(l.ReferenceID AS VARCHAR(10)), 4)
+               WHEN l.ReferenceType IN ('MANUAL', 'ADJUSTMENT') AND l.TransactionType = 'Adjustment'
+                   THEN 'ADJ-' + RIGHT('0000' + CAST(ISNULL(l.ReferenceID, l.InventoryLogID) AS VARCHAR(10)), 4)
+               WHEN l.ReferenceType IN ('SEED', 'INITIAL') AND l.ReferenceID IS NOT NULL
+                   THEN 'ADJ-' + RIGHT('0000' + CAST(l.ReferenceID AS VARCHAR(10)), 4)
+               ELSE NULL
+           END AS ReferenceDisplay,
+           CASE
+               WHEN l.ReferenceType IN ('SEED', 'INITIAL') THEN 'Initial Stock'
+               WHEN l.TransactionType IN ('Reservation', 'Release', 'Stock Out') THEN 'Issuance'
+               WHEN l.TransactionType = 'Stock In' THEN 'Receiving'
+               WHEN l.TransactionType = 'Adjustment' THEN 'Adjustment'
+               ELSE l.TransactionType
+           END AS SourceDisplay
     FROM INVENTORY_LOGS l
     INNER JOIN ITEMS i ON i.ItemID = l.ItemID
     LEFT JOIN USERS u ON u.UserID = l.UserID
