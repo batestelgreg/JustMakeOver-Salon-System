@@ -8,5 +8,6 @@
   <Folder Name="/Database/">
     <File Path="Database/Migrations/V001_UserManagementAuditDashboard.sql" />
     <File Path="Database/Migrations/V002_UserRoleManagement.sql" />
+    <File Path="Database/Migrations/V003_Inventory.sql" />
   </Folder>
 </Solution>

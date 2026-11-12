@@ -3,7 +3,7 @@
  * gikan sa C# backend gamit ang LoadDashboard operation.
  */
 import { invoke } from '../../assets/js/core/bridge.js';
-import { getUser } from '../../assets/js/core/state.js';
+import { getUser, hasPermission } from '../../assets/js/core/state.js';
 import { publish, AppEvents } from '../../assets/js/core/events.js';
 import { showToast } from '../../assets/js/components/toast.js';
 
@@ -17,6 +17,16 @@ const SUMMARY_CARD_CONFIG = [
     { key: 'pendingPurchaseOrders', label: 'Purchase orders awaiting approval', icon: 'gold' },
     { key: 'unreadNotifications', label: 'Unread notifications', icon: 'red' },
     { key: 'activeUsers', label: 'Active user accounts', icon: 'green' }
+];
+
+// Kani nga config kay para sa inventory panel tiles sa dashboard.
+const INVENTORY_PANEL_CONFIG = [
+    { key: 'TotalItems', label: 'Active inventory items', icon: 'navy' },
+    { key: 'LowStockItems', label: 'Items at or below reorder point', icon: 'red' },
+    { key: 'ReservedUnits', label: 'Units reserved for issuance', icon: 'gold' },
+    { key: 'PendingRepFs', label: 'Replenishment requests pending', icon: 'red' },
+    { key: 'PartialReservations', label: 'Partially fulfilled reservations', icon: 'gold' },
+    { key: 'RecentMovements', label: 'Stock movements (last 24h)', icon: 'green' }
 ];
 
 const QUICK_ACTIONS = [
@@ -65,7 +75,18 @@ export async function init(root) {
     root.querySelector('#dashboardRefresh')
         ?.addEventListener('click', refreshHandler);
 
+    // Kani nga listener kay para sa Open Inventory button sa inventory panel.
+    root.querySelector('#inventoryPanelCard .quick-action')
+        ?.addEventListener('click', () => {
+            publish(AppEvents.Navigate, { name: 'inventory' });
+        });
+
     await loadSummary(root);
+
+    // Kani nga panel kay gipakita ra kung naa ang inventory.view permission.
+    if (hasPermission('inventory.view')) {
+        await loadInventoryPanel(root);
+    }
 }
 
 /**
@@ -121,6 +142,33 @@ function createSummaryCard(config, value) {
     card.appendChild(details);
 
     return card;
+}
+
+/**
+ * Kani nga loadInventoryPanel kay nagkuha sa live inventory numbers
+ * gikan sa Inventory module pinaagi sa InventoryPanel operation.
+ */
+async function loadInventoryPanel(root) {
+    const panelCard = root.querySelector('#inventoryPanelCard');
+    if (!panelCard) {
+        return;
+    }
+
+    panelCard.style.display = '';
+
+    try {
+        const panel = await invoke('InventoryPanel');
+        const target = root.querySelector('#inventoryPanelCards');
+        target.innerHTML = '';
+
+        // Kani nga loop kay nag-render sa inventory tiles gikan sa backend.
+        INVENTORY_PANEL_CONFIG.forEach((config) => {
+            target.appendChild(createSummaryCard(config, panel[config.key]));
+        });
+    } catch (error) {
+        // Kani nga error kay mo-hide sa panel kung wala pa ang Inventory data.
+        panelCard.style.display = 'none';
+    }
 }
 
 /**
