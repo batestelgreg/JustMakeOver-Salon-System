@@ -253,44 +253,71 @@ function renderLogsTable(root) {
     }
 
     if (logsData.length === 0) {
-        body.innerHTML = '<tr><td colspan="8" class="data-table__empty">No stock movements recorded.</td></tr>';
+        body.innerHTML = '<tr><td colspan="9" class="data-table__empty">No stock movements recorded.</td></tr>';
         return;
     }
 
     body.innerHTML = '';
     logsData.forEach((log) => {
         const row = document.createElement('tr');
+        // Kani nga change sign kay para makita ang direction sa movement.
         const changeText = (log.QuantityChange >= 0 ? '+' : '') + log.QuantityChange;
         const balanceText = log.PreviousQuantity + ' \u2192 ' + log.NewQuantity;
-        const reference = (log.ReferenceType || '') +
-            (log.ReferenceType && log.ReferenceID ? ' #' : '') + (log.ReferenceID || '');
-        [formatDate(log.TransactionDate, true), log.ItemName, log.TransactionType, changeText,
-         balanceText, reference || '—', log.UserName || '—', log.Remarks || '']
-            .forEach((value) => {
-                const cell = document.createElement('td');
-                cell.textContent = value;
-                row.appendChild(cell);
-            });
+        const cells = [
+            formatDate(log.TransactionDate, true),
+            log.ItemName,
+            log.TransactionType,
+            changeText,
+            balanceText,
+            log.Source || '\u2014',
+            log.Reference || '\u2014',
+            log.UserName || '\u2014',
+            log.Remarks || ''
+        ];
+        cells.forEach((value) => {
+            const cell = document.createElement('td');
+            cell.textContent = value;
+            row.appendChild(cell);
+        });
         body.appendChild(row);
     });
 }
 
 /**
  * Kani nga helper nag-format sa date para sa display.
+ * Ang backend serializer kay mo-pass ug "/Date(ticks)/" nga format
+ * (JavaScriptSerializer), mao nga i-parse usa kini, ug kung invalid
+ * o missing ang date, mo-display ug em dash.
  */
 function formatDate(value, withTime) {
     if (!value) {
-        return '—';
+        return '\u2014';
     }
-    const date = new Date(value);
+
+    let date;
+    if (typeof value === 'string') {
+        // Kani nga match kay para sa ASP.NET /Date(1234567890)/ format.
+        const ticksMatch = value.match(/^\\?\/Date\((-?\d+)(?:[+-]\d{4})?\)\\?\/$/);
+        date = ticksMatch ? new Date(Number(ticksMatch[1])) : new Date(value);
+    } else if (typeof value === 'number') {
+        date = new Date(value);
+    } else {
+        date = new Date(value);
+    }
+
+    // Kani nga validation kay para walay "Invalid Date" nga mo-display.
+    if (!date || isNaN(date.getTime())) {
+        return '\u2014';
+    }
+
     const datePart = date.toLocaleDateString('en-US', {
         year: 'numeric', month: 'short', day: 'numeric'
     });
     if (!withTime) {
         return datePart;
     }
-    return datePart + ' ' + date.toLocaleTimeString('en-US', {
-        hour: '2-digit', minute: '2-digit'
+    return datePart + ' \u00b7 ' + date.toLocaleTimeString('en-US', {
+        hour: 'numeric', minute: '2-digit'
     });
 }
 

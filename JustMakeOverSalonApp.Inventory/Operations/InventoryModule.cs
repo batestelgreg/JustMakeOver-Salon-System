@@ -43,7 +43,17 @@ namespace JustMakeOverSalonApp.Inventory.Operations
         {
             var actor = context.RequireUser();
             var overview = await service.LoadOverviewAsync(actor);
-            context.SendResponse(requestID, true, overview, null);
+
+            // Kani nga wrap kay para lowercase ang JSON keys (walay camelCase
+            // ang JavaScriptSerializer, maong ano-on ang names diri).
+            context.SendResponse(requestID, true, new
+            {
+                items = overview.Items,
+                categories = overview.Categories,
+                reservations = overview.Reservations,
+                repFs = overview.RepFs,
+                logs = overview.Logs
+            }, null);
         }
 
         // Kani nga handler nagdala sa tanang items ug stock balances.

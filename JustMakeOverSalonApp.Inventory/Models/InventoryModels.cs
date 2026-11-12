@@ -44,6 +44,11 @@ namespace JustMakeOverSalonApp.Inventory.Models
         public string Remarks { get; set; }
         public DateTime TransactionDate { get; set; }
         public string UserName { get; set; }
+
+        // Kani nga duha kay computed sa usp_Inventory_GetLogs para sa display:
+        // Reference = RF-/RefP-/RR-/ADJ- format; Source = flowchart stage.
+        public string Reference { get; set; }
+        public string Source { get; set; }
     }
 
     // Kani nga model kay para sa mga active reservations.
