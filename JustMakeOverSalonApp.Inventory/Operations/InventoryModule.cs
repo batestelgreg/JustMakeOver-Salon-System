@@ -30,7 +30,6 @@ namespace JustMakeOverSalonApp.Inventory.Operations
             registry.Register("InventoryUpdate", HandleInventoryUpdateAsync);
             registry.Register("InventoryAdjust", HandleInventoryAdjustAsync);
             registry.Register("InventoryIssue", HandleInventoryIssueAsync);
-            registry.Register("InventoryReceive", HandleInventoryReceiveAsync);
             registry.Register("InventoryLogs", HandleInventoryLogsAsync);
             registry.Register("InventoryReservations", HandleInventoryReservationsAsync);
             registry.Register("InventoryRepFs", HandleInventoryRepFsAsync);
@@ -148,19 +147,6 @@ namespace JustMakeOverSalonApp.Inventory.Operations
                 ParseNullableInt(context.GetValueAsString(payload, "requisitionID")),
                 ParseNullableDate(context.GetValueAsString(payload, "estimatedRestockDate")));
             context.SendResponse(requestID, true, new { outcome }, null);
-        }
-
-        // Kani nga handler nag-record ug received stock (flowchart Figure 8.B).
-        private async Task HandleInventoryReceiveAsync(Dictionary<string, object> payload, string requestID)
-        {
-            var actor = context.RequireUser();
-            await service.ReceiveStockAsync(
-                actor,
-                context.GetValueAsInt(payload, "itemID"),
-                context.GetValueAsInt(payload, "quantityReceived"),
-                ParseNullableInt(context.GetValueAsString(payload, "repFID")),
-                context.GetValueAsString(payload, "remarks"));
-            context.SendResponse(requestID, true, null, null);
         }
 
         // Kani nga handler nagdala sa recent stock movements.

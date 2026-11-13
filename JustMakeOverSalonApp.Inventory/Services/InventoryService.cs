@@ -206,32 +206,9 @@ namespace JustMakeOverSalonApp.Inventory.Services
                 estimatedRestockDate));
         }
 
-        // Kani nga method nag-record ug received stock (flowchart Figure 8.B).
-        public Task ReceiveStockAsync(
-            CurrentUser actor, int itemID, int quantityReceived, int? repFID, string remarks)
-        {
-            actor.RequirePermission(PermissionCodes.InventoryUpdate);
-
-            if (itemID <= 0)
-            {
-                throw new BusinessException("A valid item is required.");
-            }
-
-            if (quantityReceived <= 0)
-            {
-                throw new BusinessException(
-                    "The received quantity must be greater than zero.");
-            }
-
-            repository.ReceiveStock(
-                actor.UserID,
-                itemID,
-                quantityReceived,
-                repFID.HasValue && repFID.Value > 0 ? repFID : null,
-                remarks);
-
-            return Task.CompletedTask;
-        }
+        // Kani nga method nag-record ug received stock (Figure 8.B) - NAKA-TRANSFER
+        // NA SA RECEIVING MODULE (ReceivingSubmit) aron usa ra ang receiving flow.
+        // Wala na'y InventoryReceive operation dinhi (walay duplication).
 
         // Kani nga method nagkuha sa recent stock movements.
         public Task<IList<InventoryLogRecord>> LoadLogsAsync(CurrentUser actor)

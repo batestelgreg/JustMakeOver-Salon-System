@@ -11,6 +11,7 @@ using JustMakeOverSalonApp.Core.Validation;
 using JustMakeOverSalonApp.Delivery.Operations;
 using JustMakeOverSalonApp.Inventory.Operations;
 using JustMakeOverSalonApp.Purchasing.Operations;
+using JustMakeOverSalonApp.Receiving.Operations;
 using JustMakeOverSalonApp.Requisition.Operations;
 using JustMakeOverSalonApp.Utilities;
 using Microsoft.Web.WebView2.Core;
@@ -51,6 +52,7 @@ namespace JustMakeOverSalonApp.Bridge
             new InventoryModule().RegisterOperations(operations, this);
             new PurchasingModule().RegisterOperations(operations, this);
             new DeliveryModule().RegisterOperations(operations, this);
+            new ReceivingModule().RegisterOperations(operations, this);
         }
 
         // Kani nga method kay nag-enroll sa core operations nga dili module.

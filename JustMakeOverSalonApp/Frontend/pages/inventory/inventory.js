@@ -5,6 +5,7 @@
  */
 import { invoke } from '../../assets/js/core/bridge.js';
 import { hasPermission } from '../../assets/js/core/state.js';
+import { publish, AppEvents } from '../../assets/js/core/events.js';
 import { showToast } from '../../assets/js/components/toast.js';
 
 let itemsData = [];
@@ -34,7 +35,6 @@ export async function init(root) {
     wireItemForm(root);
     wireAdjustForm(root);
     wireIssueForm(root);
-    wireReceiveForm(root);
 
     await reloadAll(root);
 }
@@ -104,7 +104,8 @@ function renderItemsTable(root) {
     }
 
     const canIssue = hasPermission('inventory.update');
-    const canReceive = hasPermission('inventory.update');
+    // Kani nga Receive kay gated sa receiving.view kay adto man sa Receiving module.
+    const canReceive = hasPermission('receiving.view');
     const canAdjust = hasPermission('inventory.adjust');
     const canEdit = hasPermission('inventory.update');
 
@@ -149,7 +150,12 @@ function renderItemsTable(root) {
             actions.appendChild(buildAction('Issue', () => openIssueModal(root, item), 'btn-action--issue'));
         }
         if (canReceive) {
-            actions.appendChild(buildAction('Receive', () => openReceiveModal(root, item), 'btn-action--receive'));
+            // Kani nga Receive button kay NAVIGATION PATH na padulong sa
+            // Receiving module (flowchart Figure 8.B) - dili na modal dinhi,
+            // mao nga usa ra ang receiving flow (walay duplication).
+            actions.appendChild(buildAction('Receive', () =>
+                publish(AppEvents.Navigate, { name: 'receiving', params: { itemID: item.ItemID } }),
+                'btn-action--receive'));
         }
         if (canAdjust) {
             actions.appendChild(buildAction('Adjust', () => openAdjustModal(root, item), 'btn-action--adjust'));
@@ -334,9 +340,7 @@ function wireModalClosers(root) {
         ['#btnCloseAdjustModal', '#adjustModal'],
         ['#btnCancelAdjust', '#adjustModal'],
         ['#btnCloseIssueModal', '#issueModal'],
-        ['#btnCancelIssue', '#issueModal'],
-        ['#btnCloseReceiveModal', '#receiveModal'],
-        ['#btnCancelReceive', '#receiveModal']
+        ['#btnCancelIssue', '#issueModal']
     ];
 
     closeMap.forEach(([buttonSelector, modalSelector]) => {
@@ -345,7 +349,7 @@ function wireModalClosers(root) {
         });
     });
 
-    ['#itemModal', '#adjustModal', '#issueModal', '#receiveModal'].forEach((selector) => {
+    ['#itemModal', '#adjustModal', '#issueModal'].forEach((selector) => {
         root.querySelector(selector)?.addEventListener('click', (event) => {
             if (event.target === root.querySelector(selector)) {
                 root.querySelector(selector).classList.add('u-hidden');
@@ -569,62 +573,6 @@ function wireIssueForm(root) {
                     ') was sent to Purchasing.');
             }
             root.querySelector('#issueModal').classList.add('u-hidden');
-            await reloadAll(root);
-        } catch (error) {
-            showToast('error', error.message);
-        }
-    });
-}
-
-/**
- * Kani nga modal kay para sa receiving (flowchart Figure 8.B).
- */
-function openReceiveModal(root, item) {
-    modalTargetItem = item;
-    root.querySelector('#receiveItemInfo').textContent =
-        item.ItemName + ' (' + item.ItemCode + ') — On hand: ' + item.QuantityOnHand;
-    root.querySelector('#txtReceiveQuantity').value = '1';
-    root.querySelector('#txtReceiveRemarks').value = '';
-    root.querySelector('#errorReceiveQuantity').textContent = '';
-
-    // Kani nga dropdown kay para sa pending RepFs sa item.
-    const repFSelect = root.querySelector('#selReceiveRepF');
-    repFSelect.innerHTML = '<option value="">None</option>';
-    repFsData
-        .filter((f) => f.ItemID === item.ItemID && f.Status === 'Pending')
-        .forEach((f) => {
-            const option = document.createElement('option');
-            option.value = f.RepFID;
-            option.textContent = 'REP-' + f.RepFID + ' (need ' + f.QuantityNeeded + ')';
-            repFSelect.appendChild(option);
-        });
-
-    root.querySelector('#receiveModal').classList.remove('u-hidden');
-}
-
-/**
- * Kani nga submit kay nagdala sa receiving: RIM + allocation sa waiting requests.
- */
-function wireReceiveForm(root) {
-    root.querySelector('#receiveForm')?.addEventListener('submit', async (event) => {
-        event.preventDefault();
-
-        const quantity = parseInt(root.querySelector('#txtReceiveQuantity').value, 10);
-        if (!quantity || quantity <= 0) {
-            root.querySelector('#errorReceiveQuantity').textContent =
-                'The quantity must be greater than zero.';
-            return;
-        }
-
-        try {
-            await invoke('InventoryReceive', {
-                itemID: String(modalTargetItem.ItemID),
-                quantityReceived: String(quantity),
-                repFID: root.querySelector('#selReceiveRepF').value,
-                remarks: root.querySelector('#txtReceiveRemarks').value.trim()
-            });
-            showToast('success', 'The receipt was recorded and waiting requests were allocated.');
-            root.querySelector('#receiveModal').classList.add('u-hidden');
             await reloadAll(root);
         } catch (error) {
             showToast('error', error.message);

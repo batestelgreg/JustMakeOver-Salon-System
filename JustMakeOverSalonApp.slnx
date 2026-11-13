@@ -5,9 +5,11 @@
   <Project Path="JustMakeOverSalonApp.Inventory/JustMakeOverSalonApp.Inventory.csproj" Id="a1000000-0000-4000-9000-000000000002" />
   <Project Path="JustMakeOverSalonApp.Purchasing/JustMakeOverSalonApp.Purchasing.csproj" Id="a1000000-0000-4000-9000-000000000003" />
   <Project Path="JustMakeOverSalonApp.Delivery/JustMakeOverSalonApp.Delivery.csproj" Id="a1000000-0000-4000-9000-000000000004" />
+  <Project Path="JustMakeOverSalonApp.Receiving/JustMakeOverSalonApp.Receiving.csproj" Id="a1000000-0000-4000-9000-000000000005" />
   <Folder Name="/Database/">
     <File Path="Database/Migrations/V001_UserManagementAuditDashboard.sql" />
     <File Path="Database/Migrations/V002_UserRoleManagement.sql" />
     <File Path="Database/Migrations/V003_Inventory.sql" />
+    <File Path="Database/Migrations/V004_Receiving.sql" />
   </Folder>
 </Solution>

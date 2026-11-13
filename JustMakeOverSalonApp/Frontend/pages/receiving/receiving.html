@@ -1,0 +1,97 @@
+<!-- Kani nga receiving page kay para sa pending RepF queue ug receiving history
+     (flowchart Figure 8.B). Diri ra moagi ang TANANG receiving - walay duplicate
+     nga receive modal sa Inventory. -->
+<div class="receiving-page">
+    <div class="page-header">
+        <div>
+            <h2 class="page-header__title">Receiving</h2>
+            <p class="page-header__subtitle">Record incoming items and replenishment deliveries.</p>
+        </div>
+        <div class="u-flex--gap">
+            <button type="button" class="btn btn--ghost" id="btnRefreshReceiving">Refresh</button>
+            <button type="button" class="btn btn--secondary" id="btnReceiveWithoutReference" data-requires="receiving.manage">Receive without reference</button>
+        </div>
+    </div>
+
+    <!-- Kani nga card kay para sa pending queue: mga RepF nga gipa-abot pa. -->
+    <div class="card">
+        <h3 class="u-mb-4" style="font-size: 17px;">Pending to Receive</h3>
+        <div class="data-table">
+            <table id="pendingTable">
+                <thead>
+                    <tr>
+                        <th>RepF #</th>
+                        <th>Item</th>
+                        <th>Qty Needed</th>
+                        <th>Stock Available</th>
+                        <th>Generated</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="pendingTableBody">
+                    <tr><td colspan="6" class="data-table__empty">Loading pending receipts&hellip;</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Kani nga card kay para sa receiving history (RR-/RefP- records). -->
+    <div class="card u-mt-6">
+        <h3 class="u-mb-4" style="font-size: 17px;">Receiving History</h3>
+        <div class="data-table">
+            <table id="historyTable">
+                <thead>
+                    <tr>
+                        <th>Date &amp; Time</th>
+                        <th>Item</th>
+                        <th>Qty In</th>
+                        <th>Balance</th>
+                        <th>Reference</th>
+                        <th>Source</th>
+                        <th>By</th>
+                        <th>Remarks</th>
+                    </tr>
+                </thead>
+                <tbody id="historyTableBody">
+                    <tr><td colspan="8" class="data-table__empty">Loading history&hellip;</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Kani nga modal kay para sa pag-record sa usa ka receipt
+         (gikan sa pending RepF o receive without reference). -->
+    <div id="receiveModal" class="modal-overlay u-hidden">
+        <div class="modal">
+            <div class="modal__header">
+                <h3 class="modal__title">Record Received Stock</h3>
+                <button type="button" class="modal__close" id="btnCloseReceiveModal" aria-label="Close">&times;</button>
+            </div>
+            <form id="receiveForm" novalidate>
+                <div class="modal__body">
+                    <p class="u-text-muted u-mb-4" id="receiveSourceInfo"></p>
+                    <!-- Kani nga item selector kay para sa receive without reference;
+                         sa RepF mode kini kay hidden kay fixed ang item sa RepF. -->
+                    <div class="form-field u-hidden" id="fieldReceiveItem">
+                        <label class="form-field__label" for="selReceiveItem">Item</label>
+                        <select id="selReceiveItem" class="form-field__input"></select>
+                    </div>
+                    <p class="u-text-muted u-mb-4 u-hidden" id="receiveItemInfo"></p>
+                    <div class="form-field">
+                        <label class="form-field__label" for="txtReceiveQuantity">Quantity received</label>
+                        <input type="number" id="txtReceiveQuantity" class="form-field__input" min="1" value="1">
+                        <span class="form-field__error" id="errorReceiveQuantity"></span>
+                    </div>
+                    <div class="form-field">
+                        <label class="form-field__label" for="txtReceiveRemarks">Remarks</label>
+                        <input type="text" id="txtReceiveRemarks" class="form-field__input" maxlength="1000" autocomplete="off">
+                    </div>
+                </div>
+                <div class="modal__footer">
+                    <button type="button" class="btn btn--ghost" id="btnCancelReceive">Cancel</button>
+                    <button type="submit" class="btn btn--primary">Record Receipt</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

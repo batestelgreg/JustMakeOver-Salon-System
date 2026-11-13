@@ -1,23 +1,12 @@
 /**
- * Kani nga route file kay iya ra sa DELIVERY module/developer.
- * Kung andam na ang real nga page module, ilisan lang ang placeholder
- * nga import sa tinuod nga module — dili na mo-touch ug app.js.
+ * Kani nga route file kay iya ra sa RECEIVING module/developer.
+ * Ang placeholder kay gipulihan na sa tinuod nga receiving page module.
  */
 import { registerRoute } from '../core/router.js';
 
-// Kani nga placeholder kay para sa module nga wala pa ma-implement.
+// Kani nga route kay nagdala sa working nga Receiving page.
 registerRoute('receiving', {
     title: 'Receiving',
-    subtitle: 'This module will be available in the next implementation phase.',
-    useAssets: false,
-    module: () => import('../components/placeholder-page.js')
-        .then((module) => module.createPlaceholderModule('receiving'))
+    subtitle: 'Record deliveries and replenishment receipts',
+    module: () => import('../../../pages/receiving/receiving.js')
 });
-
-/* Kung andam na ang real module, ilisan ang block sa ibabaw niini:
-registerRoute('receiving', {
-    title: 'Receiving',
-    subtitle: 'Record deliveries and acknowledgement receipts',
-    module: () => import('../../../../pages/receiving/receiving.js')
-});
-*/
