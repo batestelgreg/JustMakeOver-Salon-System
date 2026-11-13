@@ -73,6 +73,35 @@ namespace JustMakeOverSalonApp.Bridge
                 return Task.CompletedTask;
             });
 
+            operations.Register(OperationNames.SessionStatus, (payload, requestID) =>
+            {
+                // Kani nga operation kay para sa page reload (Ctrl+R): ang
+                // C# session kay buhi man gihapon, maong i-restore ang
+                // frontend state base niini instead sa balik sa login.
+                var user = SessionContext.Instance.CurrentUser;
+                if (user == null)
+                {
+                    SendResponse(requestID, true, new { sessionActive = false }, null);
+                    return Task.CompletedTask;
+                }
+
+                // Kani nga shape kay parehas sa Login response para
+                // direct nga magamit sa enterApplication sa frontend.
+                SendResponse(requestID, true, new
+                {
+                    sessionActive = true,
+                    user = new
+                    {
+                        userID = user.UserID,
+                        fullName = user.FullName,
+                        role = user.RoleName,
+                        mustChangePassword = user.MustChangePassword
+                    },
+                    permissions = new List<string>(user.Permissions)
+                }, null);
+                return Task.CompletedTask;
+            });
+
             operations.Register(OperationNames.LoadDashboard,
                 (payload, requestID) => HandleLoadDashboardAsync(requestID));
 
@@ -159,10 +188,23 @@ namespace JustMakeOverSalonApp.Bridge
             }
             catch (SqlException sqlError)
             {
-                // Kani nga error kay i-log ra ang details ug mo-hatag og safe message sa user.
-                ErrorLog.Write("Bridge:" + operation, sqlError);
-                SendResponse(requestID, false, null,
-                    "The application could not reach the database. Please try again or contact the administrator.");
+                if (sqlError.Number >= 50000)
+                {
+                    // Kani nga case kay para sa THROW sa stored procedures —
+                    // business rule kini (validation message), dili raw nga
+                    // DB transport error. I-pass ang tinuod nga message.
+                    ErrorLog.WriteMessage("Bridge:" + operation + ":BusinessRule",
+                        sqlError.Message);
+                    SendResponse(requestID, false, null, sqlError.Message);
+                }
+                else
+                {
+                    // Kani nga error kay i-log ra ang details ug mo-hatag og
+                    // safe message sa user (transport/constraint errors).
+                    ErrorLog.Write("Bridge:" + operation, sqlError);
+                    SendResponse(requestID, false, null,
+                        "The application could not reach the database. Please try again or contact the administrator.");
+                }
             }
             catch (Exception unexpected)
             {

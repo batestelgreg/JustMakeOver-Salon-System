@@ -6,6 +6,7 @@ namespace JustMakeOverSalonApp.Bridge
         public const string Ping = "Ping";
         public const string Login = "Login";
         public const string Logout = "Logout";
+        public const string SessionStatus = "SessionStatus";
         public const string LoadDashboard = "LoadDashboard";
         public const string ChangePassword = "ChangePassword";
         public const string LogClientError = "LogClientError";
