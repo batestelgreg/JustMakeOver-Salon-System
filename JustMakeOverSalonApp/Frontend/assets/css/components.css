@@ -160,7 +160,10 @@
     background: var(--color-white);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
-    overflow: hidden;
+    /* Kani nga overflow-x kay para kung mokabat ang columns (nowrap cells),
+       mo-gawas ang horizontal scroll instead nga ma-clip ang katapusang
+       column (Actions) — mao to nga dili makita ang uban nga buttons. */
+    overflow-x: auto;
 }
 
 .data-table table {
