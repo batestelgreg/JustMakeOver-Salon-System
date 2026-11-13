@@ -224,27 +224,6 @@ namespace JustMakeOverSalonApp.Inventory.Repositories
             }
         }
 
-        // Kani nga method nag-record ug received stock (flowchart Figure 8.B).
-        public void ReceiveStock(int actorUserID, int itemID, int quantityReceived, int? repFID, string remarks)
-        {
-            using (var connection = connectionFactory.CreateOpenConnection())
-            using (var command = new SqlCommand("usp_Inventory_ReceiveStock", connection)
-            {
-                CommandType = CommandType.StoredProcedure
-            })
-            {
-                command.Parameters.Add("@ActorUserID", SqlDbType.Int).Value = actorUserID;
-                command.Parameters.Add("@ItemID", SqlDbType.Int).Value = itemID;
-                command.Parameters.Add("@QuantityReceived", SqlDbType.Int).Value = quantityReceived;
-                command.Parameters.Add("@RepFID", SqlDbType.Int).Value =
-                    repFID.HasValue ? (object)repFID.Value : DBNull.Value;
-                command.Parameters.Add("@Remarks", SqlDbType.NVarChar, 1000).Value =
-                    string.IsNullOrWhiteSpace(remarks) ? (object)DBNull.Value : remarks;
-
-                command.ExecuteNonQuery();
-            }
-        }
-
         // Kani nga method nagkuha sa recent stock movements.
         public IList<InventoryLogRecord> LoadLogs(int actorUserID)
         {

@@ -1,0 +1,5 @@
+/* Kani nga styles kay para sa receiving page (pending queue ug history). */
+
+.receiving-page .data-table table {
+    min-width: 640px;
+}

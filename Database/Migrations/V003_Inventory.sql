@@ -760,7 +760,7 @@ BEGIN
         INNER JOIN ROLE_PERMISSIONS rp ON rp.RoleID = u.RoleID
         INNER JOIN PERMISSIONS p ON p.PermissionID = rp.PermissionID
         WHERE u.UserID = @ActorUserID AND u.IsActive = 1
-          AND p.PermissionCode = N'inventory.update'
+          AND (p.PermissionCode = N'inventory.update' OR p.PermissionCode = N'receiving.manage')
     )
         THROW 50321, 'You do not have permission to record received stock.', 1;
 

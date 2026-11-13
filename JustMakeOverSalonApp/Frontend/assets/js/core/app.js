@@ -56,13 +56,13 @@ upcomingModules.forEach((name) => {
 /**
  * Kani nga guard kay nagdili sa navigation kung walay active session.
  */
-async function guardedNavigate(name) {
+async function guardedNavigate(name, params = {}) {
     if (!isLoggedIn() && name !== 'login') {
         await navigate('login');
         return;
     }
 
-    await navigate(name);
+    await navigate(name, params);
 }
 
 /**
@@ -101,7 +101,10 @@ subscribe(AppEvents.LogoutRequested, async () => {
     }
 });
 
-subscribe(AppEvents.Navigate, ({ name }) => guardedNavigate(name));
+// Kani nga params passthrough kay para sa mga navigation nga may
+// input (pananglitan: Inventory Receive button → Receiving page nga
+// may preselected nga item).
+subscribe(AppEvents.Navigate, ({ name, params }) => guardedNavigate(name, params));
 
 /**
  * Kani nga helper kay para sa visible critical error banner nga
