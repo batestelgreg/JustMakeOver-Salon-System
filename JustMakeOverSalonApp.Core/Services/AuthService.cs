@@ -22,13 +22,20 @@ namespace JustMakeOverSalonApp.Core.Services
 
         public Task<LoginResult> LoginAsync(string username, string password, string ipAddress)
         {
-            // Kani nga method kay mo-run sa background thread aron dili ma-block ang UI.
-            return Task.Run(() => Login(username, password, ipAddress));
+            // Kani nga method kay gitawag na sa background thread sa bridge
+            // (Task.Run sa FrontendBridge), maong direct na ang call.
+            // Kani nga pattern kay para ang BusinessException mo-agos sa
+            // user-code async chain nga ma-catch sa bridge — dili mo-cross
+            // sa TPL internals nga mao'y gigikanan sa "user-unhandled"
+            // debugger break bisan na-catch man.
+            return Task.FromResult(Login(username, password, ipAddress));
         }
 
         public Task ChangePasswordAsync(CurrentUser user, string currentPassword, string newPassword)
         {
-            return Task.Run(() => ChangePassword(user, currentPassword, newPassword));
+            // Kani nga method kay gitawag na sa background thread sa bridge.
+            ChangePassword(user, currentPassword, newPassword);
+            return Task.CompletedTask;
         }
 
         private LoginResult Login(string username, string password, string ipAddress)

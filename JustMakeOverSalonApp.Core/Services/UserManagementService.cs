@@ -23,7 +23,7 @@ namespace JustMakeOverSalonApp.Core.Services
         {
             // Kani nga permission check kay backend-side aron dili masulot sa frontend.
             actor.RequirePermission("users.view");
-            return Task.Run(() => repository.GetUsers(actor.UserID));
+            return Task.FromResult(repository.GetUsers(actor.UserID));
         }
 
         public Task UpdateUserAsync(
@@ -45,18 +45,19 @@ namespace JustMakeOverSalonApp.Core.Services
             var validatedRole = ValidationHelper.RequireInt(roleID, "Role", 1, int.MaxValue);
 
             actor.RequirePermission("users.update");
-            return Task.Run(() => repository.UpdateUserDetails(
+            repository.UpdateUserDetails(
                 actor.UserID, targetUserID,
                 validatedLast, validatedFirst, validatedMiddle,
-                validatedEmail, validatedRole));
+                validatedEmail, validatedRole);
+            return Task.CompletedTask;
         }
 
         public Task SetUserActiveAsync(CurrentUser actor, int targetUserID, bool isActive)
         {
             // Kani nga operation kay para sa activate ug deactivate sa accounts.
             actor.RequirePermission("users.deactivate");
-            return Task.Run(() => repository.SetUserActive(
-                actor.UserID, targetUserID, isActive));
+            repository.SetUserActive(actor.UserID, targetUserID, isActive);
+            return Task.CompletedTask;
         }
 
         public Task ResetUserPasswordAsync(
@@ -69,22 +70,22 @@ namespace JustMakeOverSalonApp.Core.Services
             var hash = PasswordHasher.HashPassword(validated);
 
             actor.RequirePermission("users.update");
-            return Task.Run(() => repository.AdminResetPassword(
-                actor.UserID, targetUserID, hash));
+            repository.AdminResetPassword(actor.UserID, targetUserID, hash);
+            return Task.CompletedTask;
         }
 
         public Task<IList<RoleRecord>> LoadRolesAsync(CurrentUser actor)
         {
             // Kani nga operation kay para sa roles listahan sa users page.
             actor.RequirePermission("roles.view");
-            return Task.Run(() => repository.GetRoles(actor.UserID));
+            return Task.FromResult(repository.GetRoles(actor.UserID));
         }
 
         public Task<IList<PermissionRecord>> LoadPermissionsAsync(CurrentUser actor)
         {
             // Kani nga operation kay para sa role editor permission checkboxes.
             actor.RequirePermission("roles.view");
-            return Task.Run(() => repository.GetPermissions(actor.UserID));
+            return Task.FromResult(repository.GetPermissions(actor.UserID));
         }
 
         public Task<int> CreateRoleAsync(
@@ -101,7 +102,7 @@ namespace JustMakeOverSalonApp.Core.Services
             var codes = JoinPermissionCodes(permissionCodes);
 
             actor.RequirePermission("settings.manage");
-            return Task.Run(() => repository.CreateRole(
+            return Task.FromResult(repository.CreateRole(
                 actor.UserID, validatedName, validatedDescription, codes));
         }
 
@@ -120,8 +121,9 @@ namespace JustMakeOverSalonApp.Core.Services
                 : ValidationHelper.RequireText(description, "Description", 200);
 
             actor.RequirePermission("settings.manage");
-            return Task.Run(() => repository.UpdateRole(
-                actor.UserID, validatedRoleID, validatedName, validatedDescription, isActive));
+            repository.UpdateRole(
+                actor.UserID, validatedRoleID, validatedName, validatedDescription, isActive);
+            return Task.CompletedTask;
         }
 
         public Task SetRolePermissionsAsync(
@@ -134,8 +136,8 @@ namespace JustMakeOverSalonApp.Core.Services
             var codes = JoinPermissionCodes(permissionCodes);
 
             actor.RequirePermission("settings.manage");
-            return Task.Run(() => repository.SetRolePermissions(
-                actor.UserID, validatedRoleID, codes));
+            repository.SetRolePermissions(actor.UserID, validatedRoleID, codes);
+            return Task.CompletedTask;
         }
 
         public Task CreateUserAsync(
@@ -162,10 +164,11 @@ namespace JustMakeOverSalonApp.Core.Services
             var hash = PasswordHasher.HashPassword(validatedPassword);
             actor.RequirePermission("users.create");
 
-            return Task.Run(() => repository.CreateUser(
+            repository.CreateUser(
                 actor.UserID,
                 validatedLast, validatedFirst, validatedMiddle,
-                validatedUsername, hash, validatedEmail, validatedRole));
+                validatedUsername, hash, validatedEmail, validatedRole);
+            return Task.CompletedTask;
         }
 
         public Task AssignRoleAsync(CurrentUser actor, int targetUserID, int newRoleID)
@@ -176,8 +179,8 @@ namespace JustMakeOverSalonApp.Core.Services
             var validatedRole = ValidationHelper.RequireInt(newRoleID, "Role", 1, int.MaxValue);
 
             actor.RequirePermission("users.assign_role");
-            return Task.Run(() => repository.AssignRole(
-                actor.UserID, validatedTarget, validatedRole));
+            repository.AssignRole(actor.UserID, validatedTarget, validatedRole);
+            return Task.CompletedTask;
         }
 
         private static string JoinPermissionCodes(IEnumerable<string> permissionCodes)

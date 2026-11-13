@@ -27,21 +27,21 @@ namespace JustMakeOverSalonApp.Inventory.Services
         public Task<InventoryOverview> LoadOverviewAsync(CurrentUser actor)
         {
             actor.RequirePermission(PermissionCodes.InventoryView);
-            return Task.Run(() => repository.LoadOverview(actor.UserID));
+            return Task.FromResult(repository.LoadOverview(actor.UserID));
         }
 
         // Kani nga method nagkuha sa tanang items ug stock balances.
         public Task<IList<InventoryItemRecord>> LoadItemsAsync(CurrentUser actor)
         {
             actor.RequirePermission(PermissionCodes.InventoryView);
-            return Task.Run(() => repository.LoadItems(actor.UserID));
+            return Task.FromResult(repository.LoadItems(actor.UserID));
         }
 
         // Kani nga method nagkuha sa categories para sa item form.
         public Task<IList<CategoryRecord>> LoadCategoriesAsync(CurrentUser actor)
         {
             actor.RequirePermission(PermissionCodes.InventoryView);
-            return Task.Run(() => repository.LoadCategories(actor.UserID));
+            return Task.FromResult(repository.LoadCategories(actor.UserID));
         }
 
         // Kani nga method nag-himo ug bag-ong inventory item.
@@ -53,45 +53,44 @@ namespace JustMakeOverSalonApp.Inventory.Services
         {
             actor.RequirePermission(PermissionCodes.InventoryCreate);
 
-            return Task.Run(() =>
+            ValidateItemName(unitOfMeasure, itemName);
+
+            if (reorderPoint < 0)
             {
-                ValidateItemName(unitOfMeasure, itemName);
+                throw new BusinessException("The reorder point cannot be negative.");
+            }
 
-                if (reorderPoint < 0)
+            if (unitPrice < 0)
+            {
+                throw new BusinessException("The unit price cannot be negative.");
+            }
+
+            if (initialQuantity < 0)
+            {
+                throw new BusinessException("The initial quantity cannot be negative.");
+            }
+
+            // Kani nga call kay direct na (background thread na sa bridge);
+            // ang exception mo-agos sa user-code async chain.
+            return Task.FromResult(repository.CreateItem(
+                actor.UserID,
+                new InventoryItemRecord
                 {
-                    throw new BusinessException("The reorder point cannot be negative.");
-                }
-
-                if (unitPrice < 0)
-                {
-                    throw new BusinessException("The unit price cannot be negative.");
-                }
-
-                if (initialQuantity < 0)
-                {
-                    throw new BusinessException("The initial quantity cannot be negative.");
-                }
-
-                return repository.CreateItem(
-                    actor.UserID,
-                    new InventoryItemRecord
-                    {
-                        ItemCode = string.IsNullOrWhiteSpace(itemCode) ? null : itemCode.Trim(),
-                        ItemName = itemName.Trim(),
-                        CategoryID = categoryID,
-                        UnitOfMeasure = unitOfMeasure.Trim(),
-                        ReorderPoint = reorderPoint,
-                        UnitPrice = unitPrice
-                    },
-                    initialQuantity);
-            });
+                    ItemCode = string.IsNullOrWhiteSpace(itemCode) ? null : itemCode.Trim(),
+                    ItemName = itemName.Trim(),
+                    CategoryID = categoryID,
+                    UnitOfMeasure = unitOfMeasure.Trim(),
+                    ReorderPoint = reorderPoint,
+                    UnitPrice = unitPrice
+                },
+                initialQuantity));
         }
 
         // Kani nga method nag-generate sa sunod nga ItemCode para sa form preview.
         public Task<string> GetNextItemCodeAsync(CurrentUser actor)
         {
             actor.RequirePermission(PermissionCodes.InventoryCreate);
-            return Task.Run(() => repository.GetNextItemCode(actor.UserID));
+            return Task.FromResult(repository.GetNextItemCode(actor.UserID));
         }
 
         // Kani nga method nag-save sa category (create o rename + toggle).
@@ -100,25 +99,22 @@ namespace JustMakeOverSalonApp.Inventory.Services
         {
             actor.RequirePermission(PermissionCodes.SettingsManage);
 
-            return Task.Run(() =>
+            if (string.IsNullOrWhiteSpace(categoryName))
             {
-                if (string.IsNullOrWhiteSpace(categoryName))
-                {
-                    throw new BusinessException("The category name is required.");
-                }
+                throw new BusinessException("The category name is required.");
+            }
 
-                if (categoryName.Trim().Length > 100)
-                {
-                    throw new BusinessException(
-                        "The category name must be 100 characters or less.");
-                }
+            if (categoryName.Trim().Length > 100)
+            {
+                throw new BusinessException(
+                    "The category name must be 100 characters or less.");
+            }
 
-                return repository.SaveCategory(
-                    actor.UserID,
-                    categoryID > 0 ? categoryID : (int?)null,
-                    categoryName,
-                    isActive);
-            });
+            return Task.FromResult(repository.SaveCategory(
+                actor.UserID,
+                categoryID > 0 ? categoryID : (int?)null,
+                categoryName,
+                isActive));
         }
 
         // Kani nga method nag-update sa item details.
@@ -129,39 +125,38 @@ namespace JustMakeOverSalonApp.Inventory.Services
         {
             actor.RequirePermission(PermissionCodes.InventoryUpdate);
 
-            return Task.Run(() =>
+            ValidateItemDetails(itemCode, itemName, unitOfMeasure);
+
+            if (itemID <= 0)
             {
-                ValidateItemDetails(itemCode, itemName, unitOfMeasure);
+                throw new BusinessException("A valid item is required.");
+            }
 
-                if (itemID <= 0)
+            if (reorderPoint < 0)
+            {
+                throw new BusinessException("The reorder point cannot be negative.");
+            }
+
+            if (unitPrice < 0)
+            {
+                throw new BusinessException("The unit price cannot be negative.");
+            }
+
+            repository.UpdateItem(
+                actor.UserID,
+                new InventoryItemRecord
                 {
-                    throw new BusinessException("A valid item is required.");
-                }
+                    ItemID = itemID,
+                    ItemCode = itemCode.Trim(),
+                    ItemName = itemName.Trim(),
+                    CategoryID = categoryID,
+                    UnitOfMeasure = unitOfMeasure.Trim(),
+                    ReorderPoint = reorderPoint,
+                    UnitPrice = unitPrice,
+                    IsActive = isActive
+                });
 
-                if (reorderPoint < 0)
-                {
-                    throw new BusinessException("The reorder point cannot be negative.");
-                }
-
-                if (unitPrice < 0)
-                {
-                    throw new BusinessException("The unit price cannot be negative.");
-                }
-
-                repository.UpdateItem(
-                    actor.UserID,
-                    new InventoryItemRecord
-                    {
-                        ItemID = itemID,
-                        ItemCode = itemCode.Trim(),
-                        ItemName = itemName.Trim(),
-                        CategoryID = categoryID,
-                        UnitOfMeasure = unitOfMeasure.Trim(),
-                        ReorderPoint = reorderPoint,
-                        UnitPrice = unitPrice,
-                        IsActive = isActive
-                    });
-            });
+            return Task.CompletedTask;
         }
 
         // Kani nga method nag-perform ug manual stock adjustment.
@@ -170,21 +165,19 @@ namespace JustMakeOverSalonApp.Inventory.Services
         {
             actor.RequirePermission(PermissionCodes.InventoryAdjust);
 
-            return Task.Run(() =>
+            if (quantityChange == 0)
             {
-                if (quantityChange == 0)
-                {
-                    throw new BusinessException(
-                        "The adjustment quantity cannot be zero.");
-                }
+                throw new BusinessException(
+                    "The adjustment quantity cannot be zero.");
+            }
 
-                if (itemID <= 0)
-                {
-                    throw new BusinessException("A valid item is required.");
-                }
+            if (itemID <= 0)
+            {
+                throw new BusinessException("A valid item is required.");
+            }
 
-                repository.AdjustStock(actor.UserID, itemID, quantityChange, remarks);
-            });
+            repository.AdjustStock(actor.UserID, itemID, quantityChange, remarks);
+            return Task.CompletedTask;
         }
 
         // Kani nga method nag-issue ug stock (flowchart Figure 8.A).
@@ -194,26 +187,23 @@ namespace JustMakeOverSalonApp.Inventory.Services
         {
             actor.RequirePermission(PermissionCodes.InventoryUpdate);
 
-            return Task.Run(() =>
+            if (itemID <= 0)
             {
-                if (itemID <= 0)
-                {
-                    throw new BusinessException("A valid item is required.");
-                }
+                throw new BusinessException("A valid item is required.");
+            }
 
-                if (quantityRequested <= 0)
-                {
-                    throw new BusinessException(
-                        "The requested quantity must be greater than zero.");
-                }
+            if (quantityRequested <= 0)
+            {
+                throw new BusinessException(
+                    "The requested quantity must be greater than zero.");
+            }
 
-                return repository.IssueStock(
-                    actor.UserID,
-                    itemID,
-                    quantityRequested,
-                    requisitionID.HasValue && requisitionID.Value > 0 ? requisitionID : null,
-                    estimatedRestockDate);
-            });
+            return Task.FromResult(repository.IssueStock(
+                actor.UserID,
+                itemID,
+                quantityRequested,
+                requisitionID.HasValue && requisitionID.Value > 0 ? requisitionID : null,
+                estimatedRestockDate));
         }
 
         // Kani nga method nag-record ug received stock (flowchart Figure 8.B).
@@ -222,54 +212,53 @@ namespace JustMakeOverSalonApp.Inventory.Services
         {
             actor.RequirePermission(PermissionCodes.InventoryUpdate);
 
-            return Task.Run(() =>
+            if (itemID <= 0)
             {
-                if (itemID <= 0)
-                {
-                    throw new BusinessException("A valid item is required.");
-                }
+                throw new BusinessException("A valid item is required.");
+            }
 
-                if (quantityReceived <= 0)
-                {
-                    throw new BusinessException(
-                        "The received quantity must be greater than zero.");
-                }
+            if (quantityReceived <= 0)
+            {
+                throw new BusinessException(
+                    "The received quantity must be greater than zero.");
+            }
 
-                repository.ReceiveStock(
-                    actor.UserID,
-                    itemID,
-                    quantityReceived,
-                    repFID.HasValue && repFID.Value > 0 ? repFID : null,
-                    remarks);
-            });
+            repository.ReceiveStock(
+                actor.UserID,
+                itemID,
+                quantityReceived,
+                repFID.HasValue && repFID.Value > 0 ? repFID : null,
+                remarks);
+
+            return Task.CompletedTask;
         }
 
         // Kani nga method nagkuha sa recent stock movements.
         public Task<IList<InventoryLogRecord>> LoadLogsAsync(CurrentUser actor)
         {
             actor.RequirePermission(PermissionCodes.InventoryView);
-            return Task.Run(() => repository.LoadLogs(actor.UserID));
+            return Task.FromResult(repository.LoadLogs(actor.UserID));
         }
 
         // Kani nga method nagkuha sa active reservations.
         public Task<IList<ReservationRecord>> LoadReservationsAsync(CurrentUser actor)
         {
             actor.RequirePermission(PermissionCodes.InventoryView);
-            return Task.Run(() => repository.LoadReservations(actor.UserID));
+            return Task.FromResult(repository.LoadReservations(actor.UserID));
         }
 
         // Kani nga method nagkuha sa replenishment requests.
         public Task<IList<RepFRecord>> LoadRepFsAsync(CurrentUser actor)
         {
             actor.RequirePermission(PermissionCodes.InventoryView);
-            return Task.Run(() => repository.LoadRepFs(actor.UserID));
+            return Task.FromResult(repository.LoadRepFs(actor.UserID));
         }
 
         // Kani nga method nagkuha sa dashboard panel summary.
         public Task<InventoryPanelSummary> LoadPanelAsync(CurrentUser actor)
         {
             actor.RequirePermission(PermissionCodes.InventoryView);
-            return Task.Run(() => repository.LoadPanel(actor.UserID));
+            return Task.FromResult(repository.LoadPanel(actor.UserID));
         }
 
         // Kani nga validator kay para sa item form details nga may item code.

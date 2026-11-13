@@ -174,6 +174,18 @@ async function start() {
     renderHeader();
     probeStyles();
 
+    // Kani nga restore kay para sa Ctrl+R / page reload: kung buhi pa ang
+    // C# session, balik direkt sa app shell (dashboard) — dili sa login.
+    try {
+        const status = await invoke('SessionStatus');
+        if (status.sessionActive) {
+            await enterApplication(status);
+            return;
+        }
+    } catch {
+        // Kani nga catch kay para mo-fallback sa login kung napakyas ang probe.
+    }
+
     try {
         await navigate('login');
     } catch (error) {

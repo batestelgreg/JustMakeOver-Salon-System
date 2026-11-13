@@ -20,7 +20,9 @@ namespace JustMakeOverSalonApp.Core.Services
 
         public Task<IDictionary<string, object>> LoadSummaryAsync(CurrentUser user)
         {
-            return Task.Run(() => LoadSummary(user));
+            // Kani nga method kay gitawag na sa background thread sa bridge;
+            // ang exception kay mo-agos sa user-code async chain.
+            return Task.FromResult(LoadSummary(user));
         }
 
         private IDictionary<string, object> LoadSummary(CurrentUser user)
