@@ -1,5 +1,60 @@
 /* Kani nga styles kay para sa inventory page (toolbar ug status badges). */
 
+/* Kani nga grid kay para sa 2x2 nga action buttons sa items table
+   (Issue / Receive / Adjust / Edit) — kanunay makita ang tanan. */
+.actions-grid {
+    display: grid;
+    grid-template-columns: repeat(2, auto);
+    gap: 6px 10px;
+    justify-content: start;
+}
+
+.actions-grid .btn {
+    white-space: nowrap;
+}
+
+/* Kani mga color variants kay para sa action buttons: soft nga tint
+   background + dark nga text — readable ug dili sakit sa mata. */
+.btn-action--issue {
+    background: var(--color-success-tint, #E7F3EC);
+    color: #1D6B43;
+    border: 1px solid #C4E2CE;
+}
+
+.btn-action--issue:hover:not(:disabled) {
+    background: #D9ECDF;
+}
+
+.btn-action--receive {
+    background: var(--color-teal-tint, #E8F1F6);
+    color: var(--color-teal-dark, #0E3D57);
+    border: 1px solid #C9DEEA;
+}
+
+.btn-action--receive:hover:not(:disabled) {
+    background: #DBE9F1;
+}
+
+.btn-action--adjust {
+    background: var(--color-warning-tint, #FBF0DC);
+    color: #8A5A12;
+    border: 1px solid #EFDDB6;
+}
+
+.btn-action--adjust:hover:not(:disabled) {
+    background: #F6E6C9;
+}
+
+.btn-action--edit {
+    background: #EEF0F3;
+    color: #3F4B5A;
+    border: 1px solid #DDE1E7;
+}
+
+.btn-action--edit:hover:not(:disabled) {
+    background: #E2E5EA;
+}
+
 .inventory-toolbar {
     padding: 12px 16px;
     border-bottom: 1px solid var(--border, #e5e7eb);

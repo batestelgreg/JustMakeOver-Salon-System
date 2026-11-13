@@ -139,21 +139,23 @@ function renderItemsTable(root) {
         row.appendChild(statusCell);
 
         // Kani nga actions cell kay para sa issue/receive/adjust/edit buttons.
+        // Kani nga 2x2 grid kay para kanunay makita ang tanang buttons
+        // bisan kung narrow ang Actions column (dili mag-overflow).
         const actionsCell = document.createElement('td');
         const actions = document.createElement('div');
-        actions.className = 'u-flex--gap';
+        actions.className = 'actions-grid';
 
         if (canIssue) {
-            actions.appendChild(buildAction('Issue', () => openIssueModal(root, item)));
+            actions.appendChild(buildAction('Issue', () => openIssueModal(root, item), 'btn-action--issue'));
         }
         if (canReceive) {
-            actions.appendChild(buildAction('Receive', () => openReceiveModal(root, item)));
+            actions.appendChild(buildAction('Receive', () => openReceiveModal(root, item), 'btn-action--receive'));
         }
         if (canAdjust) {
-            actions.appendChild(buildAction('Adjust', () => openAdjustModal(root, item)));
+            actions.appendChild(buildAction('Adjust', () => openAdjustModal(root, item), 'btn-action--adjust'));
         }
         if (canEdit) {
-            actions.appendChild(buildAction('Edit', () => openItemModal(root, item)));
+            actions.appendChild(buildAction('Edit', () => openItemModal(root, item), 'btn-action--edit'));
         }
 
         actionsCell.appendChild(actions);
@@ -163,12 +165,13 @@ function renderItemsTable(root) {
 }
 
 /**
- * Kani nga helper nag-himo ug action button.
+ * Kani nga helper nag-himo ug action button. Kani nga variant kay para
+ * sa color-coded nga buttons (soft tint + dark text, eye-friendly).
  */
-function buildAction(label, onClick) {
+function buildAction(label, onClick, variant) {
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = 'btn btn--ghost btn--sm';
+    button.className = 'btn btn--sm ' + (variant || 'btn--ghost');
     button.textContent = label;
     button.addEventListener('click', onClick);
     return button;
