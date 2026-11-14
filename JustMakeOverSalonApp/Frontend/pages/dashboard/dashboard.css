@@ -42,3 +42,47 @@
     border-color: var(--color-gold);
     color: var(--color-warning);
 }
+
+/* Kani nga styles kay para sa System status card: real nga rows
+   (database connection, signed-in user, last refresh). */
+.system-status {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.system-status__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    font-size: 13px;
+}
+
+.system-status__label {
+    color: var(--color-text-muted);
+}
+
+.system-status__value {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    color: var(--color-text);
+    text-align: right;
+}
+
+.system-status__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.system-status__dot--online {
+    background: var(--color-success);
+}
+
+.system-status__dot--offline {
+    background: var(--color-error);
+}
