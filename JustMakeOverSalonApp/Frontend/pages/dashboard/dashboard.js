@@ -8,15 +8,18 @@ import { publish, AppEvents } from '../../assets/js/core/events.js';
 import { showToast } from '../../assets/js/components/toast.js';
 
 // Kani nga card config kay para sa summary tiles sa dashboard.
+// Kani nga keys kay PascalCase aron pareha sa column names nga
+// gi-return sa usp_Dashboard_GetSummary (walay camelCase ang
+// JavaScriptSerializer, maong exact nga column names ang gamit).
 const SUMMARY_CARD_CONFIG = [
-    { key: 'totalItems', label: 'Active items', icon: 'navy' },
-    { key: 'lowStockItems', label: 'Items at or below reorder point', icon: 'red' },
-    { key: 'pendingRequisitions', label: 'Pending requisitions', icon: 'gold' },
-    { key: 'approvedRequisitions', label: 'Approved requisitions', icon: 'green' },
-    { key: 'openPurchaseRequests', label: 'Open purchase requests', icon: 'navy' },
-    { key: 'pendingPurchaseOrders', label: 'Purchase orders awaiting approval', icon: 'gold' },
-    { key: 'unreadNotifications', label: 'Unread notifications', icon: 'red' },
-    { key: 'activeUsers', label: 'Active user accounts', icon: 'green' }
+    { key: 'TotalItems', label: 'Active items', icon: 'navy' },
+    { key: 'LowStockItems', label: 'Items at or below reorder point', icon: 'red' },
+    { key: 'PendingRequisitions', label: 'Pending requisitions', icon: 'gold' },
+    { key: 'ApprovedRequisitions', label: 'Approved requisitions', icon: 'green' },
+    { key: 'OpenPurchaseRequests', label: 'Open purchase requests', icon: 'navy' },
+    { key: 'PendingPurchaseOrders', label: 'Purchase orders awaiting approval', icon: 'gold' },
+    { key: 'UnreadNotifications', label: 'Unread notifications', icon: 'red' },
+    { key: 'ActiveUsers', label: 'Active user accounts', icon: 'green' }
 ];
 
 // Kani nga config kay para sa inventory panel tiles sa dashboard.
@@ -81,11 +84,16 @@ export async function init(root) {
             publish(AppEvents.Navigate, { name: 'inventory' });
         });
 
-    await loadSummary(root);
-
-    // Kani nga panel kay gipakita ra kung naa ang inventory.view permission.
+    // Kani nga parallel load kay para nga ang summary ug inventory panel
+    // moabot nga dili mag-sunod-sunod (faster first paint, especially
+    // kung naa ang inventory.view permission).
     if (hasPermission('inventory.view')) {
-        await loadInventoryPanel(root);
+        await Promise.all([
+            loadSummary(root),
+            loadInventoryPanel(root)
+        ]);
+    } else {
+        await loadSummary(root);
     }
 }
 
