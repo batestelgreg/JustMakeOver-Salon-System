@@ -53,15 +53,29 @@
                     <p class="u-text-muted" id="pageSubtitle" style="font-size: 12px;"></p>
                 </div>
                 <div class="topbar__actions">
-                    <button type="button" class="topbar__bell" id="notificationBell"
-                            aria-label="Notifications" title="Notifications">
-                        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
-                            <path fill="currentColor" d="M12 22a2 2 0 002-2h-4a2 2 0 002 2zm6-6V11a6 6 0 00-5-5.9V4a1 1 0 10-2 0v1.1A6 6 0 006 11v5l-2 2v1h16v-1l-2-2z"/>
-                        </svg>
-                        <!-- Kani nga badge kay mo-show sa unread count
-                             (gikan sa NotificationsList unreadCount). -->
-                        <span class="topbar__badge u-hidden" id="notificationBadge">0</span>
-                    </button>
+                    <!-- Kani nga bell anchor kay nag-hawak sa bell button ug
+                         sa notification popover (Facebook-style preview). -->
+                    <div class="topbar__bell-anchor">
+                        <button type="button" class="topbar__bell" id="notificationBell"
+                                aria-label="Notifications" title="Notifications">
+                            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                                <path fill="currentColor" d="M12 22a2 2 0 002-2h-4a2 2 0 002 2zm6-6V11a6 6 0 00-5-5.9V4a1 1 0 10-2 0v1.1A6 6 0 006 11v5l-2 2v1h16v-1l-2-2z"/>
+                            </svg>
+                            <!-- Kani nga badge kay mo-show sa unread count
+                                 (gikan sa NotificationsList unreadCount). -->
+                            <span class="topbar__badge u-hidden" id="notificationBadge">0</span>
+                        </button>
+                        <!-- Kani nga popover kay compact preview sa pinakabag-o
+                             nga mga notification; ang "See all" mo-navigate sa
+                             full nga Notifications page. -->
+                        <div class="notif-popover u-hidden" id="notifPopover" role="dialog" aria-label="Notifications preview">
+                            <div class="notif-popover__header">
+                                <span class="notif-popover__title">Notifications</span>
+                                <button type="button" class="notif-popover__seeall" id="notifPopoverSeeAll">See all</button>
+                            </div>
+                            <div class="notif-popover__list" id="notifPopoverList"></div>
+                        </div>
+                    </div>
                     <div class="user-chip">
                         <div class="user-chip__avatar" id="userAvatar"></div>
                         <div>
