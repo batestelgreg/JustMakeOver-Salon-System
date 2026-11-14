@@ -5,17 +5,27 @@
 
 .app-shell {
     display: flex;
-    min-height: 100vh;
+    /* Kani nga fixed viewport height kay para ang sidebar ug topbar
+       kay stay put ra (dili mo-apil sa scroll) — ang page-content ra
+       ang mo-scroll up/down, ug kanunay makita ang sidebar footer. */
+    height: 100vh;
+    overflow: hidden;
 }
 
+/* Kani nga app-main kay fixed ra sa viewport: ang topbar stay put
+   sa taas ug ang page-content ra ang mo-scroll sa ubos niini. */
 .app-main {
     display: flex;
     flex-direction: column;
     flex: 1;
     min-width: 0;
+    height: 100vh;
+    overflow: hidden;
 }
 
-/* Kani nga sidebar kay navy nga brand panel sa wala side. */
+/* Kani nga sidebar kay navy nga brand panel sa wala side.
+   Ang nav ra ang mo-scroll internal kung dako ang listahan;
+   ang brand sa taas ug footer sa ubos kanunay makita. */
 .sidebar {
     display: flex;
     flex-direction: column;
@@ -23,6 +33,8 @@
     background: linear-gradient(180deg, var(--color-navy) 0%, var(--color-navy-soft) 100%);
     color: rgba(255, 255, 255, 0.85);
     flex-shrink: 0;
+    height: 100vh;
+    overflow: hidden;
 }
 
 .sidebar__brand {
