@@ -25,7 +25,10 @@
 
 /* Kani nga sidebar kay navy nga brand panel sa wala side.
    Ang nav ra ang mo-scroll internal kung dako ang listahan;
-   ang brand sa taas ug footer sa ubos kanunay makita. */
+   ang brand sa taas ug footer sa ubos kanunay makita.
+   Kani nga width transition kay para sa smooth collapse: close =
+   mo-slide padung left ngadto sa icon rail (button + icons ra,
+   clickable gihapon), open = mo-balik sa full width. */
 .sidebar {
     display: flex;
     flex-direction: column;
@@ -35,6 +38,37 @@
     flex-shrink: 0;
     height: 100vh;
     overflow: hidden;
+    transition: width 0.28s ease;
+}
+
+/* Kani nga collapsed state kay nagpabilin ra ug icon rail:
+   ang toggle button sa taas ug ang mga feature icons sa ubos
+   niini - tanan clickable gihapon (title tooltip ang label). */
+.app-shell.is-sidebar-closed .sidebar {
+    width: 64px;
+}
+
+.app-shell.is-sidebar-closed .sidebar__logo,
+.app-shell.is-sidebar-closed .sidebar__brand-name,
+.app-shell.is-sidebar-closed .sidebar__brand-tag,
+.app-shell.is-sidebar-closed .sidebar__section,
+.app-shell.is-sidebar-closed .sidebar__label,
+.app-shell.is-sidebar-closed .sidebar__footer {
+    display: none;
+}
+
+.app-shell.is-sidebar-closed .sidebar__brand {
+    justify-content: center;
+    padding: var(--space-4) var(--space-2);
+}
+
+.app-shell.is-sidebar-closed .sidebar__nav {
+    padding: var(--space-4) var(--space-2);
+}
+
+.app-shell.is-sidebar-closed .sidebar__link {
+    justify-content: center;
+    padding: 10px var(--space-2);
 }
 
 .sidebar__brand {
@@ -43,6 +77,34 @@
     gap: var(--space-3);
     padding: var(--space-5) var(--space-4);
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    /* Kani nga nowrap kay para dili mag-wrapped ang text samtang
+       nag-slide ang width sa collapse/expand animation. */
+    white-space: nowrap;
+}
+
+.sidebar__toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-left: auto;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: rgba(255, 255, 255, 0.85);
+    background: rgba(255, 255, 255, 0.06);
+    cursor: pointer;
+    transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.sidebar__toggle:hover {
+    background: rgba(255, 255, 255, 0.14);
+    color: var(--color-white);
+}
+
+.app-shell.is-sidebar-closed .sidebar__toggle {
+    margin-left: 0;
 }
 
 .sidebar__logo {
@@ -94,6 +156,9 @@
     color: rgba(255, 255, 255, 0.78);
     transition: background var(--transition-fast), color var(--transition-fast);
     text-align: left;
+    /* Kani nga nowrap kay para dili mag-wrapped ang label
+       samtang nag-slide ang width sa collapse/expand animation. */
+    white-space: nowrap;
 }
 
 .sidebar__link:hover {

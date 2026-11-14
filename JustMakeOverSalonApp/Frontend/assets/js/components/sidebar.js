@@ -98,8 +98,13 @@ export function renderSidebar(onNavigate) {
             button.appendChild(createIcon(item.name));
 
             const label = document.createElement('span');
+            label.className = 'sidebar__label';
             label.textContent = item.label;
             button.appendChild(label);
+
+            // Kani nga title kay para naay tooltip sa icon-rail mode
+            // (collapsed sidebar) kung walay label.
+            button.title = item.label;
 
             // Kani nga disabled state kay para sa links nga wala pa available.
             const isSessionRequired = item.name !== 'login';

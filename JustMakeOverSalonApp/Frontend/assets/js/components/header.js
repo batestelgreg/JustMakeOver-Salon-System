@@ -24,6 +24,24 @@ export function renderHeader() {
         });
     }
 
+    // Kani nga toggle kay para open/close sa sidebar (slide left/right).
+    // Ang state kay gi-persist sa localStorage para mo-stay ang choice
+    // bisan mag Ctrl+R.
+    const toggleButton = document.getElementById('sidebarToggle');
+    const appShell = document.getElementById('appShell');
+    if (toggleButton && appShell) {
+        if (localStorage.getItem('sidebarClosed') === '1') {
+            appShell.classList.add('is-sidebar-closed');
+            toggleButton.setAttribute('aria-expanded', 'false');
+        }
+
+        toggleButton.addEventListener('click', () => {
+            const closed = appShell.classList.toggle('is-sidebar-closed');
+            toggleButton.setAttribute('aria-expanded', closed ? 'false' : 'true');
+            localStorage.setItem('sidebarClosed', closed ? '1' : '0');
+        });
+    }
+
     document.addEventListener('page:navigated', (event) => {
         const titleElement = document.getElementById('pageTitle');
         const subtitleElement = document.getElementById('pageSubtitle');
