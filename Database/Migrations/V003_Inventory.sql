@@ -1,4 +1,4 @@
-﻿/* ================================================================
+/* ================================================================
    JustMakeOverSalonDB - Migration V003
    Kani nga migration kay para sa Inventory module: items, stock
    adjustments, issuance (reservation + RepF), receiving (RIM +
@@ -14,7 +14,7 @@ SET QUOTED_IDENTIFIER ON;
 GO
 
 /* ================================================================
-   SEED DATA â€” categories ug sample salon items para sa pagsugod.
+   SEED DATA — categories ug sample salon items para sa pagsugod.
    ================================================================ */
 SET IDENTITY_INSERT dbo.CATEGORIES ON;
 IF NOT EXISTS (SELECT 1 FROM CATEGORIES WHERE CategoryID = 1)
@@ -82,7 +82,7 @@ END;
 GO
 
 /* ================================================================
-   DATA FIX â€” pag-standardize sa legacy log display values.
+   DATA FIX — pag-standardize sa legacy log display values.
    Kani nga UPDATE kay display metadata ra (ReferenceType + Remarks);
    dili mohikap ang stock balances, walay delete, walay duplicate.
    Idempotent: ang WHERE conditions dili na mo-match paghuman.
@@ -138,7 +138,7 @@ END;
 GO
 
 /* ================================================================
-   1. ITEM LIST â€” tanang items uban ang live stock balance.
+   1. ITEM LIST — tanang items uban ang live stock balance.
    ================================================================ */
 CREATE OR ALTER PROCEDURE usp_Inventory_GetAll
     @ActorUserID INT
@@ -170,7 +170,7 @@ END;
 GO
 
 /* ================================================================
-   2. CATEGORIES â€” para sa item form dropdown.
+   2. CATEGORIES — para sa item form dropdown.
    ================================================================ */
 CREATE OR ALTER PROCEDURE usp_Inventory_GetCategories
     @ActorUserID INT
@@ -205,7 +205,7 @@ END;
 GO
 
 /* ================================================================
-   2b. NEXT ITEM CODE â€” auto-generate nga ItemCode para sa form.
+   2b. NEXT ITEM CODE — auto-generate nga ItemCode para sa form.
    ================================================================ */
 CREATE OR ALTER PROCEDURE usp_Inventory_GetNextItemCode
     @ActorUserID INT
@@ -244,7 +244,7 @@ END;
 GO
 
 /* ================================================================
-   2c. CATEGORY SAVE â€” para sa Settings module: create o rename
+   2c. CATEGORY SAVE — para sa Settings module: create o rename
       ug category, ug toggle sa active state.
    ================================================================ */
 CREATE OR ALTER PROCEDURE usp_Inventory_SaveCategory
@@ -312,7 +312,7 @@ END;
 GO
 
 /* ================================================================
-   3. ITEM CREATE â€” bag-ong item ug initial stock.
+   3. ITEM CREATE — bag-ong item ug initial stock.
    ================================================================ */
 CREATE OR ALTER PROCEDURE usp_Inventory_CreateItem
     @ActorUserID INT,
@@ -399,7 +399,7 @@ END;
 GO
 
 /* ================================================================
-   4. ITEM UPDATE â€” details ug reorder point sa item.
+   4. ITEM UPDATE — details ug reorder point sa item.
    ================================================================ */
 CREATE OR ALTER PROCEDURE usp_Inventory_UpdateItem
     @ActorUserID INT,
@@ -453,7 +453,7 @@ END;
 GO
 
 /* ================================================================
-   5. ADJUST STOCK â€” manual stock correction nga naka-log.
+   5. ADJUST STOCK — manual stock correction nga naka-log.
    ================================================================ */
 CREATE OR ALTER PROCEDURE usp_Inventory_AdjustStock
     @ActorUserID INT,
@@ -519,7 +519,7 @@ END;
 GO
 
 /* ================================================================
-   6. ISSUE STOCK â€” ang Issuance flow sa flowchart (Figure 8.A).
+   6. ISSUE STOCK — ang Issuance flow sa flowchart (Figure 8.A).
       START: approved ReF received
       -> check stock availability including reservations
       -> sufficient: reserve requested quantity + update balance
@@ -699,7 +699,7 @@ END;
 GO
 
 /* ================================================================
-   7. REORDER CHECK â€” shared helper: low-stock alert + RepF.
+   7. REORDER CHECK — shared helper: low-stock alert + RepF.
    ================================================================ */
 CREATE OR ALTER PROCEDURE usp_Inventory_CheckReorderPoint
     @ItemID INT,
@@ -742,7 +742,7 @@ END;
 GO
 
 /* ================================================================
-   8. RECEIVE STOCK â€” ang Receiving flow sa flowchart (Figure 8.B).
+   8. RECEIVE STOCK — ang Receiving flow sa flowchart (Figure 8.B).
       START: items received
       -> record received items (RIM) + increase stock balance
       -> allocate stock to approved requisitions waiting
@@ -790,7 +790,7 @@ BEGIN
     WHERE ItemID = @ItemID;
 
     -- Kani nga insert kay para sa receiving log. Kung walÃ¡ nga RepF,
-    -- ang log row mismo ang Receiving Record (RR-####) â€” self-referencing.
+    -- ang log row mismo ang Receiving Record (RR-####) — self-referencing.
     DECLARE @ReceiveLogID INT;
 
     INSERT INTO INVENTORY_LOGS (ItemID, UserID, TransactionType, QuantityChange, PreviousQuantity, NewQuantity, ReferenceType, ReferenceID, Remarks, TransactionDate)
@@ -896,7 +896,7 @@ END;
 GO
 
 /* ================================================================
-   9. LOGS â€” recent stock movements para sa audit ug traceability.
+   9. LOGS — recent stock movements para sa audit ug traceability.
    ================================================================ */
 CREATE OR ALTER PROCEDURE usp_Inventory_GetLogs
     @ActorUserID INT
@@ -917,7 +917,7 @@ BEGIN
     -- Kani nga computed columns kay para sa display: Source ug Reference
     -- format (RF-/RefP-/RR-/ADJ-) base sa tinuod nga transaction records.
     -- Walay fake numbers: SEED/INITIAL walay reference kay wala man silay
-    -- baliton nga transaction record, so NULL (mo-display ug â€” sa frontend).
+    -- baliton nga transaction record, so NULL (mo-display ug — sa frontend).
     SELECT TOP (100) l.InventoryLogID, i.ItemName, i.ItemCode, l.TransactionType,
            l.QuantityChange, l.PreviousQuantity, l.NewQuantity,
            l.ReferenceType, l.ReferenceID, l.Remarks, l.TransactionDate,
@@ -950,7 +950,7 @@ END;
 GO
 
 /* ================================================================
-   10. RESERVATIONS â€” mga waiting ug reserved nga requests.
+   10. RESERVATIONS — mga waiting ug reserved nga requests.
    ================================================================ */
 CREATE OR ALTER PROCEDURE usp_Inventory_GetReservations
     @ActorUserID INT
@@ -982,7 +982,7 @@ END;
 GO
 
 /* ================================================================
-   11. REPLENISHMENT REQUESTS (RepF) â€” para sa Purchasing.
+   11. REPLENISHMENT REQUESTS (RepF) — para sa Purchasing.
    ================================================================ */
 CREATE OR ALTER PROCEDURE usp_Inventory_GetRepFs
     @ActorUserID INT
@@ -1009,7 +1009,7 @@ END;
 GO
 
 /* ================================================================
-   13. OVERVIEW â€” usa ra ka call nga magdala sa tanang page data
+   13. OVERVIEW — usa ra ka call nga magdala sa tanang page data
       (items + categories + reservations + RepFs + logs) aron
       dili na magkagawas ang lima ka database connections matag
       pag-load sa Inventory page.
@@ -1048,7 +1048,7 @@ END;
 GO
 
 /* ================================================================
-   INDEXES â€” para paspas ang mga linya nga kanunay gipangita sa
+   INDEXES — para paspas ang mga linya nga kanunay gipangita sa
    inventory queries (logs, notifications, repfs, reservations).
    ================================================================ */
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_INVENTORY_LOGS_Date')
@@ -1065,7 +1065,7 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_RESERVATIONS_Detail')
 GO
 
 /* ================================================================
-   12. PANEL SUMMARY â€” para sa dashboard inventory panel.
+   12. PANEL SUMMARY — para sa dashboard inventory panel.
    ================================================================ */
 CREATE OR ALTER PROCEDURE usp_Inventory_GetPanel
     @ActorUserID INT
