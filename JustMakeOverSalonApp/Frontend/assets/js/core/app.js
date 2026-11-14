@@ -6,7 +6,7 @@ import { getUser, setSession, clearSession, isLoggedIn } from './state.js';
 import { registerRoute, navigate, currentPage } from './router.js';
 import { subscribe, publish, AppEvents } from './events.js';
 import { renderSidebar } from '../components/sidebar.js';
-import { renderHeader, updateHeaderUser } from '../components/header.js';
+import { renderHeader, updateHeaderUser, updateNotificationBadge } from '../components/header.js';
 
 // Kani nga route registry kay nag-map sa page name, title ug module files.
 registerRoute('login', {
@@ -35,11 +35,12 @@ import '../routes/requisitions-route.js';
 import '../routes/inventory-route.js';
 import '../routes/purchasing-route.js';
 import '../routes/receiving-route.js';
+import '../routes/notifications-route.js';
 import '../routes/settings-route.js';
 
 // Kani mga placeholder routes kay para sa modules nga i-build sa sunod phases.
 const upcomingModules = [
-    'notifications', 'reports', 'suppliers'
+    'reports', 'suppliers'
 ];
 
 upcomingModules.forEach((name) => {
@@ -75,6 +76,15 @@ async function enterApplication(session) {
     document.getElementById('authView').classList.add('u-hidden');
     document.getElementById('appShell').classList.remove('u-hidden');
     await navigate('dashboard');
+
+    // Kani nga badge refresh kay para makita dayon sa bell kung pila ang
+    // unread notifications sa user (sa login ug Ctrl+R restore).
+    try {
+        const notifications = await invoke('NotificationsList');
+        updateNotificationBadge(notifications?.unreadCount || 0);
+    } catch {
+        // Kani nga catch kay para ang badge failure dili mo-block ang app load.
+    }
 }
 
 /**
