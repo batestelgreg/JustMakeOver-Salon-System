@@ -82,6 +82,10 @@
       <Name>JustMakeOverSalonApp.Receiving</Name>
       <Project>{A1000000-0000-4000-9000-000000000005}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\JustMakeOverSalonApp.Notifications\JustMakeOverSalonApp.Notifications.csproj">
+      <Name>JustMakeOverSalonApp.Notifications</Name>
+      <Project>{A1000000-0000-4000-9000-000000000006}</Project>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Bridge\FrontendBridge.cs" />

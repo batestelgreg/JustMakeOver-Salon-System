@@ -60,6 +60,21 @@ export function renderHeader() {
 }
 
 /**
+ * Kani nga helper kay nag-update sa unread badge sa bell sa topbar.
+ * Exported kay gigamit sa notifications page ug sa app bootstrap.
+ */
+export function updateNotificationBadge(unreadCount) {
+    const badge = document.getElementById('notificationBadge');
+    if (!badge) {
+        return;
+    }
+
+    const count = Number(unreadCount) || 0;
+    badge.textContent = count > 99 ? '99+' : String(count);
+    badge.classList.toggle('u-hidden', count === 0);
+}
+
+/**
  * Kani nga update kay nag-set sa user chip base sa session state.
  */
 export function updateHeaderUser(user) {

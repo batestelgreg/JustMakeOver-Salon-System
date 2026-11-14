@@ -10,6 +10,7 @@ using JustMakeOverSalonApp.Core.Services;
 using JustMakeOverSalonApp.Core.Validation;
 using JustMakeOverSalonApp.Delivery.Operations;
 using JustMakeOverSalonApp.Inventory.Operations;
+using JustMakeOverSalonApp.Notifications.Operations;
 using JustMakeOverSalonApp.Purchasing.Operations;
 using JustMakeOverSalonApp.Receiving.Operations;
 using JustMakeOverSalonApp.Requisition.Operations;
@@ -53,6 +54,7 @@ namespace JustMakeOverSalonApp.Bridge
             new PurchasingModule().RegisterOperations(operations, this);
             new DeliveryModule().RegisterOperations(operations, this);
             new ReceivingModule().RegisterOperations(operations, this);
+            new NotificationsModule().RegisterOperations(operations, this);
         }
 
         // Kani nga method kay nag-enroll sa core operations nga dili module.

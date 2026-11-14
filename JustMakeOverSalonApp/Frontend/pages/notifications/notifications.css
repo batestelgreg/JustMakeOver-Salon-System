@@ -1,0 +1,34 @@
+/* Kani nga styles kay para sa notifications page (unread highlight ug types). */
+
+/* Kani nga unread row kay highlighted para makita dayon ang bag-o. */
+.notification-unread {
+    background: var(--color-gold-tint, #FDF2DF);
+}
+
+.notification-unread td:first-child {
+    font-weight: 600;
+}
+
+/* Kani nga type badge kay para sa notification category. */
+.notification-type {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: var(--radius-pill, 999px);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    background: var(--color-teal-tint, #E8F1F6);
+    color: var(--color-teal-dark, #0E3D57);
+}
+
+.notification-type--low_stock,
+.notification-type--stock_shortage {
+    background: var(--color-warning-tint, #FBF0DC);
+    color: #8A5A12;
+}
+
+.notification-type--stock_allocated {
+    background: var(--color-success-tint, #E7F3EC);
+    color: #1D6B43;
+}
