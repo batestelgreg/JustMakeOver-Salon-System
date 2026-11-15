@@ -31,5 +31,6 @@ export const AppEvents = Object.freeze({
     SessionChanged: 'session:changed',
     Navigate: 'app:navigate',
     LoginSucceeded: 'auth:login-succeeded',
-    LogoutRequested: 'auth:logout-requested'
+    LogoutRequested: 'auth:logout-requested',
+    PreferencesUpdated: 'settings:preferences-updated'
 });
