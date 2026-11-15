@@ -3,3 +3,22 @@
 .receiving-page .data-table table {
     min-width: 640px;
 }
+
+/* Kani nga .btn--sm ug .btn-action--receive kay para sa Receive button
+   sa pending table. Page-scoped sila aron dili mo-touch sa ubang pages
+   (parehas sa pattern sa inventory.css) ug para naa'y box ug colors
+   ang button dili plain text. */
+.receiving-page .btn--sm {
+    padding: 4px 10px;
+    font-size: 12px;
+}
+
+.receiving-page .btn-action--receive {
+    background: var(--color-teal-tint, #E8F1F6);
+    color: var(--color-teal-dark, #0E3D57);
+    border: 1px solid #C9DEEA;
+}
+
+.receiving-page .btn-action--receive:hover:not(:disabled) {
+    background: #DBE9F1;
+}
