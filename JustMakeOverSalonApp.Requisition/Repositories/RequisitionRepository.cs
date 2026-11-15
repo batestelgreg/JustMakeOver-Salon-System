@@ -333,5 +333,43 @@ namespace JustMakeOverSalonApp.Requisition.Repositories
             // Return the complete requisition history with its requested items.
             return requisitions;
         }
+
+
+        // FUNCTION 5: CancelRequisition
+        // Call the existing SQL procedure para kanselahon ang requisition.
+        // Ang stored procedure na ang mo-check sa authorization,
+        // mo-release sa reservations, ug mo-update sa database.
+        public void CancelRequisition(
+            int requisitionID,
+            int actorUserID,
+            string reason)
+        {
+            // Open a database connection to execute the cancellation procedure.
+            using (var connection = connectionFactory.CreateOpenConnection())
+            using (var command = new SqlCommand(
+                "usp_Requisition_Cancel", connection))
+            {
+                // Tell SQL Server nga stored procedure ang atong i-execute.
+                command.CommandType = CommandType.StoredProcedure;
+
+                // Set the ID of the requisition to cancel.
+                command.Parameters.Add("@RequisitionID", SqlDbType.Int)
+                    .Value = requisitionID;
+
+                // Set the ID of the user performing the cancellation.
+                command.Parameters.Add("@ActorUserID", SqlDbType.Int)
+                    .Value = actorUserID;
+
+                // Set the cancellation reason; NULL is allowed by the procedure.
+                command.Parameters.Add("@Reason", SqlDbType.NVarChar, 500)
+                    .Value = string.IsNullOrWhiteSpace(reason)
+                        ? (object)DBNull.Value
+                        : reason;
+
+                // Execute the procedure to cancel the requisition.
+                command.ExecuteNonQuery();
+            }
+        }
+
     }
 }

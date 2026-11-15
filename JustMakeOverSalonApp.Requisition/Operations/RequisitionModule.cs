@@ -34,6 +34,7 @@ namespace JustMakeOverSalonApp.Requisition.Operations
             registry.Register("LoadActiveItems", HandleLoadActiveItems);
             registry.Register("CreateRequisition", HandleCreateRequisition);
             registry.Register("LoadRequisitionHistory", HandleLoadRequisitionHistory);
+            registry.Register("CancelRequisition", HandleCancelRequisition);
         }
 
         /* Kani nga block kay example ra sa handler pattern:
@@ -201,5 +202,61 @@ namespace JustMakeOverSalonApp.Requisition.Operations
             // Return a completed task because this handler has no async operation.
             return Task.CompletedTask;
         }
+
+
+        // FUNCTION 5: HandleCancelRequisition
+        // Handles the frontend request to cancel an existing requisition.
+        private Task HandleCancelRequisition(
+            Dictionary<string, object> payload,
+            string requestID)
+        {
+            try
+            {
+                // Get the currently logged-in user.
+                var actor = context.RequireUser();
+
+                // Get the requisition ID and cancellation reason from the frontend.
+                string requisitionIDText =
+                    context.GetValueAsString(payload, "requisitionID");
+
+                string reason =
+                    context.GetValueAsString(payload, "reason");
+
+                // Convert the requisition ID from string to integer.
+                int requisitionID;
+
+                if (!int.TryParse(requisitionIDText, out requisitionID))
+                {
+                    throw new ArgumentException(
+                        "Invalid requisition selected.");
+                }
+
+                // Call the service to validate and cancel the requisition.
+                service.CancelRequisition(
+                    actor,
+                    requisitionID,
+                    reason);
+
+                // Send a successful response back to the frontend.
+                context.SendResponse(
+                    requestID,
+                    true,
+                    new { requisitionID },
+                    null);
+            }
+            catch (Exception ex)
+            {
+                // If cancellation fails, send the error message to the frontend.
+                context.SendResponse(
+                    requestID,
+                    false,
+                    null,
+                    ex.Message);
+            }
+
+            // Return a completed task because this handler has no async operation.
+            return Task.CompletedTask;
+        }
+
     }
 }

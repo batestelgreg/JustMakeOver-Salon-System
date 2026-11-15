@@ -124,5 +124,44 @@ namespace JustMakeOverSalonApp.Requisition.Services
             // Call the repository to retrieve only this user's requisitions.
             return repository.GetRequisitionHistory(actor.UserID);
         }
+
+
+        // FUNCTION 4: CancelRequisition
+        // Handles the cancellation of an existing requisition.
+        // Ang SQL procedure na ang mo-check kung authorized ang user.
+        public void CancelRequisition(
+            CurrentUser actor,
+            int requisitionID,
+            string reason)
+        {
+            // Make sure nga naa tay valid logged-in user.
+            if (actor == null)
+            {
+                throw new ArgumentException(
+                    "Invalid user session.");
+            }
+
+            // Check if the requisition ID is valid.
+            if (requisitionID <= 0)
+            {
+                throw new ArgumentException(
+                    "Invalid requisition selected.");
+            }
+
+            // Check if the cancellation reason exceeds 500 characters.
+            if (reason != null && reason.Length > 500)
+            {
+                throw new ArgumentException(
+                    "Cancellation reason cannot exceed 500 characters.");
+            }
+
+            // Call the repository using the logged-in user's ID.
+            // The stored procedure handles the authorization and cancellation.
+            repository.CancelRequisition(
+                requisitionID,
+                actor.UserID,
+                reason);
+        }
+
     }
 }

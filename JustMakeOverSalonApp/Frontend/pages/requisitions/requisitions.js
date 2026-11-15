@@ -1,4 +1,4 @@
-﻿
+
 import { invoke } from '../../assets/js/core/bridge.js';
 import { hasPermission } from '../../assets/js/core/state.js';
 import { showToast } from '../../assets/js/components/toast.js';
@@ -365,6 +365,9 @@ async function loadRequisitionHistory(root) {
 
 // FUNCTION 8: renderRequisitionHistory
 // Displays the user's previous requisitions in the history table.
+
+// FUNCTION 8: renderRequisitionHistory
+// Displays the user's previous requisitions in the history table.
 function renderRequisitionHistory(root) {
 
     // Get the history table body from the HTML page.
@@ -379,7 +382,7 @@ function renderRequisitionHistory(root) {
     if (requisitionHistoryData.length === 0) {
         tableBody.innerHTML = `
             <tr>
-                <td colspan="6">No requisition history found.</td>
+                <td colspan="7">No requisition history found.</td>
             </tr>
         `;
         return;
@@ -413,6 +416,20 @@ function renderRequisitionHistory(root) {
             ? requiredDateValue.toLocaleDateString()
             : 'Invalid Date';
 
+        // Only Pending and Approved requisitions can be cancelled.
+        const canCancel =
+            requisition.Status === 'Pending' ||
+            requisition.Status === 'Approved';
+
+        // Show the Cancel button only when cancellation is allowed.
+        const actionButton = canCancel
+            ? `<button type="button"
+                       class="btn btn--sm cancel-requisition-btn"
+                       data-requisition-id="${requisition.RequisitionID}">
+                   Cancel
+               </button>`
+            : 'N/A';
+
         // Return the HTML row containing the requisition information.
         return `
             <tr>
@@ -422,10 +439,29 @@ function renderRequisitionHistory(root) {
                 <td>${requisition.Justification || 'N/A'}</td>
                 <td>${requisition.Status}</td>
                 <td>${items || 'No items'}</td>
+                <td>${actionButton}</td>
             </tr>
         `;
     }).join('');
+
+    // Get all Cancel buttons from the requisition history table.
+    const cancelButtons = tableBody.querySelectorAll(
+        '.cancel-requisition-btn'
+    );
+
+    // Add a click event to every Cancel button.
+    cancelButtons.forEach(button => {
+        button.addEventListener('click', function () {
+
+            // Get the Requisition ID of the selected record.
+            const requisitionID = Number(button.dataset.requisitionId);
+
+            // Call the cancellation function.
+            cancelRequisition(root, requisitionID);
+        });
+    });
 }
+
 
 // FUNCTION 9: parseRequisitionDate
 // Converts the date format received from the C# backend into a JavaScript Date.
@@ -454,4 +490,53 @@ function parseRequisitionDate(dateValue) {
 
     // Return the valid JavaScript Date.
     return date;
+}
+
+
+/**
+ * FUNCTION 10: cancelRequisition
+ * Sends a cancellation request to the C# backend.
+ */
+async function cancelRequisition(root, requisitionID) {
+
+    // Ask the user to confirm the cancellation.
+    const confirmed = window.confirm(
+        'Are you sure you want to cancel Requisition #' + requisitionID + '?'
+    );
+
+    // Stop if the user does not confirm.
+    if (!confirmed) {
+        return;
+    }
+
+    // Ask for an optional cancellation reason.
+    const reason = window.prompt(
+        'Enter a cancellation reason (optional):'
+    );
+
+    // Stop if the user clicks Cancel in the reason prompt.
+    if (reason === null) {
+        return;
+    }
+
+    try {
+        // Send the requisition ID and reason to the C# backend.
+        await invoke('CancelRequisition', {
+            requisitionID: String(requisitionID),
+            reason: reason.trim()
+        });
+
+        // Show a success message after cancellation.
+        showToast(
+            'success',
+            'Requisition #' + requisitionID + ' cancelled successfully.'
+        );
+
+        // Reload the history to display the updated status.
+        await loadRequisitionHistory(root);
+
+    } catch (error) {
+        // Show the error message if cancellation fails.
+        showToast('error', error.message);
+    }
 }
