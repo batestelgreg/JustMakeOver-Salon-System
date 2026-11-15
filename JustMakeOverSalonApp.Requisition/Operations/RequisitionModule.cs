@@ -34,7 +34,10 @@ namespace JustMakeOverSalonApp.Requisition.Operations
             registry.Register("LoadActiveItems", HandleLoadActiveItems);
             registry.Register("CreateRequisition", HandleCreateRequisition);
             registry.Register("LoadRequisitionHistory", HandleLoadRequisitionHistory);
+            registry.Register("LoadPendingRequisitions", HandleLoadPendingRequisitions);
             registry.Register("CancelRequisition", HandleCancelRequisition);
+            registry.Register("ApproveRequisition", HandleApproveRequisition);
+            registry.Register("RejectRequisition", HandleRejectRequisition);
         }
 
         /* Kani nga block kay example ra sa handler pattern:
@@ -204,6 +207,42 @@ namespace JustMakeOverSalonApp.Requisition.Operations
         }
 
 
+        // FUNCTION 5: HandleLoadPendingRequisitions
+        // Handles the frontend request to load all pending requisitions.
+        private Task HandleLoadPendingRequisitions(
+            Dictionary<string, object> payload,
+            string requestID)
+        {
+            try
+            {
+                // Get the currently logged-in user.
+                var actor = context.RequireUser();
+
+                // Retrieve all pending requisitions for approval.
+                var requisitions =
+                    service.LoadPendingRequisitions(actor);
+
+                // Send the pending requisitions back to the frontend.
+                context.SendResponse(
+                    requestID,
+                    true,
+                    new { requisitions },
+                    null);
+            }
+            catch (Exception ex)
+            {
+                // Send the error message if loading fails.
+                context.SendResponse(
+                    requestID,
+                    false,
+                    null,
+                    ex.Message);
+            }
+
+            return Task.CompletedTask;
+        }
+
+
         // FUNCTION 5: HandleCancelRequisition
         // Handles the frontend request to cancel an existing requisition.
         private Task HandleCancelRequisition(
@@ -257,6 +296,98 @@ namespace JustMakeOverSalonApp.Requisition.Operations
             // Return a completed task because this handler has no async operation.
             return Task.CompletedTask;
         }
+
+
+        // FUNCTION 6: HandleApproveRequisition
+        // Handles the frontend request to approve a requisition.
+        private Task HandleApproveRequisition(
+            Dictionary<string, object> payload,
+            string requestID)
+        {
+            try
+            {
+                var actor = context.RequireUser();
+
+                string requisitionIDText =
+                    context.GetValueAsString(payload, "requisitionID");
+
+                int requisitionID;
+
+                if (!int.TryParse(requisitionIDText, out requisitionID))
+                {
+                    throw new ArgumentException(
+                        "Invalid requisition selected.");
+                }
+
+                service.ApproveRequisition(
+                    actor,
+                    requisitionID);
+
+                context.SendResponse(
+                    requestID,
+                    true,
+                    new { requisitionID },
+                    null);
+            }
+            catch (Exception ex)
+            {
+                context.SendResponse(
+                    requestID,
+                    false,
+                    null,
+                    ex.Message);
+            }
+
+            return Task.CompletedTask;
+        }
+
+        // FUNCTION 7: HandleRejectRequisition
+        // Handles the frontend request to reject a requisition.
+        private Task HandleRejectRequisition(
+            Dictionary<string, object> payload,
+            string requestID)
+        {
+            try
+            {
+                var actor = context.RequireUser();
+
+                string requisitionIDText =
+                    context.GetValueAsString(payload, "requisitionID");
+
+                string reason =
+                    context.GetValueAsString(payload, "reason");
+
+                int requisitionID;
+
+                if (!int.TryParse(requisitionIDText, out requisitionID))
+                {
+                    throw new ArgumentException(
+                        "Invalid requisition selected.");
+                }
+
+                service.RejectRequisition(
+                    actor,
+                    requisitionID,
+                    reason);
+
+                context.SendResponse(
+                    requestID,
+                    true,
+                    new { requisitionID },
+                    null);
+            }
+            catch (Exception ex)
+            {
+                context.SendResponse(
+                    requestID,
+                    false,
+                    null,
+                    ex.Message);
+            }
+
+            return Task.CompletedTask;
+        }
+
 
     }
 }

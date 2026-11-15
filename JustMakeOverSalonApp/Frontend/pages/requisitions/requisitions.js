@@ -15,6 +15,15 @@ let requisitionHistoryData = [];
 // Stores the Requisition ID currently being cancelled.
 let selectedRequisitionID = null;
 
+// Stores all pending requisitions waiting for approval.
+let pendingRequisitionsData = [];
+
+// Stores the Requisition ID currently being rejected.
+let selectedRejectionRequisitionID = null;
+
+// Stores the Requisition ID currently waiting for approval confirmation.
+let selectedApprovalRequisitionID = null;
+
 // FUNCTION 1: init
 // Initializes the Requisition page when the user opens it.
 export async function init(root) {
@@ -31,6 +40,16 @@ export async function init(root) {
     // Load the active items and requisition history from the backend.
     await loadActiveItems(root);
     await loadRequisitionHistory(root);
+    // Show and load the approval section only for authorized users.
+    if (hasPermission('requisitions.approve')) {
+        const approvalSection = root.querySelector('#pendingApprovalSection');
+
+        if (approvalSection) {
+            approvalSection.hidden = false;
+        }
+
+        await loadPendingRequisitions(root);
+    }
 
     // Get the search input from the HTML page.
     const searchInput = root.querySelector('#requisitionSearch');
@@ -55,6 +74,23 @@ export async function init(root) {
     // Get the cancellation modal buttons.
     const closeCancellationButton = root.querySelector('#closeCancellationModal');
     const confirmCancellationButton = root.querySelector('#confirmCancellation');
+    // Get the rejection modal buttons.
+    const closeRejectionButton = root.querySelector('#closeRejectionModal');
+    const confirmRejectionButton = root.querySelector('#confirmRejection');
+
+    // Close the rejection modal without rejecting the requisition.
+    if (closeRejectionButton) {
+        closeRejectionButton.addEventListener('click', function () {
+            closeRejectionModal(root);
+        });
+    }
+
+    // Confirm the rejection using the required reason.
+    if (confirmRejectionButton) {
+        confirmRejectionButton.addEventListener('click', function () {
+            confirmRequisitionRejection(root);
+        });
+    }
 
     // Close the modal without cancelling the requisition.
     if (closeCancellationButton) {
@@ -67,6 +103,24 @@ export async function init(root) {
     if (confirmCancellationButton) {
         confirmCancellationButton.addEventListener('click', function () {
             confirmRequisitionCancellation(root);
+        });
+    }
+
+    // Get the approval modal buttons.
+    const closeApprovalButton = root.querySelector('#closeApprovalModal');
+    const confirmApprovalButton = root.querySelector('#confirmApproval');
+
+    // Close the approval modal without approving the requisition.
+    if (closeApprovalButton) {
+        closeApprovalButton.addEventListener('click', function () {
+            closeApprovalModal(root);
+        });
+    }
+
+    // Confirm the approval.
+    if (confirmApprovalButton) {
+        confirmApprovalButton.addEventListener('click', function () {
+            confirmRequisitionApproval(root);
         });
     }
 }
@@ -347,6 +401,305 @@ function renderSelectedItems(root) {
             renderSelectedItems(root);
         });
     });
+}
+
+// FUNCTION 7: loadPendingRequisitions
+// Loads all pending requisitions waiting for approval.
+async function loadPendingRequisitions(root) {
+
+    // Get the table body where pending requisitions will be displayed.
+    const tableBody = root.querySelector('#pendingRequisitionsBody');
+
+    // Stop if the table body does not exist.
+    if (!tableBody) {
+        return;
+    }
+
+    try {
+        // Request pending requisitions from the C# backend.
+        const result = await invoke('LoadPendingRequisitions');
+
+        // Store the returned requisitions.
+        pendingRequisitionsData = result.requisitions || [];
+
+        // Display the pending requisitions.
+        renderPendingRequisitions(root);
+
+    } catch (error) {
+
+        // Display a message if pending requisitions cannot be loaded.
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="7">Unable to load pending requisitions.</td>
+            </tr>
+        `;
+
+        // Show the error message.
+        showToast('error', error.message);
+    }
+}
+
+// FUNCTION: renderPendingRequisitions
+// Displays pending requisitions for Admin and Manager to review.
+function renderPendingRequisitions(root) {
+
+    // Get the pending requisitions table body.
+    const tableBody = root.querySelector('#pendingRequisitionsBody');
+
+    if (!tableBody) {
+        return;
+    }
+
+    // Display a message if there are no pending requisitions.
+    if (pendingRequisitionsData.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="7">No pending requisitions found.</td>
+            </tr>
+        `;
+        return;
+    }
+
+    // Display each pending requisition.
+    tableBody.innerHTML = pendingRequisitionsData.map(requisition => {
+
+        // Display the request date.
+        const requestDateValue = parseRequisitionDate(
+            requisition.RequestDate
+        );
+
+        const requestDate = requestDateValue
+            ? requestDateValue.toLocaleString()
+            : 'Invalid Date';
+
+        // Display the required date.
+        const requiredDateValue = parseRequisitionDate(
+            requisition.RequiredDate
+        );
+
+        const requiredDate = requiredDateValue
+            ? requiredDateValue.toLocaleDateString()
+            : 'Invalid Date';
+
+        // Display the requested items and quantities.
+        const requestedItems = requisition.Items.map(item =>
+            item.ItemName + ' (Qty: ' + item.QuantityRequested + ')'
+        ).join('<br>');
+
+        return `
+            <tr>
+                <td>#${requisition.RequisitionID}</td>
+                <td>${requisition.RequestorName || 'Unknown'}</td>
+                <td>${requestDate}</td>
+                <td>${requiredDate}</td>
+                <td>${requisition.Justification || 'N/A'}</td>
+                <td>${requestedItems || 'No items'}</td>
+                <td>
+                    <button type="button"
+                            class="btn btn--primary btn--sm approve-requisition-btn"
+                            data-requisition-id="${requisition.RequisitionID}">
+                        Approve
+                    </button>
+
+                    <button type="button"
+                            class="btn btn--sm reject-requisition-btn"
+                            data-requisition-id="${requisition.RequisitionID}">
+                        Reject
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+
+    // Get all Approve buttons.
+    const approveButtons = tableBody.querySelectorAll(
+        '.approve-requisition-btn'
+    );
+
+    // Connect each Approve button to its requisition.
+    approveButtons.forEach(button => {
+        button.addEventListener('click', function () {
+            const requisitionID = Number(button.dataset.requisitionId);
+            approveRequisition(root, requisitionID);
+        });
+    });
+
+    // Get all Reject buttons.
+    const rejectButtons = tableBody.querySelectorAll(
+        '.reject-requisition-btn'
+    );
+
+    // Connect each Reject button to its requisition.
+    rejectButtons.forEach(button => {
+        button.addEventListener('click', function () {
+            const requisitionID = Number(button.dataset.requisitionId);
+            openRejectionModal(root, requisitionID);
+        });
+    });
+}
+
+// FUNCTION: approveRequisition
+// Opens the custom approval confirmation modal.
+function approveRequisition(root, requisitionID) {
+
+    // Store the requisition that will be approved.
+    selectedApprovalRequisitionID = requisitionID;
+
+    // Display the selected requisition ID.
+    root.querySelector('#approvalRequisitionNumber').textContent =
+        '#' + requisitionID;
+
+    // Display the custom approval modal.
+    root.querySelector('#approvalModal').hidden = false;
+}
+
+// FUNCTION: closeApprovalModal
+// Closes the approval modal without approving the requisition.
+function closeApprovalModal(root) {
+
+    // Hide the approval modal.
+    root.querySelector('#approvalModal').hidden = true;
+
+    // Clear the selected requisition.
+    selectedApprovalRequisitionID = null;
+}
+
+// FUNCTION: confirmRequisitionApproval
+// Sends the approval request to the C# backend.
+async function confirmRequisitionApproval(root) {
+
+    // Get the confirmation button.
+    const confirmButton = root.querySelector('#confirmApproval');
+
+    // Stop if no requisition is selected.
+    if (!selectedApprovalRequisitionID) {
+        return;
+    }
+
+    try {
+        // Disable the button while processing.
+        confirmButton.disabled = true;
+
+        // Send the requisition ID to the C# backend.
+        await invoke('ApproveRequisition', {
+            requisitionID: String(selectedApprovalRequisitionID)
+        });
+
+        // Store the ID for the success message.
+        const approvedID = selectedApprovalRequisitionID;
+
+        // Close the approval modal.
+        closeApprovalModal(root);
+
+        // Show a success message.
+        showToast(
+            'success',
+            'Requisition #' + approvedID + ' approved successfully.'
+        );
+
+        // Refresh the pending list and requisition history.
+        await loadPendingRequisitions(root);
+        await loadRequisitionHistory(root);
+
+    } catch (error) {
+
+        // Display an error if approval fails.
+        showToast('error', error.message);
+
+    } finally {
+
+        // Enable the button again after processing.
+        confirmButton.disabled = false;
+    }
+}
+
+// FUNCTION: openRejectionModal
+// Opens the rejection modal for the selected requisition.
+function openRejectionModal(root, requisitionID) {
+
+    // Store the requisition that will be rejected.
+    selectedRejectionRequisitionID = requisitionID;
+
+    // Clear the previous rejection reason.
+    root.querySelector('#rejectionReason').value = '';
+
+    // Display the rejection modal.
+    root.querySelector('#rejectionModal').hidden = false;
+}
+
+// FUNCTION: closeRejectionModal
+// Closes the rejection modal without rejecting the requisition.
+function closeRejectionModal(root) {
+
+    // Hide the rejection modal.
+    root.querySelector('#rejectionModal').hidden = true;
+
+    // Clear the selected requisition.
+    selectedRejectionRequisitionID = null;
+
+    // Clear the rejection reason.
+    root.querySelector('#rejectionReason').value = '';
+}
+
+// FUNCTION: confirmRequisitionRejection
+// Sends the rejection and required reason to the C# backend.
+async function confirmRequisitionRejection(root) {
+
+    // Get the modal elements.
+    const reasonInput = root.querySelector('#rejectionReason');
+    const confirmButton = root.querySelector('#confirmRejection');
+
+    // Stop if no requisition is selected.
+    if (!selectedRejectionRequisitionID) {
+        return;
+    }
+
+    // Get the reason entered by the approver.
+    const reason = reasonInput.value.trim();
+
+    // Make sure the rejection reason is not empty.
+    if (!reason) {
+        showToast('error', 'Please provide a rejection reason.');
+        reasonInput.focus();
+        return;
+    }
+
+    try {
+        // Disable the button while processing.
+        confirmButton.disabled = true;
+
+        // Send the requisition ID and reason to the backend.
+        await invoke('RejectRequisition', {
+            requisitionID: String(selectedRejectionRequisitionID),
+            reason: reason
+        });
+
+        // Store the ID for the success message.
+        const rejectedID = selectedRejectionRequisitionID;
+
+        // Close the rejection modal.
+        closeRejectionModal(root);
+
+        // Show a success message.
+        showToast(
+            'success',
+            'Requisition #' + rejectedID + ' rejected successfully.'
+        );
+
+        // Refresh the pending list and requisition history.
+        await loadPendingRequisitions(root);
+        await loadRequisitionHistory(root);
+
+    } catch (error) {
+
+        // Display an error if rejection fails.
+        showToast('error', error.message);
+
+    } finally {
+
+        // Enable the button again after processing.
+        confirmButton.disabled = false;
+    }
 }
 
 // FUNCTION 7: loadRequisitionHistory
