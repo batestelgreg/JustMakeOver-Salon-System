@@ -12,6 +12,9 @@ let selectedItems = [];
 // Stores the requisition history received from the C# backend.
 let requisitionHistoryData = [];
 
+// Stores the Requisition ID currently being cancelled.
+let selectedRequisitionID = null;
+
 // FUNCTION 1: init
 // Initializes the Requisition page when the user opens it.
 export async function init(root) {
@@ -46,6 +49,24 @@ export async function init(root) {
     if (submitButton) {
         submitButton.addEventListener('click', function () {
             submitRequisition(root);
+        });
+    }
+
+    // Get the cancellation modal buttons.
+    const closeCancellationButton = root.querySelector('#closeCancellationModal');
+    const confirmCancellationButton = root.querySelector('#confirmCancellation');
+
+    // Close the modal without cancelling the requisition.
+    if (closeCancellationButton) {
+        closeCancellationButton.addEventListener('click', function () {
+            closeCancellationModal(root);
+        });
+    }
+
+    // Confirm the cancellation using the reason entered in the modal.
+    if (confirmCancellationButton) {
+        confirmCancellationButton.addEventListener('click', function () {
+            confirmRequisitionCancellation(root);
         });
     }
 }
@@ -492,51 +513,88 @@ function parseRequisitionDate(dateValue) {
     return date;
 }
 
-
 /**
  * FUNCTION 10: cancelRequisition
- * Sends a cancellation request to the C# backend.
+ * Opens the custom cancellation modal.
  */
 async function cancelRequisition(root, requisitionID) {
 
-    // Ask the user to confirm the cancellation.
-    const confirmed = window.confirm(
-        'Are you sure you want to cancel Requisition #' + requisitionID + '?'
-    );
+    // Remember which requisition will be cancelled.
+    selectedRequisitionID = requisitionID;
 
-    // Stop if the user does not confirm.
-    if (!confirmed) {
+    // Clear the previous cancellation reason.
+    root.querySelector('#cancellationReason').value = '';
+
+    // Display the custom cancellation modal.
+    root.querySelector('#cancellationModal').hidden = false;
+}
+
+/**
+ * Closes the custom cancellation modal.
+ */
+function closeCancellationModal(root) {
+
+    // Hide the cancellation modal.
+    root.querySelector('#cancellationModal').hidden = true;
+
+    // Clear the selected requisition.
+    selectedRequisitionID = null;
+
+    // Clear the cancellation reason.
+    root.querySelector('#cancellationReason').value = '';
+}
+
+/**
+ * Confirms the cancellation and sends it to the backend.
+ */
+async function confirmRequisitionCancellation(root) {
+
+    // Get the modal elements.
+    const modal = root.querySelector('#cancellationModal');
+    const reasonInput = root.querySelector('#cancellationReason');
+    const confirmButton = root.querySelector('#confirmCancellation');
+
+    // Stop if no requisition is selected.
+    if (!selectedRequisitionID) {
         return;
     }
 
-    // Ask for an optional cancellation reason.
-    const reason = window.prompt(
-        'Enter a cancellation reason (optional):'
-    );
-
-    // Stop if the user clicks Cancel in the reason prompt.
-    if (reason === null) {
-        return;
-    }
+    // Get the optional cancellation reason.
+    const reason = reasonInput.value.trim();
 
     try {
+        // Disable the button while processing.
+        confirmButton.disabled = true;
+
         // Send the requisition ID and reason to the C# backend.
         await invoke('CancelRequisition', {
-            requisitionID: String(requisitionID),
-            reason: reason.trim()
+            requisitionID: String(selectedRequisitionID),
+            reason: reason
         });
 
-        // Show a success message after cancellation.
+        // Store the ID for the success message.
+        const cancelledID = selectedRequisitionID;
+
+        // Close the modal after successful cancellation.
+        closeCancellationModal(root);
+
+        // Show a success message.
         showToast(
             'success',
-            'Requisition #' + requisitionID + ' cancelled successfully.'
+            'Requisition #' + cancelledID + ' cancelled successfully.'
         );
 
         // Reload the history to display the updated status.
         await loadRequisitionHistory(root);
 
     } catch (error) {
+
         // Show the error message if cancellation fails.
         showToast('error', error.message);
+
+    } finally {
+
+        // Enable the button again after processing.
+        confirmButton.disabled = false;
     }
 }
