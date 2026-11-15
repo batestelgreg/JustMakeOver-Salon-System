@@ -10,6 +10,7 @@ import { showToast } from '../../assets/js/components/toast.js';
 
 let itemsData = [];
 let categoriesData = [];
+let uoMsData = [];
 let reservationsData = [];
 let repFsData = [];
 let searchHandler = null;
@@ -36,7 +37,27 @@ export async function init(root) {
     wireAdjustForm(root);
     wireIssueForm(root);
 
-    await reloadAll(root);
+    // Kani nga parallel load kay para dili mag-hulat ang UoM list
+    // sa overview (gigamit sa item form dropdown).
+    await Promise.all([
+        reloadAll(root),
+        loadUoMs()
+    ]);
+}
+
+/**
+ * Kani nga load kay nagkuha sa unit of measures master list
+ * (gikan sa Settings module) para sa item form dropdown.
+ */
+async function loadUoMs() {
+    try {
+        const payload = await invoke('SettingsUoMs');
+        uoMsData = payload.uoMs || [];
+    } catch {
+        // Kani nga catch kay para ang UoM failure dili mo-block ang page;
+        // ang save validation kay sa backend ra gyud.
+        uoMsData = [];
+    }
 }
 
 /**
@@ -387,7 +408,6 @@ async function openItemModal(root, item) {
 
     root.querySelector('#editItemID').value = isEdit ? item.ItemID : '';
     root.querySelector('#txtItemName').value = isEdit ? item.ItemName : '';
-    root.querySelector('#txtUnitOfMeasure').value = isEdit ? item.UnitOfMeasure : '';
     root.querySelector('#txtReorderPoint').value = isEdit ? item.ReorderPoint : 0;
     root.querySelector('#txtUnitPrice').value = isEdit ? item.UnitPrice : 0;
     root.querySelector('#fieldInitialQuantity').classList.toggle('u-hidden', isEdit);
@@ -399,8 +419,42 @@ async function openItemModal(root, item) {
     }
 
     fillCategorySelect(root, isEdit ? item.CategoryID : 0);
+    fillUomSelect(root, isEdit ? item.UnitOfMeasure : '');
     root.querySelector('#errorItemName').textContent = '';
     modal.classList.remove('u-hidden');
+}
+
+/**
+ * Kani nga fill kay para sa unit of measure dropdown (master list
+ * gikan sa Settings module). Kung ang item nga gi-edit kay naa'y
+ * unit nga wala sa active list (e.g. gi-deactivate na), i-add kini
+ * as fallback option aron dili ma-empty ang selection.
+ */
+function fillUomSelect(root, selectedName) {
+    const select = root.querySelector('#selItemUom');
+    if (!select) {
+        return;
+    }
+
+    select.innerHTML = '';
+    // Kani nga filter kay para sa active ra nga units sa item form.
+    uoMsData.filter((uom) => uom.IsActive).forEach((uom) => {
+        const option = document.createElement('option');
+        option.value = uom.UomName;
+        option.textContent = uom.UomName;
+        select.appendChild(option);
+    });
+
+    if (selectedName && !select.querySelector('option[value="' + selectedName.replace(/"/g, '\\"') + '"]')) {
+        const fallback = document.createElement('option');
+        fallback.value = selectedName;
+        fallback.textContent = selectedName;
+        select.appendChild(fallback);
+    }
+
+    if (selectedName) {
+        select.value = selectedName;
+    }
 }
 
 /**
@@ -438,7 +492,7 @@ function wireItemForm(root) {
         const saveButton = root.querySelector('#btnSaveItem');
 
         const itemName = root.querySelector('#txtItemName').value.trim();
-        const unitOfMeasure = root.querySelector('#txtUnitOfMeasure').value.trim();
+        const unitOfMeasure = root.querySelector('#selItemUom').value;
 
         // Kani nga client-side checks kay para sa maayo nga user experience ra;
         // ang real nga validation kay sa C# service ug sa database.

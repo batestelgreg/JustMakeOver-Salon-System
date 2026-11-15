@@ -5,7 +5,7 @@ import { invoke } from './bridge.js';
 import { getUser, setSession, clearSession, isLoggedIn } from './state.js';
 import { registerRoute, navigate, currentPage } from './router.js';
 import { subscribe, publish, AppEvents } from './events.js';
-import { renderSidebar } from '../components/sidebar.js';
+import { renderSidebar, updateSidebarBrand } from '../components/sidebar.js';
 import { renderHeader, updateHeaderUser, updateNotificationBadge } from '../components/header.js';
 
 // Kani nga route registry kay nag-map sa page name, title ug module files.
@@ -85,7 +85,22 @@ async function enterApplication(session) {
     } catch {
         // Kani nga catch kay para ang badge failure dili mo-block ang app load.
     }
+
+    // Kani nga preferences fetch kay para sa sidebar branding
+    // (SalonName ug SalonTagline gikan sa Settings).
+    try {
+        const preferences = await invoke('SettingsPreferences');
+        updateSidebarBrand(preferences);
+    } catch {
+        // Kani nga catch kay para ang branding failure dili mo-block ang app load.
+    }
 }
+
+// Kani nga subscription kay para sa live nga sidebar branding update
+// pagkahuman sa Save Preferences sa Settings page.
+subscribe(AppEvents.PreferencesUpdated, (preferences) => {
+    updateSidebarBrand(preferences);
+});
 
 /**
  * Kani nga exit application kay mo-show balik sa login screen.

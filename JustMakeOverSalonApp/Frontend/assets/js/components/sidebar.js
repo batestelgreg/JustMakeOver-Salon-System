@@ -137,3 +137,24 @@ export function highlightActiveLink(name) {
         link.classList.toggle('is-active', link.dataset.page === name);
     });
 }
+
+/**
+ * Kani nga helper kay nag-update sa sidebar branding base sa
+ * system preferences (SalonName ug SalonTagline sa Settings).
+ * Exported kay gigamit sa app bootstrap ug sa Settings save.
+ */
+export function updateSidebarBrand(preferences) {
+    if (!preferences) {
+        return;
+    }
+
+    const nameElement = document.getElementById('sidebarBrandName');
+    const tagElement = document.getElementById('sidebarBrandTag');
+
+    if (nameElement && preferences.salonName) {
+        nameElement.textContent = preferences.salonName;
+    }
+    if (tagElement && preferences.salonTagline) {
+        tagElement.textContent = preferences.salonTagline;
+    }
+}
