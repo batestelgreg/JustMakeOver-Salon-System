@@ -1,4 +1,5 @@
-﻿using System;
+﻿
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using JustMakeOverSalonApp.Core.Bridge;
@@ -7,29 +8,35 @@ using JustMakeOverSalonApp.Requisition.Models;
 
 namespace JustMakeOverSalonApp.Requisition.Operations
 {
-    // Kani nga class kay mo-register sa tanang bridge operations sa Requisition module.
-    // Kini nga file kay iya ra sa Requisition developer - dili na mo-touch sa FrontendBridge.cs.
+    // This class registers all bridge operations sa Requisition module.
+    // Dinhi moagi ang requests from the frontend before reaching the service.
+    // Requisition developer ra ang mo-manage ani nga file.
     public sealed class RequisitionModule : IModuleOperations
     {
+        // Context is used to access the logged-in user and send responses.
         private IOperationContext context;
+
+        // Service handles the business rules and validation.
         private Services.RequisitionService service;
 
+        // FUNCTION 1: RegisterOperations
+        // Register all Requisition operations para ma-recognize sila by the bridge.
         public void RegisterOperations(OperationRegistry registry, IOperationContext context)
         {
-            // Kani nga context ug service kay gigamit sa tanang handlers sa module.
+            // Store the context so all handlers can use it.
             this.context = context;
+
+            // Create the service and repository needed for database operations.
             this.service = new Services.RequisitionService(
                 new Repositories.RequisitionRepository(new SqlConnectionFactory()));
 
-
-
-            // Kani nga linya kay pananglitan - i-uncomment ug i-adjust:
-            // registry.Register("RequisitionList", HandleRequisitionListAsync);
+            // Register the operations nga pwede tawagon sa frontend.
             registry.Register("LoadActiveItems", HandleLoadActiveItems);
             registry.Register("CreateRequisition", HandleCreateRequisition);
+            registry.Register("LoadRequisitionHistory", HandleLoadRequisitionHistory);
         }
 
-        /* Kani nga block kay pananglitan sa handler pattern:
+        /* Kani nga block kay example ra sa handler pattern:
         private async Task HandleRequisitionListAsync(Dictionary<string, object> payload, string requestID)
         {
             var actor = context.RequireUser();
@@ -38,59 +45,66 @@ namespace JustMakeOverSalonApp.Requisition.Operations
         }
         */
 
-        // Handles the request to load active items.
+        // FUNCTION 2: HandleLoadActiveItems
+        // Handles the frontend request to get all active items.
         private Task HandleLoadActiveItems(
             Dictionary<string, object> payload,
             string requestID)
         {
             try
             {
+                // Get the currently logged-in user.
                 var actor = context.RequireUser();
 
+                // Call the service to retrieve active items.
                 var items = service.LoadActiveItems(actor);
 
+                // Send the retrieved items back to the frontend.
                 context.SendResponse(requestID, true, new { items }, null);
             }
             catch (Exception ex)
             {
+                // If an error occurs, send the error message to the frontend.
                 context.SendResponse(requestID, false, null, ex.Message);
             }
 
+            // Return a completed task because this handler has no async operation.
             return Task.CompletedTask;
         }
 
-
-        // Handles the request to create a requisition.
+        // FUNCTION 3: HandleCreateRequisition
+        // Handles the frontend request to create and save a new requisition.
         private Task HandleCreateRequisition(
             Dictionary<string, object> payload,
             string requestID)
         {
             try
             {
+                // Get the currently logged-in user.
                 var actor = context.RequireUser();
 
-                // Get the requisition details from the frontend.
+                // Get the required date and justification sent by the frontend.
                 string requiredDateText =
                     context.GetValueAsString(payload, "requiredDate");
 
                 string justification =
                     context.GetValueAsString(payload, "justification");
 
-                // Get the selected item IDs and quantities.
+                // Get the selected item IDs and their requested quantities.
                 var itemIDs =
                     context.GetValueAsStringList(payload, "itemIDs");
 
                 var quantities =
                     context.GetValueAsStringList(payload, "quantities");
 
-                // Make sure both lists have matching entries.
+                // Check if at least one item is selected and both lists match.
                 if (itemIDs.Count == 0 || itemIDs.Count != quantities.Count)
                 {
                     throw new ArgumentException(
                         "Invalid selected items or quantities.");
                 }
 
-                // Convert the required date.
+                // Convert the required date from string to DateTime.
                 DateTime requiredDate;
 
                 if (!DateTime.TryParse(requiredDateText, out requiredDate))
@@ -99,14 +113,17 @@ namespace JustMakeOverSalonApp.Requisition.Operations
                         "Please provide a valid required date.");
                 }
 
-                // Prepare the selected items.
+                // Create a list that will contain the selected item details.
                 var items = new List<RequisitionDetailModel>();
 
+                // Loop through the selected items and their quantities.
                 for (int i = 0; i < itemIDs.Count; i++)
                 {
                     int itemID;
                     int quantity;
 
+                    // Convert the item ID and quantity from string to integer.
+                    // If either value is invalid, return an error.
                     if (!int.TryParse(itemIDs[i], out itemID)
                         || !int.TryParse(quantities[i], out quantity))
                     {
@@ -114,6 +131,7 @@ namespace JustMakeOverSalonApp.Requisition.Operations
                             "Invalid item ID or quantity.");
                     }
 
+                    // Add the converted item information to the list.
                     items.Add(new RequisitionDetailModel
                     {
                         ItemID = itemID,
@@ -121,13 +139,14 @@ namespace JustMakeOverSalonApp.Requisition.Operations
                     });
                 }
 
-                // Save the requisition through the service.
+                // Send the requisition details to the service for validation and saving.
                 int requisitionID = service.CreateRequisition(
                     actor,
                     requiredDate,
                     justification,
                     items);
 
+                // Send a successful response with the new Requisition ID.
                 context.SendResponse(
                     requestID,
                     true,
@@ -136,6 +155,7 @@ namespace JustMakeOverSalonApp.Requisition.Operations
             }
             catch (Exception ex)
             {
+                // If something goes wrong, send the error message to the frontend.
                 context.SendResponse(
                     requestID,
                     false,
@@ -143,8 +163,43 @@ namespace JustMakeOverSalonApp.Requisition.Operations
                     ex.Message);
             }
 
+            // Return a completed task because this handler has no async operation.
             return Task.CompletedTask;
         }
 
+        // FUNCTION 4: HandleLoadRequisitionHistory
+        // Handles the frontend request to retrieve the user's requisition history.
+        private Task HandleLoadRequisitionHistory(
+            Dictionary<string, object> payload,
+            string requestID)
+        {
+            try
+            {
+                // Get the currently logged-in user.
+                var actor = context.RequireUser();
+
+                // Call the service to get this user's requisition history.
+                var requisitions = service.LoadRequisitionHistory(actor);
+
+                // Send the requisition history back to the frontend.
+                context.SendResponse(
+                    requestID,
+                    true,
+                    new { requisitions },
+                    null);
+            }
+            catch (Exception ex)
+            {
+                // If an error occurs, send the error message to the frontend.
+                context.SendResponse(
+                    requestID,
+                    false,
+                    null,
+                    ex.Message);
+            }
+
+            // Return a completed task because this handler has no async operation.
+            return Task.CompletedTask;
+        }
     }
 }

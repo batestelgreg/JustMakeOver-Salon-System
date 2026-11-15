@@ -1,4 +1,7 @@
-﻿<section class="page-container">
+﻿<!-- Main container sa entire Requisition page. -->
+<section class="page-container">
+
+    <!-- Page title and short description. -->
     <div class="page-header">
         <div>
             <h1>Requisitions</h1>
@@ -6,12 +9,15 @@
         </div>
     </div>
 
+    <!-- SECTION 1: Available Items -->
+    <!-- Displays all active items nga pwede pilion sa user. -->
     <div class="card">
         <div class="card-header">
             <h2>Available Items</h2>
             <p>Select items that you need for your department.</p>
         </div>
 
+        <!-- Search field used to find items by code or name. -->
         <div class="inventory-toolbar">
             <input type="text"
                    id="requisitionSearch"
@@ -19,6 +25,7 @@
                    placeholder="Search items...">
         </div>
 
+        <!-- Table containing the available items from the database. -->
         <div class="table-responsive">
             <table class="data-table">
                 <thead>
@@ -31,6 +38,7 @@
                     </tr>
                 </thead>
 
+                <!-- JavaScript fills this table with available items. -->
                 <tbody id="availableItemsBody">
                     <tr>
                         <td colspan="5">Loading items...</td>
@@ -40,13 +48,15 @@
         </div>
     </div>
 
-
+    <!-- SECTION 2: Selected Items -->
+    <!-- Displays the items nga gipili sa user for the requisition. -->
     <div class="card">
         <div class="card-header">
             <h2>Selected Items</h2>
             <p>Items you want to include in your requisition.</p>
         </div>
 
+        <!-- Table containing the selected items and their quantities. -->
         <div class="table-responsive">
             <table class="data-table">
                 <thead>
@@ -58,6 +68,7 @@
                     </tr>
                 </thead>
 
+                <!-- JavaScript displays selected items in this table. -->
                 <tbody id="selectedItemsBody">
                     <tr>
                         <td colspan="4">No items selected yet.</td>
@@ -67,13 +78,15 @@
         </div>
     </div>
 
-
+    <!-- SECTION 3: Requisition Details -->
+    <!-- User provides the required date and reason for the request. -->
     <div class="card">
         <div class="card-header">
             <h2>Requisition Details</h2>
             <p>Provide the reason and required date for your request.</p>
         </div>
 
+        <!-- Input field for the date when the items are needed. -->
         <div class="form-field">
             <label for="requiredDate">Required Date</label>
             <input type="date"
@@ -82,6 +95,7 @@
                    required>
         </div>
 
+        <!-- Text area where the user explains why the items are needed. -->
         <div class="form-field">
             <label for="justification">Justification</label>
             <textarea id="justification"
@@ -91,6 +105,7 @@
                       required></textarea>
         </div>
 
+        <!-- Button that sends the requisition details to the backend. -->
         <div style="margin-top: 16px;">
             <button type="button"
                     id="submitRequisition"
@@ -100,5 +115,36 @@
         </div>
     </div>
 
+    <!-- SECTION 4: Requisition History -->
+    <!-- Displays the user's previously submitted requisitions and their status. -->
+    <div class="card">
+        <div class="card-header">
+            <h2>Requisition History</h2>
+            <p>View your previously submitted requisitions and their status.</p>
+        </div>
+
+        <!-- Table containing the user's previous requisition records. -->
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Requisition ID</th>
+                        <th>Request Date</th>
+                        <th>Required Date</th>
+                        <th>Justification</th>
+                        <th>Status</th>
+                        <th>Items</th>
+                    </tr>
+                </thead>
+
+                <!-- JavaScript loads the requisition history into this table. -->
+                <tbody id="requisitionHistoryBody">
+                    <tr>
+                        <td colspan="6">Loading requisition history...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
 
 </section>
