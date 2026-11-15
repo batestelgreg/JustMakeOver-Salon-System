@@ -126,6 +126,26 @@ namespace JustMakeOverSalonApp.Requisition.Services
         }
 
 
+        // FUNCTION 4: LoadPendingRequisitions
+        // Get all pending requests para makita sa Admin ug Manager
+        // kung unsay ilang kinahanglan i-review.
+        public List<RequisitionModel> LoadPendingRequisitions(CurrentUser actor)
+        {
+            // Make sure nga naa tay valid logged-in user.
+            if (actor == null)
+            {
+                throw new ArgumentException(
+                    "Invalid user session.");
+            }
+
+            // Only users with approval permission can view this list.
+            actor.RequirePermission("requisitions.approve");
+
+            // Get all pending requisitions from the repository.
+            return repository.GetPendingRequisitions();
+        }
+
+
         // FUNCTION 4: CancelRequisition
         // Handles the cancellation of an existing requisition.
         // Ang SQL procedure na ang mo-check kung authorized ang user.
@@ -161,6 +181,75 @@ namespace JustMakeOverSalonApp.Requisition.Services
                 requisitionID,
                 actor.UserID,
                 reason);
+        }
+
+
+        // FUNCTION 5: ApproveRequisition
+        // Check permission before approving the requisition.
+        // The SQL procedure handles inventory reservation.
+        public void ApproveRequisition(
+            CurrentUser actor,
+            int requisitionID)
+        {
+            if (actor == null)
+            {
+                throw new ArgumentException(
+                    "Invalid user session.");
+            }
+
+            // Only users with approval permission can approve.
+            actor.RequirePermission("requisitions.approve");
+
+            if (requisitionID <= 0)
+            {
+                throw new ArgumentException(
+                    "Invalid requisition selected.");
+            }
+
+            repository.ApproveRequisition(
+                requisitionID,
+                actor.UserID);
+        }
+
+        // FUNCTION 6: RejectRequisition
+        // Rejection reason is required para mahibaw-an sa requestor
+        // nganong wala na-approve ang iyang request.
+        public void RejectRequisition(
+            CurrentUser actor,
+            int requisitionID,
+            string reason)
+        {
+            if (actor == null)
+            {
+                throw new ArgumentException(
+                    "Invalid user session.");
+            }
+
+            // Only users with rejection permission can reject.
+            actor.RequirePermission("requisitions.reject");
+
+            if (requisitionID <= 0)
+            {
+                throw new ArgumentException(
+                    "Invalid requisition selected.");
+            }
+
+            if (string.IsNullOrWhiteSpace(reason))
+            {
+                throw new ArgumentException(
+                    "Rejection reason is required.");
+            }
+
+            if (reason.Length > 500)
+            {
+                throw new ArgumentException(
+                    "Rejection reason cannot exceed 500 characters.");
+            }
+
+            repository.RejectRequisition(
+                requisitionID,
+                actor.UserID,
+                reason.Trim());
         }
 
     }

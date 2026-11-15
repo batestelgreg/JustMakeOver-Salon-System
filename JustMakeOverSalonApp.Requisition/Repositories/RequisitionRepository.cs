@@ -205,6 +205,45 @@ namespace JustMakeOverSalonApp.Requisition.Repositories
                         }
                     }
 
+
+                    // Send a notification to all active users
+                    // para mahibaw-an nila nga naay new requisition.
+                    using (var command = new SqlCommand(@"
+                        INSERT INTO NOTIFICATIONS
+                        (
+                            RecipientUserID,
+                            NotificationType,
+                            Title,
+                            Message,
+                            RelatedEntityType,
+                            RelatedEntityID,
+                            IsRead,
+                            CreatedAt
+                        )
+                        SELECT
+                            UserID,
+                            'REQUISITION_SUBMITTED',
+                            'New Requisition Submitted',
+                            @Message,
+                            'REQUISITION',
+                            @RequisitionID,
+                            0,
+                            SYSDATETIME()
+                        FROM USERS
+                        WHERE IsActive = 1;
+                    ", connection, transaction))
+                    {
+                        command.Parameters.Add("@Message", SqlDbType.NVarChar, 500)
+                            .Value = "A new requisition #" + requisitionID
+                                + " has been submitted and is waiting for review.";
+
+                        command.Parameters.Add("@RequisitionID", SqlDbType.Int)
+                            .Value = requisitionID;
+
+                        command.ExecuteNonQuery();
+                    }
+
+
                     // If all inserts are successful, commit the transaction.
                     transaction.Commit();
 
@@ -335,6 +374,140 @@ namespace JustMakeOverSalonApp.Requisition.Repositories
         }
 
 
+        // FUNCTION 5: GetPendingRequisitions
+        // Get all pending requisitions para makita sa Admin ug Manager
+        // ang requests nga need pa nila i-review.
+        public List<RequisitionModel> GetPendingRequisitions()
+        {
+            // Create a list para sa tanan pending requisitions.
+            var requisitions = new List<RequisitionModel>();
+
+            using (var connection = connectionFactory.CreateOpenConnection())
+            using (var command = new SqlCommand(@"
+                SELECT
+                    r.RequisitionID,
+                    r.RequestorUserID,
+                    LTRIM(RTRIM(
+                        ISNULL(u.FirstName, '') + ' ' +
+                        ISNULL(u.LastName, '')
+                    )) AS RequestorName,
+                    r.DepartmentHeadUserID,
+                    r.RequestDate,
+                    r.RequiredDate,
+                    r.Justification,
+                    r.Status AS RequisitionStatus,
+                    r.RejectionReason,
+                    rd.RequisitionDetailID,
+                    rd.ItemID,
+                    i.ItemName,
+                    rd.QuantityRequested,
+                    rd.QuantityApproved,
+                    rd.Status AS DetailStatus
+                FROM REQUISITIONS AS r
+                INNER JOIN USERS AS u
+                    ON r.RequestorUserID = u.UserID
+                LEFT JOIN REQUISITION_DETAILS AS rd
+                    ON r.RequisitionID = rd.RequisitionID
+                LEFT JOIN ITEMS AS i
+                    ON rd.ItemID = i.ItemID
+                WHERE r.Status = 'Pending'
+                ORDER BY r.RequestDate ASC, r.RequisitionID ASC;
+            ", connection))
+            using (var reader = command.ExecuteReader())
+            {
+                // Read each row returned by the database.
+                while (reader.Read())
+                {
+                    int requisitionID = reader.GetInt32(
+                        reader.GetOrdinal("RequisitionID"));
+
+                    RequisitionModel requisition = null;
+
+                    // Check if this requisition is already in the list.
+                    // One requisition can contain multiple items.
+                    foreach (var existing in requisitions)
+                    {
+                        if (existing.RequisitionID == requisitionID)
+                        {
+                            requisition = existing;
+                            break;
+                        }
+                    }
+
+                    // Create the main requisition object if wala pa sa list.
+                    if (requisition == null)
+                    {
+                        requisition = new RequisitionModel
+                        {
+                            RequisitionID = requisitionID,
+                            RequestorUserID = reader.GetInt32(
+                                reader.GetOrdinal("RequestorUserID")),
+                            RequestorName = reader.GetString(
+                                reader.GetOrdinal("RequestorName")),
+                            DepartmentHeadUserID = reader.IsDBNull(
+                                reader.GetOrdinal("DepartmentHeadUserID"))
+                                ? (int?)null
+                                : reader.GetInt32(
+                                    reader.GetOrdinal("DepartmentHeadUserID")),
+                            RequestDate = reader.GetDateTime(
+                                reader.GetOrdinal("RequestDate")),
+                            RequiredDate = reader.GetDateTime(
+                                reader.GetOrdinal("RequiredDate")),
+                            Justification = reader.IsDBNull(
+                                reader.GetOrdinal("Justification"))
+                                ? ""
+                                : reader.GetString(
+                                    reader.GetOrdinal("Justification")),
+                            Status = reader.GetString(
+                                reader.GetOrdinal("RequisitionStatus")),
+                            RejectionReason = reader.IsDBNull(
+                                reader.GetOrdinal("RejectionReason"))
+                                ? ""
+                                : reader.GetString(
+                                    reader.GetOrdinal("RejectionReason")),
+                            Items = new List<RequisitionDetailModel>()
+                        };
+
+                        requisitions.Add(requisition);
+                    }
+
+                    // Add the requested item if this requisition has a detail.
+                    if (!reader.IsDBNull(
+                        reader.GetOrdinal("RequisitionDetailID")))
+                    {
+                        var item = new RequisitionDetailModel
+                        {
+                            RequisitionDetailID = reader.GetInt32(
+                                reader.GetOrdinal("RequisitionDetailID")),
+                            RequisitionID = requisitionID,
+                            ItemID = reader.GetInt32(
+                                reader.GetOrdinal("ItemID")),
+                            ItemName = reader.IsDBNull(
+                                reader.GetOrdinal("ItemName"))
+                                ? ""
+                                : reader.GetString(
+                                    reader.GetOrdinal("ItemName")),
+                            QuantityRequested = reader.GetInt32(
+                                reader.GetOrdinal("QuantityRequested")),
+                            QuantityApproved = reader.IsDBNull(
+                                reader.GetOrdinal("QuantityApproved"))
+                                ? (int?)null
+                                : reader.GetInt32(
+                                    reader.GetOrdinal("QuantityApproved")),
+                            Status = reader.GetString(
+                                reader.GetOrdinal("DetailStatus"))
+                        };
+
+                        requisition.Items.Add(item);
+                    }
+                }
+            }
+
+            // Return all pending requisitions with their requested items.
+            return requisitions;
+        }
+
+
         // FUNCTION 5: CancelRequisition
         // Call the existing SQL procedure para kanselahon ang requisition.
         // Ang stored procedure na ang mo-check sa authorization,
@@ -367,6 +540,58 @@ namespace JustMakeOverSalonApp.Requisition.Repositories
                         : reason;
 
                 // Execute the procedure to cancel the requisition.
+                command.ExecuteNonQuery();
+            }
+        }
+
+
+        // FUNCTION 6: ApproveRequisition
+        // Call the approval procedure para ma-approve ang request
+        // ug ma-reserve ang requested items sa inventory.
+        public void ApproveRequisition(
+            int requisitionID,
+            int approverUserID)
+        {
+            using (var connection = connectionFactory.CreateOpenConnection())
+            using (var command = new SqlCommand(
+                "usp_Requisition_Approve", connection))
+            {
+                command.CommandType = CommandType.StoredProcedure;
+
+                command.Parameters.Add("@RequisitionID", SqlDbType.Int)
+                    .Value = requisitionID;
+
+                command.Parameters.Add("@ApproverUserID", SqlDbType.Int)
+                    .Value = approverUserID;
+
+                command.ExecuteNonQuery();
+            }
+        }
+
+        // FUNCTION 7: RejectRequisition
+        // Call the rejection procedure.
+        // Required ang reason para mahibaw-an sa requestor
+        // nganong gi-reject ang iyang requisition.
+        public void RejectRequisition(
+            int requisitionID,
+            int rejectorUserID,
+            string reason)
+        {
+            using (var connection = connectionFactory.CreateOpenConnection())
+            using (var command = new SqlCommand(
+                "usp_Requisition_Reject", connection))
+            {
+                command.CommandType = CommandType.StoredProcedure;
+
+                command.Parameters.Add("@RequisitionID", SqlDbType.Int)
+                    .Value = requisitionID;
+
+                command.Parameters.Add("@RejectorUserID", SqlDbType.Int)
+                    .Value = rejectorUserID;
+
+                command.Parameters.Add("@Reason", SqlDbType.NVarChar, 500)
+                    .Value = reason;
+
                 command.ExecuteNonQuery();
             }
         }

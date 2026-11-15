@@ -14,6 +14,9 @@ namespace JustMakeOverSalonApp.Requisition.Models
         // User ID sa person nga naghimo sa request.
         public int RequestorUserID { get; set; }
 
+        // Full name sa user nga naghimo sa requisition.
+        public string RequestorName { get; set; }
+
         // User ID sa department head nga mo-review sa request.
         // Nullable ni kay possible nga wala pa na-assign.
         public int? DepartmentHeadUserID { get; set; }
