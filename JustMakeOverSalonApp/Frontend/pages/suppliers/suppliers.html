@@ -93,4 +93,22 @@
             </form>
         </div>
     </div>
+
+    <!-- Kani nga modal kay para sa confirmation sa Deactivate/Activate
+         sa supplier (custom nga pop up, dili ang native nga confirm). -->
+    <div id="supplierStatusModal" class="modal-overlay u-hidden">
+        <div class="modal">
+            <div class="modal__header">
+                <h3 class="modal__title" id="supplierStatusModalTitle">Deactivate Supplier</h3>
+                <button type="button" class="modal__close" id="btnCloseSupplierStatusModal" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal__body">
+                <p id="supplierStatusModalMessage" style="margin: 0;"></p>
+            </div>
+            <div class="modal__footer">
+                <button type="button" class="btn btn--ghost" id="btnCancelSupplierStatus">Cancel</button>
+                <button type="button" class="btn btn--danger" id="btnConfirmSupplierStatus">Deactivate</button>
+            </div>
+        </div>
+    </div>
 </div>
