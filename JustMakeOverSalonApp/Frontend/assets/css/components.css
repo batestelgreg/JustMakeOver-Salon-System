@@ -399,3 +399,50 @@
     gap: 10px;
     margin-top: 20px;
 }
+
+/* Make sure hidden elements stay hidden, even when they have display styles. */
+[hidden] {
+    display: none !important;
+}
+
+/* Requisition History button alignment. */
+.requisition-history-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    margin: 0 0 12px 0;
+}
+
+/* Larger popup for viewing all requisition history. */
+.all-requisition-history-modal {
+    padding: clamp(16px, 5vw, 96px);
+}
+
+.all-requisition-history-modal__box {
+    width: 100%;
+    max-width: none;
+    max-height: 100%;
+    overflow: auto;
+}
+
+/* Keep the history table readable inside the large popup. */
+.all-requisition-history-modal__box .table-responsive {
+    width: 100%;
+    overflow-x: auto;
+}
+
+/* Align Requisition History heading and button in one row. */
+.requisition-history-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.requisition-history-card-header > div {
+    flex: 1;
+}
+
+.requisition-history-card-header .btn {
+    margin: 0;
+    flex-shrink: 0;
+}

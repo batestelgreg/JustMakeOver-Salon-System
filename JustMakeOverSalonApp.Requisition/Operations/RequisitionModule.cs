@@ -35,6 +35,7 @@ namespace JustMakeOverSalonApp.Requisition.Operations
             registry.Register("CreateRequisition", HandleCreateRequisition);
             registry.Register("LoadRequisitionHistory", HandleLoadRequisitionHistory);
             registry.Register("LoadPendingRequisitions", HandleLoadPendingRequisitions);
+            registry.Register("LoadAllRequisitionHistory", HandleLoadAllRequisitionHistory);
             registry.Register("CancelRequisition", HandleCancelRequisition);
             registry.Register("ApproveRequisition", HandleApproveRequisition);
             registry.Register("RejectRequisition", HandleRejectRequisition);
@@ -223,6 +224,43 @@ namespace JustMakeOverSalonApp.Requisition.Operations
                     service.LoadPendingRequisitions(actor);
 
                 // Send the pending requisitions back to the frontend.
+                context.SendResponse(
+                    requestID,
+                    true,
+                    new { requisitions },
+                    null);
+            }
+            catch (Exception ex)
+            {
+                // Send the error message if loading fails.
+                context.SendResponse(
+                    requestID,
+                    false,
+                    null,
+                    ex.Message);
+            }
+
+            return Task.CompletedTask;
+        }
+
+
+        // FUNCTION 6: HandleLoadAllRequisitionHistory
+        // Handles the request to retrieve all approved and rejected requisitions.
+        private Task HandleLoadAllRequisitionHistory(
+            Dictionary<string, object> payload,
+            string requestID)
+        {
+            try
+            {
+                // Get the currently logged-in user.
+                var actor = context.RequireUser();
+
+                // Retrieve all approved and rejected requisitions.
+                // Ang service na ang mo-check sa approval permission.
+                var requisitions =
+                    service.LoadAllRequisitionHistory(actor);
+
+                // Send the complete history back to the frontend.
                 context.SendResponse(
                     requestID,
                     true,
