@@ -9,10 +9,48 @@
     gap: var(--space-3);
 }
 
-/* Kani nga .btn--sm kay para sa Edit buttons sa table
-   (page-scoped tungod kay ang .btn--sm kay wala sa global
-   components.css). */
-.suppliers-page .btn--sm {
-    padding: 4px 10px;
+/* Kani mga action buttons kay para sa table row actions (boxed,
+   small size): grey ang Edit, red ang Deactivate, green ang
+   Activate - outline style para visible ra ang text ug naay box. */
+.suppliers-page .btn-action {
+    padding: 4px 12px;
     font-size: 12px;
+    font-weight: 600;
+    background: var(--color-white);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.suppliers-page .btn-action:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.suppliers-page .btn-action--grey {
+    color: var(--color-text-muted);
+}
+
+.suppliers-page .btn-action--grey:hover:not(:disabled) {
+    background: var(--color-bg);
+    color: var(--color-text);
+}
+
+.suppliers-page .btn-action--danger {
+    color: var(--color-error);
+    border-color: var(--color-error);
+}
+
+.suppliers-page .btn-action--danger:hover:not(:disabled) {
+    background: var(--color-error-tint);
+}
+
+.suppliers-page .btn-action--success {
+    color: var(--color-success);
+    border-color: var(--color-success);
+}
+
+.suppliers-page .btn-action--success:hover:not(:disabled) {
+    background: var(--color-success-tint);
 }

@@ -1,6 +1,12 @@
 USE JustMakeOverSalonDB;
 GO
 
+-- Kani nga alter kay para ang Address kay nullable (optional man
+-- kini sa UI). Re-running ni kay safe - ang nullable state mo-
+-- persist na ug ang repeated ALTER kay no-op nga result.
+ALTER TABLE SUPPLIERS ALTER COLUMN Address NVARCHAR(1000) NULL;
+GO
+
 CREATE OR ALTER PROCEDURE usp_Suppliers_GetAll
     @ActorUserID INT
 AS

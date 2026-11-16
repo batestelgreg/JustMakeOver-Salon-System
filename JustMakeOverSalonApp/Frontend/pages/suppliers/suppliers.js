@@ -10,6 +10,11 @@ import { showToast } from '../../assets/js/components/toast.js';
 let suppliersData = [];
 let addSupplierHandler = null;
 
+// Kani nga state kay para sa pending Deactivate/Activate confirmation
+// (kunsad ang supplier ug unsa nga target status).
+let pendingStatusSupplier = null;
+let pendingStatusTarget = false;
+
 /**
  * Kani nga init kay nag-wire sa mga buttons ug nag-load sa suppliers.
  */
@@ -27,6 +32,7 @@ export async function init(root) {
 
     wireModalClosers(root);
     wireSupplierForm(root);
+    wireSupplierStatusModal(root);
 
     await reloadSuppliers(root);
 }
@@ -114,12 +120,26 @@ function renderSuppliersTable(root) {
 
         const actionsCell = document.createElement('td');
         if (canManage) {
+            // Kani nga mga action buttons kay boxed ug small: grey
+            // ang Edit, red ang Deactivate, green ang Activate.
             const button = document.createElement('button');
             button.type = 'button';
-            button.className = 'btn btn--ghost btn--sm';
+            button.className = 'btn-action btn-action--grey';
             button.textContent = 'Edit';
             button.addEventListener('click', () => openSupplierModal(root, supplier));
             actionsCell.appendChild(button);
+
+            // Kani nga status toggle kay mo-ilis ang word (Deactivate/
+            // Activate) ug ang color base sa current status.
+            const statusButton = document.createElement('button');
+            statusButton.type = 'button';
+            statusButton.className = 'btn-action ' +
+                (supplier.IsActive ? 'btn-action--danger' : 'btn-action--success');
+            statusButton.textContent = supplier.IsActive ? 'Deactivate' : 'Activate';
+            statusButton.addEventListener('click', () => {
+                openSupplierStatusModal(root, supplier, !supplier.IsActive);
+            });
+            actionsCell.appendChild(statusButton);
         } else {
             actionsCell.textContent = '\u2014';
         }
@@ -261,8 +281,100 @@ function wireSupplierForm(root) {
 }
 
 /**
+ * Kani nga modal kay para sa confirmation sa Deactivate/Activate sa
+ * supplier (custom nga pop up nga consistent sa app design, dili ang
+ * native nga confirm dialog).
+ */
+function openSupplierStatusModal(root, supplier, targetActive) {
+    pendingStatusSupplier = supplier;
+    pendingStatusTarget = targetActive;
+
+    const modal = root.querySelector('#supplierStatusModal');
+    const confirmButton = root.querySelector('#btnConfirmSupplierStatus');
+
+    // Kani nga title ug message kay nagdepende sa target status.
+    root.querySelector('#supplierStatusModalTitle').textContent =
+        targetActive ? 'Activate Supplier' : 'Deactivate Supplier';
+    root.querySelector('#supplierStatusModalMessage').textContent = targetActive
+        ? 'Activate the supplier "' + supplier.SupplierName +
+          '"? It will become available for quotations and purchase orders again.'
+        : 'Deactivate the supplier "' + supplier.SupplierName +
+          '"? It will no longer appear in new quotation and purchase order selections.';
+
+    // Kani nga confirm button styling kay danger kung deactivate
+    // (irreversible-looking nga action) ug primary kung activate.
+    confirmButton.textContent = targetActive ? 'Activate' : 'Deactivate';
+    confirmButton.className = 'btn ' + (targetActive ? 'btn--primary' : 'btn--danger');
+    confirmButton.disabled = false;
+
+    modal.classList.remove('u-hidden');
+}
+
+/**
+ * Kani nga wiring kay para sa status confirmation modal (closers,
+ * overlay click, ug confirm button).
+ */
+function wireSupplierStatusModal(root) {
+    const closeModal = () => {
+        pendingStatusSupplier = null;
+        pendingStatusTarget = false;
+        root.querySelector('#supplierStatusModal').classList.add('u-hidden');
+    };
+
+    root.querySelector('#btnCloseSupplierStatusModal')?.addEventListener('click', closeModal);
+    root.querySelector('#btnCancelSupplierStatus')?.addEventListener('click', closeModal);
+    root.querySelector('#supplierStatusModal')?.addEventListener('click', (event) => {
+        if (event.target === root.querySelector('#supplierStatusModal')) {
+            closeModal();
+        }
+    });
+
+    root.querySelector('#btnConfirmSupplierStatus')?.addEventListener('click', async () => {
+        // Kani nga guard kay para walay action kung wala'y pending
+        // nga supplier (e.g. double click pagkahuman sa close).
+        if (!pendingStatusSupplier) {
+            return;
+        }
+
+        const supplier = pendingStatusSupplier;
+        const targetActive = pendingStatusTarget;
+        const confirmButton = root.querySelector('#btnConfirmSupplierStatus');
+
+        confirmButton.disabled = true;
+        try {
+            // Kani nga invoke kay gigamit ang same SuppliersSave op
+            // (update path): i-pass ang tanang existing fields sa
+            // supplier ug ang bag-ong active status lang ang nabag-o.
+            await invoke('SuppliersSave', {
+                supplierID: String(supplier.SupplierID),
+                supplierName: supplier.SupplierName,
+                contactFirstName: supplier.ContactPersonFirstName || '',
+                contactMiddleName: supplier.ContactPersonMiddleName || '',
+                contactLastName: supplier.ContactPersonLastName || '',
+                phone: supplier.Phone || '',
+                email: supplier.Email || '',
+                address: supplier.Address || '',
+                isActive: targetActive ? 'true' : 'false'
+            });
+
+            showToast('success',
+                'The supplier "' + supplier.SupplierName + '" was ' +
+                (targetActive ? 'activated.' : 'deactivated.'));
+
+            closeModal();
+            await reloadSuppliers(root);
+        } catch (error) {
+            showToast('error', error.message);
+            confirmButton.disabled = false;
+        }
+    });
+}
+
+/**
  * Kani nga destroy kay para malimpyohan ang handlers sa module.
  */
 export function destroy() {
     addSupplierHandler = null;
+    pendingStatusSupplier = null;
+    pendingStatusTarget = false;
 }
