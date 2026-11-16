@@ -492,7 +492,7 @@ function renderPendingRequisitions(root) {
                 <td>${requisition.RequestorName || 'Unknown'}</td>
                 <td>${requestDate}</td>
                 <td>${requiredDate}</td>
-                <td>${requisition.Justification || 'N/A'}</td>
+                <td>${requisition.Justification || '-'}</td>
                 <td>${requestedItems || 'No items'}</td>
                 <td>
                     <button type="button"
@@ -802,7 +802,7 @@ function renderRequisitionHistory(root) {
                        data-requisition-id="${requisition.RequisitionID}">
                    Cancel
                </button>`
-            : 'N/A';
+            : '-';
 
         // Return the HTML row containing the requisition information.
         return `
@@ -810,7 +810,7 @@ function renderRequisitionHistory(root) {
                 <td>#${requisition.RequisitionID}</td>
                 <td>${requestDate}</td>
                 <td>${requiredDate}</td>
-                <td>${requisition.Justification || 'N/A'}</td>
+                <td>${requisition.Justification || '-'}</td>
                 <td>${requisition.Status}</td>
                 <td>${items || 'No items'}</td>
                 <td>${actionButton}</td>
