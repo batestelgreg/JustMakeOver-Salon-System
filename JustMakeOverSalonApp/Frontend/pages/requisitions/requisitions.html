@@ -151,9 +151,19 @@
     <!-- SECTION 4: Requisition History -->
     <!-- Displays the user's previously submitted requisitions and their status. -->
     <div class="card">
-        <div class="card-header">
-            <h2>Requisition History</h2>
-            <p>View your previously submitted requisitions and their status.</p>
+        <div class="card-header requisition-history-card-header">
+            <div>
+                <h2>Requisition History</h2>
+                <p>View your previously submitted requisitions and their status.</p>
+            </div>
+
+            <!-- Admin ug Manager ra ang makakita ani nga button. -->
+            <button type="button"
+                    id="viewAllRequisitionHistory"
+                    class="btn btn--primary"
+                    hidden>
+                View All Requisitions History
+            </button>
         </div>
 
         <!-- Table containing the user's previous requisition records. -->
@@ -180,6 +190,50 @@
             </table>
         </div>
     </div>
+
+
+    <!-- All Requisitions History Modal -->
+    <div id="allRequisitionHistoryModal" class="modal-overlay all-requisition-history-modal" hidden>
+        <div class="modal-box all-requisition-history-modal__box">
+            <div class="modal-header">
+                <h2>All Requisitions History</h2>
+                <p>View all approved and rejected requisitions submitted by users.</p>
+            </div>
+
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Requisition ID</th>
+                            <th>Requestor User ID</th>
+                            <th>Requestor Name</th>
+                            <th>Request Date</th>
+                            <th>Required Date</th>
+                            <th>Status</th>
+                            <th>Justification</th>
+                            <th>Items</th>
+                            <th>Rejection Reason</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="allRequisitionHistoryBody">
+                        <tr>
+                            <td colspan="9">Click the button to load requisition history.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button"
+                        id="closeAllRequisitionHistoryModal"
+                        class="btn">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
 
     <!-- Cancellation Modal -->
     <div id="cancellationModal" class="modal-overlay" hidden>

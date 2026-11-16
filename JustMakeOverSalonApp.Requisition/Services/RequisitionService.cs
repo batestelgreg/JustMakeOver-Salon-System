@@ -146,6 +146,25 @@ namespace JustMakeOverSalonApp.Requisition.Services
         }
 
 
+        // FUNCTION 6: LoadAllRequisitionHistory
+        // Get all approved and rejected requisitions para sa Admin ug Manager.
+        public List<RequisitionModel> LoadAllRequisitionHistory(CurrentUser actor)
+        {
+            // Make sure nga naa tay valid logged-in user.
+            if (actor == null)
+            {
+                throw new ArgumentException(
+                    "Invalid user session.");
+            }
+
+            // Only users with approval permission can view this history.
+            actor.RequirePermission("requisitions.approve");
+
+            // Get all approved and rejected requisitions.
+            return repository.GetAllApprovedRejectedRequisitions();
+        }
+
+
         // FUNCTION 4: CancelRequisition
         // Handles the cancellation of an existing requisition.
         // Ang SQL procedure na ang mo-check kung authorized ang user.

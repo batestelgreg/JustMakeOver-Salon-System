@@ -43,12 +43,17 @@ export async function init(root, params = {}) {
     // Load the active items and requisition history from the backend.
     await loadActiveItems(root);
     await loadRequisitionHistory(root);
-    // Show and load the approval section only for authorized users.
+    // Show the approval section and history button only for authorized users.
     if (hasPermission('requisitions.approve')) {
         const approvalSection = root.querySelector('#pendingApprovalSection');
+        const viewAllHistoryButton = root.querySelector('#viewAllRequisitionHistory');
 
         if (approvalSection) {
             approvalSection.hidden = false;
+        }
+
+        if (viewAllHistoryButton) {
+            viewAllHistoryButton.hidden = false;
         }
 
         await loadPendingRequisitions(root);
@@ -117,6 +122,24 @@ export async function init(root, params = {}) {
     if (confirmCancellationButton) {
         confirmCancellationButton.addEventListener('click', function () {
             confirmRequisitionCancellation(root);
+        });
+    }
+
+    // Get the All Requisitions History modal buttons.
+    const viewAllHistoryButton = root.querySelector('#viewAllRequisitionHistory');
+    const closeAllHistoryButton = root.querySelector('#closeAllRequisitionHistoryModal');
+
+    // Open the complete requisition history when the button is clicked.
+    if (viewAllHistoryButton) {
+        viewAllHistoryButton.addEventListener('click', function () {
+            openAllRequisitionHistoryModal(root);
+        });
+    }
+
+    // Close the complete requisition history modal.
+    if (closeAllHistoryButton) {
+        closeAllHistoryButton.addEventListener('click', function () {
+            root.querySelector('#allRequisitionHistoryModal').hidden = true;
         });
     }
 
@@ -849,6 +872,119 @@ function renderRequisitionHistory(root) {
         });
     });
 }
+
+
+// FUNCTION: openAllRequisitionHistoryModal
+// Opens the popup and loads all approved and rejected requisitions.
+async function openAllRequisitionHistoryModal(root) {
+
+    // Get the popup and its table body.
+    const modal = root.querySelector('#allRequisitionHistoryModal');
+    const tableBody = root.querySelector('#allRequisitionHistoryBody');
+
+    // Display the popup.
+    modal.hidden = false;
+
+    // Display a loading message while retrieving the records.
+    tableBody.innerHTML = `
+        <tr>
+            <td colspan="9">Loading all requisition history...</td>
+        </tr>
+    `;
+
+    try {
+        // Request all approved and rejected requisitions from the backend.
+        const result = await invoke('LoadAllRequisitionHistory');
+
+        // Display the returned requisitions.
+        renderAllRequisitionHistory(root, result.requisitions || []);
+
+    } catch (error) {
+
+        // Display a message if the records cannot be loaded.
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="9">Unable to load all requisition history.</td>
+            </tr>
+        `;
+
+        // Show the error message.
+        showToast('error', error.message);
+    }
+}
+
+
+// FUNCTION: renderAllRequisitionHistory
+// Displays all approved and rejected requisitions in a read-only table.
+function renderAllRequisitionHistory(root, requisitions) {
+
+    // Get the popup table body.
+    const tableBody = root.querySelector('#allRequisitionHistoryBody');
+
+    // Stop if the table body does not exist.
+    if (!tableBody) {
+        return;
+    }
+
+    // Display a message if no completed requisitions are available.
+    if (requisitions.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="9">No approved or rejected requisitions found.</td>
+            </tr>
+        `;
+        return;
+    }
+
+    // Convert every requisition into a read-only table row.
+    tableBody.innerHTML = requisitions.map(requisition => {
+
+        // Get the requested item names and quantities.
+        const items = requisition.Items.map(item =>
+            item.ItemName + ' (Requested: ' + item.QuantityRequested +
+            ', Approved: ' + (item.QuantityApproved ?? '-') + ')'
+        ).join('<br>');
+
+        // Convert the request date.
+        const requestDateValue = parseRequisitionDate(
+            requisition.RequestDate
+        );
+
+        // Format the request date and time.
+        const requestDate = requestDateValue
+            ? requestDateValue.toLocaleString()
+            : 'Invalid Date';
+
+        // Convert the required date.
+        const requiredDateValue = parseRequisitionDate(
+            requisition.RequiredDate
+        );
+
+        // Format the required date.
+        const requiredDate = requiredDateValue
+            ? requiredDateValue.toLocaleDateString()
+            : 'Invalid Date';
+
+        // Display the rejection reason only when available.
+        const rejectionReason = requisition.RejectionReason || '-';
+
+        // Return the completed history row.
+        return `
+            <tr>
+                <td>#${requisition.RequisitionID}</td>
+                <td>${requisition.RequestorUserID}</td>
+                <td>${requisition.RequestorName || '-'}</td>
+                <td>${requestDate}</td>
+                <td>${requiredDate}</td>
+                <td>${requisition.Status}</td>
+                <td>${requisition.Justification || '-'}</td>
+                <td>${items || 'No items'}</td>
+                <td>${rejectionReason}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
 
 
 // FUNCTION 9: parseRequisitionDate
