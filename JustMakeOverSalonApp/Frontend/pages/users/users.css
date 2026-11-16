@@ -1,6 +1,6 @@
 /*
    Kani nga users.css kay para sa Users & Roles page:
-   toolbar, action links, ug permission grid sa role modal.
+   toolbar, action buttons, permission grid, ug status confirmation modal.
 */
 
 /* Kani nga toolbar kay para sa search field sa users table. */
@@ -12,6 +12,7 @@
 
 .users-toolbar__search {
     width: 320px;
+    max-width: 100%;
 }
 
 /* Kani nga modal width kay para sa role editor nga mas lapad. */
@@ -39,10 +40,10 @@
     line-height: 1.3;
 }
 
-.permissions-grid__item input[type="checkbox"] {
-    margin-top: 2px;
-    flex-shrink: 0;
-}
+    .permissions-grid__item input[type="checkbox"] {
+        margin-top: 2px;
+        flex-shrink: 0;
+    }
 
 .permissions-grid__code {
     font-weight: 600;
@@ -55,37 +56,7 @@
     font-size: 11px;
 }
 
-/* Kani nga mga action links kay para sa table row actions. */
-.users-page .row-action {
-    background: none;
-    border: none;
-    padding: 2px 6px;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--color-teal);
-    cursor: pointer;
-    border-radius: var(--radius-sm);
-}
-
-.users-page .row-action:hover {
-    background: var(--color-teal-tint);
-}
-
-.users-page .row-action--danger {
-    color: var(--color-error);
-}
-
-.users-page .row-action--danger:hover {
-    background: var(--color-error-tint);
-}
-
-.users-page .row-action:disabled {
-    color: var(--color-text-muted);
-    cursor: not-allowed;
-    background: none;
-}
-
-/* Kani nga wrapper kay para dili ma-squish ang table sa gubang nga tan-aw. */
+/* Kani nga wrapper kay para dili ma-compress ang users table. */
 #usersTableWrap {
     overflow-x: auto;
 }
@@ -93,4 +64,171 @@
 #usersTable {
     width: 100%;
     border-collapse: collapse;
+}
+
+/* Kani nga cell kay para sa action buttons nga naay tarong nga spacing. */
+.users-page #usersTable td:last-child {
+    white-space: nowrap;
+}
+
+.users-page .user-row-actions {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* Kani nga buttons kay parehas sa boxed action buttons sa Suppliers page. */
+.users-page .btn-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 29px;
+    padding: 5px 10px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.25;
+    white-space: nowrap;
+    background: var(--color-white);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+
+    .users-page .btn-action:focus-visible {
+        outline: 2px solid var(--color-teal);
+        outline-offset: 2px;
+    }
+
+    .users-page .btn-action:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+    }
+
+/* Gray nga Edit ug Reset Password buttons. */
+.users-page .btn-action--grey {
+    color: var(--color-text-muted);
+    border-color: var(--color-border);
+}
+
+    .users-page .btn-action--grey:hover:not(:disabled) {
+        background: var(--color-bg);
+        color: var(--color-text);
+    }
+
+/* Red nga Deactivate button. */
+.users-page .btn-action--danger {
+    color: var(--color-error);
+    border-color: var(--color-error);
+}
+
+    .users-page .btn-action--danger:hover:not(:disabled) {
+        background: var(--color-error-tint);
+    }
+
+/* Green nga Activate button. */
+.users-page .btn-action--success {
+    color: var(--color-success);
+    border-color: var(--color-success);
+}
+
+    .users-page .btn-action--success:hover:not(:disabled) {
+        background: var(--color-success-tint);
+    }
+
+/* Kani nga modal kay para sa custom Activate/Deactivate confirmation. */
+.users-page .user-status-modal {
+    z-index: 1200;
+}
+
+    .users-page .user-status-modal .modal {
+        width: min(720px, calc(100vw - 32px));
+        max-width: 720px;
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+    }
+
+    .users-page .user-status-modal .modal__header {
+        padding: 24px 32px;
+        border-bottom: 1px solid var(--color-border);
+    }
+
+    .users-page .user-status-modal .modal__title {
+        font-size: 24px;
+        line-height: 1.3;
+    }
+
+    .users-page .user-status-modal .modal__body {
+        padding: 32px;
+    }
+
+.users-page .user-status-modal__message {
+    margin: 0;
+    font-size: 16px;
+    line-height: 1.7;
+    color: var(--color-text);
+    overflow-wrap: anywhere;
+}
+
+.users-page .user-status-modal .modal__footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 24px 32px;
+    background: var(--color-bg);
+    border-top: 1px solid var(--color-border);
+}
+
+/* Kani nga button kay para klaro ang confirmation action. */
+.users-page .user-status-confirm {
+    min-width: 136px;
+}
+
+    .users-page .user-status-confirm:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+/* Responsive layout para sa gamay nga screen. */
+@media (max-width: 640px) {
+    .users-toolbar {
+        justify-content: stretch;
+    }
+
+    .users-toolbar__search {
+        width: 100%;
+    }
+
+    .permissions-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .users-page .user-row-actions {
+        gap: 6px;
+    }
+
+    .users-page .user-status-modal .modal__header {
+        padding: 20px;
+    }
+
+    .users-page .user-status-modal .modal__title {
+        font-size: 20px;
+    }
+
+    .users-page .user-status-modal .modal__body {
+        padding: 24px 20px;
+    }
+
+    .users-page .user-status-modal .modal__footer {
+        padding: 20px;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .users-page .user-status-confirm {
+        min-width: 110px;
+    }
 }
