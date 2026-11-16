@@ -4,6 +4,7 @@
 import { invoke } from '../core/bridge.js';
 import { getUser, isLoggedIn } from '../core/state.js';
 import { publish, AppEvents } from '../core/events.js';
+import { navigateToNotification } from '../core/notification-nav.js';
 
 /**
  * Kani nga render kay nag-setup sa topbar listeners ug defaults.
@@ -73,7 +74,8 @@ export function renderHeader() {
 
 /**
  * Kani nga helper kay nagdala sa mark-read call sa usa ka notification
- * gikan sa popover (click sa unread item = mark read), dayon refresh.
+ * gikan sa popover (ang mark-read button lang ang mo-trigger niini -
+ * ang item body click kay mo-redirect, dili mark read).
  */
 async function markPopoverItemRead(item) {
     try {
@@ -139,9 +141,12 @@ function renderPopoverList(list, notifications) {
     }
 
     notifications.forEach((notification) => {
-        const item = document.createElement('button');
-        item.type = 'button';
+        // Kani nga item kay div (dili button) kay naa'y nested nga
+        // mark-read button - ang item body click kay mo-redirect.
+        const item = document.createElement('div');
         item.className = 'notif-popover__item' + (notification.IsRead ? '' : ' is-unread');
+        item.setAttribute('role', 'button');
+        item.tabIndex = 0;
 
         const body = document.createElement('div');
         body.className = 'notif-popover__item-body';
@@ -150,19 +155,47 @@ function renderPopoverList(list, notifications) {
         body.appendChild(buildPopoverText('notif-popover__item-time', formatRelativeTime(notification.CreatedAt)));
         item.appendChild(body);
 
+        // Kani nga right slot kay nagdala sa unread dot o mark-read
+        // button (read nga items kay walay right slot).
         if (!notification.IsRead) {
-            const dot = document.createElement('span');
-            dot.className = 'notif-popover__dot';
-            item.appendChild(dot);
+            const markButton = document.createElement('button');
+            markButton.type = 'button';
+            markButton.className = 'notif-popover__mark';
+            markButton.title = 'Mark as read';
+            markButton.setAttribute('aria-label', 'Mark as read');
+            markButton.textContent = '\u2713';
+
+            // Kani nga stopPropagation kay para ang button click
+            // dili mo-trigger sa item redirect.
+            markButton.addEventListener('click', (event) => {
+                event.stopPropagation();
+                markPopoverItemRead(notification);
+            });
+
+            item.appendChild(markButton);
         }
 
-        // Kani nga item click kay mo-mark read kung unread (same sa
-        // Facebook behavior), dayon i-refresh ang popover ug badge.
-        item.addEventListener('click', () => {
-            if (notification.IsRead) {
-                return;
+        // Kani nga item click kay mo-redirect sa target panel
+        // (e.g. Requisitions para sa approval) NGA WALAY mark read -
+        // ang pag-mark read kay sa mark-read button na lang. Exception:
+        // ang informational types (APPROVED/REJECTED/STOCK_RESERVED sa
+        // requestor) kay mo-auto-mark read atong click kay ang ilang
+        // "action" kay ang pagbasa lang sa outcome (sa shared helper).
+        const redirect = () => {
+            closeNotifPopover();
+            const navigated = navigateToNotification(notification);
+            if (!navigated) {
+                // Kani nga fallback kay para sa types nga walay mapping:
+                // adto sa full Notifications page.
+                publish(AppEvents.Navigate, { name: 'notifications', params: {} });
             }
-            markPopoverItemRead(notification);
+        };
+        item.addEventListener('click', redirect);
+        item.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                redirect();
+            }
         });
 
         list.appendChild(item);

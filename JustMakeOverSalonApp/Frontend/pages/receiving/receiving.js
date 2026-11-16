@@ -7,6 +7,7 @@
 import { invoke } from '../../assets/js/core/bridge.js';
 import { hasPermission } from '../../assets/js/core/state.js';
 import { showToast } from '../../assets/js/components/toast.js';
+import { highlightTargetRow } from '../../assets/js/core/notification-nav.js';
 
 let pendingData = [];
 let historyData = [];
@@ -47,6 +48,14 @@ export async function init(root, params = {}) {
         } else if (itemsData.some((item) => item.ItemID === itemID)) {
             openReceiveModal(root, null, itemID);
         }
+    }
+
+    // Kani nga params handling kay para sa notification redirect
+    // (STOCK_SHORTAGE -> RefP): i-highlight ug i-scroll ang RepF row
+    // sa pending queue.
+    const highlightID = Number(params?.highlight?.id);
+    if (params?.highlight?.type === 'repf' && highlightID > 0) {
+        highlightTargetRow(root, '#pendingTableBody [data-repf-id="' + highlightID + '"]');
     }
 }
 
@@ -106,6 +115,11 @@ function renderPendingTable(root) {
     body.innerHTML = '';
     pendingData.forEach((record) => {
         const row = document.createElement('tr');
+
+        // Kani nga data attribute kay para sa highlight targeting
+        // gikan sa notification redirect (STOCK_SHORTAGE -> RepF row).
+        row.setAttribute('data-repf-id', record.RepFID);
+
         const cells = [
             'RefP-' + String(record.RepFID).padStart(4, '0'),
             record.ItemName + ' (' + record.ItemCode + ')',

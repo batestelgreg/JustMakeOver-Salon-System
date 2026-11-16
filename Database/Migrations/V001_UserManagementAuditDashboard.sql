@@ -1,9 +1,9 @@
-/* ================================================================
+/* 
    JustMakeOverSalonDB - Migration V001
    Kani nga migration kay nagdugang mga procedures para sa user
    management, audit logging ug dashboard summary. Kani nga mga
    procedures kay gigamit sa C# backend, dili sa frontend.
-   ================================================================ */
+*/
 
 USE JustMakeOverSalonDB;
 GO
@@ -142,11 +142,11 @@ BEGIN
 END;
 GO
 
-/* ================================================================
+/*
    Kani nga seed block kay para sa unang Admin account sa salon.
    Ang initial password kay 'Admin@123' ug kinahanglan usbon sa
    unya pag-login tungod sa MustChangePassword flag.
-   ================================================================ */
+ */
 IF NOT EXISTS (SELECT 1 FROM USERS WHERE Username = N'admin')
 BEGIN
     INSERT INTO USERS (

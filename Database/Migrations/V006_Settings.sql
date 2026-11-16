@@ -1,6 +1,5 @@
-/* ================================================================
-   V006 - SETTINGS MODULE
-   ----------------------------------------------------------------
+/* V006 - SETTINGS MODULE
+
    Kani nga migration kay para sa Settings page (tulo ka bag-ong
    features base sa mga modules nga implemented na):
      1. UNIT_OF_MEASURES - master list sa mga units sa item forms
@@ -11,14 +10,14 @@
      3. Salon branding (SalonName ug SalonTagline) - gamiton sa
         sidebar ug login page.
    Ang tulo kay idempotent. THROW numbers diri: 50360-50370.
-   ================================================================ */
+  */
 
 USE JustMakeOverSalonDB;
 GO
 
-/* ================================================================
+/* 
    1. UNIT_OF_MEASURES - master list sa mga units.
-   ================================================================ */
+*/
 IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'UNIT_OF_MEASURES')
 BEGIN
     CREATE TABLE UNIT_OF_MEASURES (
@@ -46,9 +45,9 @@ IF NOT EXISTS (SELECT 1 FROM UNIT_OF_MEASURES WHERE UomID = 5)
 SET IDENTITY_INSERT dbo.UNIT_OF_MEASURES OFF;
 GO
 
-/* ================================================================
+/* 
    2. SYSTEM_SETTINGS - key/value preferences.
-   ================================================================ */
+  */
 IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'SYSTEM_SETTINGS')
 BEGIN
     CREATE TABLE SYSTEM_SETTINGS (
@@ -68,11 +67,11 @@ IF NOT EXISTS (SELECT 1 FROM SYSTEM_SETTINGS WHERE SettingKey = 'SalonTagline')
     INSERT INTO SYSTEM_SETTINGS (SettingKey, SettingValue) VALUES ('SalonTagline', N'Beauty Salon & Spa');
 GO
 
-/* ================================================================
+/* 
    3. GET UOMS - master list nga may item count kada unit.
    Gate: settings.manage OR inventory.create OR inventory.update
    (kini nga listahan kay gigamit sad sa inventory item form).
-   ================================================================ */
+ */
 CREATE OR ALTER PROCEDURE usp_Settings_GetUoMs
     @ActorUserID INT
 AS
@@ -97,10 +96,10 @@ BEGIN
 END;
 GO
 
-/* ================================================================
+/* 
    4. SAVE UOM - create (UomID NULL) o update (name/status).
    Gate: settings.manage. Dili mo-delete - deactivate lang.
-   ================================================================ */
+ */
 CREATE OR ALTER PROCEDURE usp_Settings_SaveUom
     @ActorUserID INT,
     @UomID INT = NULL,
@@ -166,11 +165,11 @@ BEGIN
 END;
 GO
 
-/* ================================================================
+/* 
    5. GET PREFERENCES - key/value rows (branding + restock days).
    Gate: bisan kinsa nga active user (non-sensitive, gamiton sa
    sidebar branding sa tanang users).
-   ================================================================ */
+  */
 CREATE OR ALTER PROCEDURE usp_Settings_GetPreferences
     @ActorUserID INT
 AS
@@ -184,11 +183,11 @@ BEGIN
 END;
 GO
 
-/* ================================================================
+/* 
    6. SAVE PREFERENCES - upsert sa tulo ka settings keys.
    Gate: settings.manage. Validation: restock days 1-365,
    salon name/tagline dili empty.
-   ================================================================ */
+ */
 CREATE OR ALTER PROCEDURE usp_Settings_SavePreferences
     @ActorUserID INT,
     @SalonName NVARCHAR(100),
@@ -231,10 +230,10 @@ BEGIN
 END;
 GO
 
-/* ================================================================
+/* 
    7. ISSUE STOCK UPDATE - gamiton na ang DefaultRestockDays
       preference sa shortage notification (hardcoded 7 kani).
-   ================================================================ */
+ */
 CREATE OR ALTER PROCEDURE usp_Inventory_IssueStock
     @ActorUserID INT,
     @ItemID INT,
@@ -415,12 +414,12 @@ BEGIN
 END;
 GO
 
-/* ================================================================
+/* 
    8. ITEM CREATE/UPDATE UPDATE - i-validate ang UoM batok sa
       master list (case-insensitive, active lang). Ang existing
       nga items kay dili ma-apil sa validation problem kay ang
       default collation kay case-insensitive.
-   ================================================================ */
+  */
 CREATE OR ALTER PROCEDURE usp_Inventory_CreateItem
     @ActorUserID INT,
     @ItemCode VARCHAR(30) = NULL,
