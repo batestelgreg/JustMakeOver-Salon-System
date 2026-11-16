@@ -502,7 +502,7 @@ function renderPendingRequisitions(root) {
                     </button>
 
                     <button type="button"
-                            class="btn btn--sm reject-requisition-btn"
+                            class="btn btn--danger btn--sm reject-requisition-btn"
                             data-requisition-id="${requisition.RequisitionID}">
                         Reject
                     </button>
@@ -798,7 +798,7 @@ function renderRequisitionHistory(root) {
         // Show the Cancel button only when cancellation is allowed.
         const actionButton = canCancel
             ? `<button type="button"
-                       class="btn btn--sm cancel-requisition-btn"
+                       class="btn btn--danger btn--sm cancel-requisition-btn"
                        data-requisition-id="${requisition.RequisitionID}">
                    Cancel
                </button>`

@@ -34,6 +34,13 @@
     border-color: var(--primary, #6366f1);
 }
 
+/* Kani nga .btn--sm kay para sa Reject ug Cancel buttons sa table
+   (page-scoped tungod kay ang .btn--sm kay wala sa global components.css). */
+.requisitions-page .btn--sm {
+    padding: 4px 10px;
+    font-size: 12px;
+}
+
 
 /* Requisition details form styling. */
 #requiredDate,
