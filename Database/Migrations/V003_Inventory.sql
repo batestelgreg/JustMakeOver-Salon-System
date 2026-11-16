@@ -1,10 +1,10 @@
-/* ================================================================
+/* 
    JustMakeOverSalonDB - Migration V003
    Kani nga migration kay para sa Inventory module: items, stock
    adjustments, issuance (reservation + RepF), receiving (RIM +
    allocation), low-stock alerts ug dashboard panel summary.
    Ang mga procedures kay gigamit sa JustMakeOverSalonApp.Inventory.
-   ================================================================ */
+ */
 
 USE JustMakeOverSalonDB;
 GO
@@ -13,9 +13,9 @@ GO
 SET QUOTED_IDENTIFIER ON;
 GO
 
-/* ================================================================
+/* 
    SEED DATA — categories ug sample salon items para sa pagsugod.
-   ================================================================ */
+ */
 SET IDENTITY_INSERT dbo.CATEGORIES ON;
 IF NOT EXISTS (SELECT 1 FROM CATEGORIES WHERE CategoryID = 1)
     INSERT INTO CATEGORIES (CategoryID, CategoryName) VALUES (1, N'Consumables');
@@ -81,12 +81,12 @@ BEGIN
 END;
 GO
 
-/* ================================================================
+/* 
    DATA FIX — pag-standardize sa legacy log display values.
    Kani nga UPDATE kay display metadata ra (ReferenceType + Remarks);
    dili mohikap ang stock balances, walay delete, walay duplicate.
    Idempotent: ang WHERE conditions dili na mo-match paghuman.
-   ================================================================ */
+ */
 -- Kani nga update kay para sa seed logs: human-readable nga remarks.
 UPDATE INVENTORY_LOGS
 SET Remarks = N'Initial inventory setup.'
@@ -137,9 +137,9 @@ BEGIN
 END;
 GO
 
-/* ================================================================
+/* 
    1. ITEM LIST — tanang items uban ang live stock balance.
-   ================================================================ */
+ */
 CREATE OR ALTER PROCEDURE usp_Inventory_GetAll
     @ActorUserID INT
 AS
@@ -169,9 +169,9 @@ BEGIN
 END;
 GO
 
-/* ================================================================
+/* 
    2. CATEGORIES — para sa item form dropdown.
-   ================================================================ */
+ */
 CREATE OR ALTER PROCEDURE usp_Inventory_GetCategories
     @ActorUserID INT
 AS
@@ -204,9 +204,9 @@ BEGIN
 END;
 GO
 
-/* ================================================================
+/* 
    2b. NEXT ITEM CODE — auto-generate nga ItemCode para sa form.
-   ================================================================ */
+*/
 CREATE OR ALTER PROCEDURE usp_Inventory_GetNextItemCode
     @ActorUserID INT
 AS
@@ -243,10 +243,10 @@ BEGIN
 END;
 GO
 
-/* ================================================================
+/* 
    2c. CATEGORY SAVE — para sa Settings module: create o rename
       ug category, ug toggle sa active state.
-   ================================================================ */
+ */
 CREATE OR ALTER PROCEDURE usp_Inventory_SaveCategory
     @ActorUserID INT,
     @CategoryID INT = NULL,
@@ -311,9 +311,9 @@ BEGIN
 END;
 GO
 
-/* ================================================================
+/* 
    3. ITEM CREATE — bag-ong item ug initial stock.
-   ================================================================ */
+ */
 CREATE OR ALTER PROCEDURE usp_Inventory_CreateItem
     @ActorUserID INT,
     @ItemCode VARCHAR(30) = NULL,
@@ -398,9 +398,9 @@ BEGIN
 END;
 GO
 
-/* ================================================================
+/* 
    4. ITEM UPDATE — details ug reorder point sa item.
-   ================================================================ */
+ */
 CREATE OR ALTER PROCEDURE usp_Inventory_UpdateItem
     @ActorUserID INT,
     @ItemID INT,
@@ -452,9 +452,9 @@ BEGIN
 END;
 GO
 
-/* ================================================================
+/* 
    5. ADJUST STOCK — manual stock correction nga naka-log.
-   ================================================================ */
+ */
 CREATE OR ALTER PROCEDURE usp_Inventory_AdjustStock
     @ActorUserID INT,
     @ItemID INT,
@@ -518,7 +518,7 @@ BEGIN
 END;
 GO
 
-/* ================================================================
+/* 
    6. ISSUE STOCK — ang Issuance flow sa flowchart (Figure 8.A).
       START: approved ReF received
       -> check stock availability including reservations
@@ -527,7 +527,7 @@ GO
       -> insufficient: reserve available quantity, identify
          shortage, generate RepF, notify requester (pending +
          estimated date) -> END (to Purchasing)
-   ================================================================ */
+ */
 CREATE OR ALTER PROCEDURE usp_Inventory_IssueStock
     @ActorUserID INT,
     @ItemID INT,
@@ -698,9 +698,9 @@ BEGIN
 END;
 GO
 
-/* ================================================================
+/* 
    7. REORDER CHECK — shared helper: low-stock alert + RepF.
-   ================================================================ */
+ */
 CREATE OR ALTER PROCEDURE usp_Inventory_CheckReorderPoint
     @ItemID INT,
     @ActorUserID INT
@@ -741,13 +741,13 @@ BEGIN
 END;
 GO
 
-/* ================================================================
+/* 
    8. RECEIVE STOCK — ang Receiving flow sa flowchart (Figure 8.B).
       START: items received
       -> record received items (RIM) + increase stock balance
       -> allocate stock to approved requisitions waiting
          + notify requesters -> END (to Delivery)
-   ================================================================ */
+ */
 CREATE OR ALTER PROCEDURE usp_Inventory_ReceiveStock
     @ActorUserID INT,
     @ItemID INT,
@@ -895,9 +895,9 @@ BEGIN
 END;
 GO
 
-/* ================================================================
+/* 
    9. LOGS — recent stock movements para sa audit ug traceability.
-   ================================================================ */
+ */
 CREATE OR ALTER PROCEDURE usp_Inventory_GetLogs
     @ActorUserID INT
 AS
@@ -949,9 +949,9 @@ BEGIN
 END;
 GO
 
-/* ================================================================
+/* 
    10. RESERVATIONS — mga waiting ug reserved nga requests.
-   ================================================================ */
+ */
 CREATE OR ALTER PROCEDURE usp_Inventory_GetReservations
     @ActorUserID INT
 AS
@@ -981,9 +981,9 @@ BEGIN
 END;
 GO
 
-/* ================================================================
+/* 
    11. REPLENISHMENT REQUESTS (RepF) — para sa Purchasing.
-   ================================================================ */
+ */
 CREATE OR ALTER PROCEDURE usp_Inventory_GetRepFs
     @ActorUserID INT
 AS
@@ -1008,12 +1008,12 @@ BEGIN
 END;
 GO
 
-/* ================================================================
+/* 
    13. OVERVIEW — usa ra ka call nga magdala sa tanang page data
       (items + categories + reservations + RepFs + logs) aron
       dili na magkagawas ang lima ka database connections matag
       pag-load sa Inventory page.
-   ================================================================ */
+ */
 CREATE OR ALTER PROCEDURE usp_Inventory_GetOverview
     @ActorUserID INT
 AS
@@ -1047,10 +1047,10 @@ BEGIN
 END;
 GO
 
-/* ================================================================
+/* 
    INDEXES — para paspas ang mga linya nga kanunay gipangita sa
    inventory queries (logs, notifications, repfs, reservations).
-   ================================================================ */
+ */
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_INVENTORY_LOGS_Date')
     CREATE INDEX IX_INVENTORY_LOGS_Date ON dbo.INVENTORY_LOGS (TransactionDate DESC, ItemID);
 

@@ -2,6 +2,7 @@
 import { invoke } from '../../assets/js/core/bridge.js';
 import { hasPermission } from '../../assets/js/core/state.js';
 import { showToast } from '../../assets/js/components/toast.js';
+import { highlightTargetRow } from '../../assets/js/core/notification-nav.js';
 
 // Stores the active items received from the C# backend.
 let itemsData = [];
@@ -26,7 +27,9 @@ let selectedApprovalRequisitionID = null;
 
 // FUNCTION 1: init
 // Initializes the Requisition page when the user opens it.
-export async function init(root) {
+// Kani nga params kay pwede magdala ug highlight (gikan sa
+// notification redirect): highlight = { type: 'requisition', id }.
+export async function init(root, params = {}) {
 
     // Check if the logged-in user has permission to view requisitions.
     if (!hasPermission('requisitions.view')) {
@@ -49,6 +52,17 @@ export async function init(root) {
         }
 
         await loadPendingRequisitions(root);
+    }
+
+    // Kani nga params handling kay para sa notification redirect:
+    // i-highlight ug i-scroll ang specific nga requisition row
+    // (pending/review panel una, history fallback).
+    const highlightID = Number(params?.highlight?.id);
+    if (params?.highlight?.type === 'requisition' && highlightID > 0) {
+        const pendingSelector = '#pendingRequisitionsBody [data-requisition-id="' + highlightID + '"]';
+        const historySelector = '#requisitionHistoryBody [data-requisition-id="' + highlightID + '"]';
+        const selector = root.querySelector(pendingSelector) ? pendingSelector : historySelector;
+        highlightTargetRow(root, selector);
     }
 
     // Get the search input from the HTML page.
@@ -487,7 +501,7 @@ function renderPendingRequisitions(root) {
         ).join('<br>');
 
         return `
-            <tr>
+            <tr data-requisition-id="${requisition.RequisitionID}">
                 <td>#${requisition.RequisitionID}</td>
                 <td>${requisition.RequestorName || 'Unknown'}</td>
                 <td>${requestDate}</td>
@@ -806,7 +820,7 @@ function renderRequisitionHistory(root) {
 
         // Return the HTML row containing the requisition information.
         return `
-            <tr>
+            <tr data-requisition-id="${requisition.RequisitionID}">
                 <td>#${requisition.RequisitionID}</td>
                 <td>${requestDate}</td>
                 <td>${requiredDate}</td>

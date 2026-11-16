@@ -1,30 +1,6 @@
-/* ================================================================
-   V008 - SUPPLIERS MODULE
-   ----------------------------------------------------------------
-   Kani nga migration kay para sa Suppliers master list - ang
-   source sa mga suppliers nga gamiton sa Purchasing phase sa
-   Figure 6 (quotations from 1-3 suppliers ug PO generation).
-
-   Features:
-     1. usp_Suppliers_GetAll - listahan nga may quotation ug PO
-        count kada supplier (usa ra ka database call).
-     2. usp_Suppliers_Save - create (auto SUP-#### code), update,
-        ug deactivate lang (dili hard-delete kay gi-reference sa
-        mga quotations ug POs).
-   Ang SUPPLIERS table kay existing na (schema gikan sa initial
-   DB script) - walay table change diri. Idempotent. THROW
-   numbers diri: 50380-50389.
-   ================================================================ */
-
 USE JustMakeOverSalonDB;
 GO
 
-/* ================================================================
-   1. GET ALL - master list nga may counts (usa ka call).
-   Gate: suppliers.view OR purchasing.view OR purchasing.manage
-   (ang listahan gigamit sad sa quotation ug PO forms sa
-   Purchasing phase).
-   ================================================================ */
 CREATE OR ALTER PROCEDURE usp_Suppliers_GetAll
     @ActorUserID INT
 AS
@@ -60,14 +36,13 @@ BEGIN
 END;
 GO
 
-/* ================================================================
-   2. SAVE SUPPLIER - create (SupplierID NULL) o update (fields +
+/* 2. SAVE SUPPLIER - create (SupplierID NULL) o update (fields +
       active status). Ang deactivation kay allowed bisan gi-
       reference sa quotations/POs (history intact ra - ang
       deactivated supplier dili na mo-gawas sa new quotation/
       PO selection sa Purchasing phase).
    Gate: suppliers.manage.
-   ================================================================ */
+    */
 CREATE OR ALTER PROCEDURE usp_Suppliers_Save
     @ActorUserID INT,
     @SupplierID INT = NULL,

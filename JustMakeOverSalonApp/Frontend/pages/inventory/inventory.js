@@ -7,6 +7,7 @@ import { invoke } from '../../assets/js/core/bridge.js';
 import { hasPermission } from '../../assets/js/core/state.js';
 import { publish, AppEvents } from '../../assets/js/core/events.js';
 import { showToast } from '../../assets/js/components/toast.js';
+import { highlightTargetRow } from '../../assets/js/core/notification-nav.js';
 
 let itemsData = [];
 let categoriesData = [];
@@ -20,7 +21,7 @@ let modalTargetItem = null;
 /**
  * Kani nga init kay nag-wire sa mga buttons ug nag-load sa data.
  */
-export async function init(root) {
+export async function init(root, params = {}) {
     // Kani nga permission gating kay para makita ra ang mga buttons nga allowed sa user.
     applyPermissionGating(root);
 
@@ -43,6 +44,13 @@ export async function init(root) {
         reloadAll(root),
         loadUoMs()
     ]);
+
+    // Kani nga params handling kay para sa notification redirect
+    // (LOW_STOCK): i-highlight ug i-scroll ang specific nga item row.
+    const highlightID = Number(params?.highlight?.id);
+    if (params?.highlight?.type === 'item' && highlightID > 0) {
+        highlightTargetRow(root, '#itemsTableBody [data-item-id="' + highlightID + '"]');
+    }
 }
 
 /**
@@ -133,6 +141,10 @@ function renderItemsTable(root) {
     body.innerHTML = '';
     filtered.forEach((item) => {
         const row = document.createElement('tr');
+
+        // Kani nga data attribute kay para sa highlight targeting
+        // gikan sa notification redirect (LOW_STOCK -> item row).
+        row.dataset.itemId = item.ItemID;
 
         const cells = [
             item.ItemCode,

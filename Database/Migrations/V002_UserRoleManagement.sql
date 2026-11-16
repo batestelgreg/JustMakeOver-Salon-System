@@ -1,13 +1,13 @@
-/* ============================================================
+/* 
    V002 — User & Role Management
    Adds management procedures for user accounts and security roles.
    Conventions follow V001: permission checks inside each procedure,
    English error messages, audit rows in USER_AUDIT_LOGS.
-   ============================================================ */
+*/
 
-/* ------------------------------------------------------------
+/* 
    USER MANAGEMENT
-   ------------------------------------------------------------ */
+  */
 
 -- Kani nga procedure nagkuha sa tanang user accounts para sa listahan.
 CREATE OR ALTER PROCEDURE usp_Users_GetAll
@@ -195,9 +195,9 @@ BEGIN
 END;
 GO
 
-/* ------------------------------------------------------------
+/* 
    ROLE & PERMISSION MANAGEMENT
-   ------------------------------------------------------------ */
+   */
 
 -- Kani nga procedure nagkuha sa tanang roles ug ilang permissions.
 CREATE OR ALTER PROCEDURE usp_Roles_GetAll

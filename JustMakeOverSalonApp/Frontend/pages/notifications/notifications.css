@@ -32,3 +32,14 @@
     background: var(--color-success-tint, #E7F3EC);
     color: #1D6B43;
 }
+
+/* Kani nga clickable row styles kay para sa notification redirect:
+   ang row click kay mo-redirect sa target panel (WALAY mark read -
+   ang pag-mark read kay sa Mark as read button lang). */
+.notification-row--clickable td:not(.notification-actions-cell) {
+    cursor: pointer;
+}
+
+.notification-row--clickable:hover td:not(.notification-actions-cell) {
+    background-color: #f7f9fb;
+}

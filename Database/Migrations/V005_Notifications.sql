@@ -1,6 +1,6 @@
-/* ================================================================
+/* 
    V005 - NOTIFICATIONS MODULE
-   ----------------------------------------------------------------
+
    Kani nga migration kay para sa Notifications page:
      1. usp_Notifications_GetByUser - mga notification sa current
         user (unread una, dayon pinakabag-o).
@@ -8,11 +8,11 @@
    Ang mga notifications kay gihimo na sa issuance/receiving engine
    (STOCK_ALLOCATED, LOW_STOCK, STOCK_SHORTAGE) per Figure 8 -
    diri lang sila gikonsulta ug gi-mark read. Idempotent kini.
-   ================================================================ */
+*/
 
-/* ----------------------------------------------------------------
+/* 
    1. GET BY USER - top 50 nga notification sa user, unread una.
-   ---------------------------------------------------------------- */
+*/
 CREATE OR ALTER PROCEDURE usp_Notifications_GetByUser
     @ActorUserID INT
 AS
@@ -31,11 +31,11 @@ BEGIN
 END;
 GO
 
-/* ----------------------------------------------------------------
+/* 
    2. MARK READ - usa ka notification (kung naay ID) o tanan
       unread. Ang RecipientUserID filter kay para dili ma-mark
       read sa laing user ang notification nga dili iya.
-   ---------------------------------------------------------------- */
+ */
 CREATE OR ALTER PROCEDURE usp_Notifications_MarkRead
     @ActorUserID INT,
     @NotificationID BIGINT = NULL

@@ -358,11 +358,63 @@
     align-self: center;
 }
 
+/* Kani nga mark-read button kay para sa unread items sa popover:
+   ang item body click kay mo-redirect (walay mark read), pero
+   kini nga gamay nga button kay mo-mark read deretso. */
+.notif-popover__mark {
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+    align-self: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--color-border);
+    border-radius: 50%;
+    background: var(--color-white);
+    color: var(--color-text-muted);
+    font-size: 12px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    transition: background var(--transition-fast), color var(--transition-fast),
+        border-color var(--transition-fast);
+}
+
+.notif-popover__mark:hover {
+    background: var(--color-teal);
+    border-color: var(--color-teal);
+    color: var(--color-white);
+}
+
 .notif-popover__empty {
     padding: var(--space-6);
     text-align: center;
     color: var(--color-text-muted);
     font-size: 13px;
+}
+
+/* Kani nga highlight kay para sa target row sa notification redirect:
+   mo-glow ang row para makita dayon sa user ang specific nga entity
+   (requisition, RefP, o item) nga gi-notify. Temporary lang - mo-gawas
+   ang glow human sa animation. */
+.is-highlighted {
+    animation: notifRowHighlight 2.6s ease 1;
+}
+
+@keyframes notifRowHighlight {
+    0% {
+        background-color: #FFF1BF;
+        box-shadow: inset 3px 0 0 var(--color-gold);
+    }
+    55% {
+        background-color: #FFF1BF;
+        box-shadow: inset 3px 0 0 var(--color-gold);
+    }
+    100% {
+        background-color: transparent;
+        box-shadow: none;
+    }
 }
 
 .topbar__badge {

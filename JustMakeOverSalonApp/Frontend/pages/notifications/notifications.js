@@ -7,6 +7,7 @@
 import { invoke } from '../../assets/js/core/bridge.js';
 import { showToast } from '../../assets/js/components/toast.js';
 import { updateNotificationBadge } from '../../assets/js/components/header.js';
+import { navigateToNotification } from '../../assets/js/core/notification-nav.js';
 
 let notificationsData = [];
 let refreshHandler = null;
@@ -68,6 +69,24 @@ function renderNotificationsTable(root) {
             row.className = 'notification-unread';
         }
 
+        // Kani nga row click kay mo-redirect sa target panel (e.g.
+        // Requisitions para sa approval) NGA WALAY mark read - ang
+        // pag-mark read kay sa Mark as read button pa rin. Exception:
+        // ang informational types (APPROVED/REJECTED/STOCK_RESERVED sa
+        // requestor) kay mo-auto-mark read atong click (sa shared
+        // helper). Ang actions cell kay giskip sa redirect
+        // (stopPropagation sa button ug sa cell).
+        row.classList.add('notification-row--clickable');
+        row.addEventListener('click', (event) => {
+            if (event.target.closest('.notification-actions-cell')) {
+                return;
+            }
+            const navigated = navigateToNotification(notification);
+            if (!navigated) {
+                showToast('info', 'This notification has no linked panel.');
+            }
+        });
+
         // Kani nga notification cell kay nagdala sa title + message.
         const messageCell = document.createElement('td');
         const titleElement = document.createElement('div');
@@ -98,13 +117,20 @@ function renderNotificationsTable(root) {
         row.appendChild(statusCell);
 
         // Kani nga actions cell kay para sa Mark as read button (unread ra).
+        // Kini nga cell kay naa'y class para ma-skip sa row redirect.
         const actionsCell = document.createElement('td');
+        actionsCell.className = 'notification-actions-cell';
         if (!notification.IsRead) {
             const markButton = document.createElement('button');
             markButton.type = 'button';
             markButton.className = 'btn btn--sm btn--ghost';
             markButton.textContent = 'Mark as read';
-            markButton.addEventListener('click', () => markRead(root, notification.NotificationID));
+            markButton.addEventListener('click', (event) => {
+                // Kani nga stopPropagation kay para ang button click
+                // dili mo-trigger sa row redirect.
+                event.stopPropagation();
+                markRead(root, notification.NotificationID);
+            });
             actionsCell.appendChild(markButton);
         } else {
             actionsCell.textContent = '\u2014';

@@ -1,6 +1,6 @@
-/* ================================================================
+/* 
    V004 - RECEIVING MODULE (flowchart Figure 8.B)
-   ----------------------------------------------------------------
+
    Kani nga migration kay para sa Receiving module:
      1. usp_Receiving_GetPending  - mga RepF nga wala pa madawatan.
      2. usp_Receiving_GetHistory  - Stock In history (RR-/RefP-).
@@ -8,12 +8,12 @@
    usp_Inventory_ReceiveStock (V003) mao nga usa ra ang engine
    sa pag-increase sa stock (walay duplication sa receiving flow).
    Idempotent kini: CREATE OR ALTER ra, walay data change.
-   ================================================================ */
+   */
 
-/* ----------------------------------------------------------------
+/* 
    1. PENDING QUEUE - mga RepF (Status = 'Pending') nga gipa-abot
       pa sa Receiving. Kini ang mga linya nga may "Receive" button.
-   ---------------------------------------------------------------- */
+  */
 CREATE OR ALTER PROCEDURE usp_Receiving_GetPending
     @ActorUserID INT
 AS
@@ -41,13 +41,13 @@ BEGIN
 END;
 GO
 
-/* ----------------------------------------------------------------
+/* 
    2. HISTORY - mga actual nga Stock In nga narecords na sa
       Receiving (ReferenceType RECEIVING o REPLENISHMENT ra -
       dili apil ang SEED/INITIAL kay dili man na tinuod nga
       receiving). Ang reference kay computed: RR-#### o RefP-####,
       walay fake numbers.
-   ---------------------------------------------------------------- */
+   */
 CREATE OR ALTER PROCEDURE usp_Receiving_GetHistory
     @ActorUserID INT
 AS
@@ -87,11 +87,11 @@ BEGIN
 END;
 GO
 
-/* ----------------------------------------------------------------
+/* 
    3. ITEMS - active nga items nga may live stock para sa manual
       receiving ("Receive without reference" nga dalan). Usay
       receiving engine ra gihapon ang gamiton sa submit.
-   ---------------------------------------------------------------- */
+ */
 CREATE OR ALTER PROCEDURE usp_Receiving_GetItems
     @ActorUserID INT
 AS
@@ -117,11 +117,4 @@ BEGIN
 END;
 GO
 
-/* ----------------------------------------------------------------
-   NOTE SA PERMISSION:
-   Ang submit mogamit sa usp_Inventory_ReceiveStock nga adunay
-   permission check sa inventory.update O receiving.manage (V003
-   ang ga-manage niini). Busa ang roles nga may receiving.manage
-   makasubmit. Kani nga single-engine nga approach kay para
-   WALAY DUPLICATION sa receiving flow ug sa stock movements.
-   ---------------------------------------------------------------- */
+
