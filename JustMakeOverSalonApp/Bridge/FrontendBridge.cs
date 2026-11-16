@@ -15,6 +15,7 @@ using JustMakeOverSalonApp.Purchasing.Operations;
 using JustMakeOverSalonApp.Receiving.Operations;
 using JustMakeOverSalonApp.Requisition.Operations;
 using JustMakeOverSalonApp.Settings.Operations;
+using JustMakeOverSalonApp.Suppliers.Operations;
 using JustMakeOverSalonApp.Utilities;
 using Microsoft.Web.WebView2.Core;
 
@@ -57,6 +58,7 @@ namespace JustMakeOverSalonApp.Bridge
             new ReceivingModule().RegisterOperations(operations, this);
             new NotificationsModule().RegisterOperations(operations, this);
         new SettingsModule().RegisterOperations(operations, this);
+        new SuppliersModule().RegisterOperations(operations, this);
         }
 
         // Kani nga method kay nag-enroll sa core operations nga dili module.

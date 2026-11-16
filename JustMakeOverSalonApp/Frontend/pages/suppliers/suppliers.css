@@ -1,0 +1,18 @@
+/* Kani nga styles kay para lang sa Suppliers page
+   (page-scoped kay iya ra sa Suppliers developer). */
+
+/* Kani nga grid kay para sa side-by-side form fields
+   sa supplier modal (para dili mo-taas ang modal). */
+.suppliers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--space-3);
+}
+
+/* Kani nga .btn--sm kay para sa Edit buttons sa table
+   (page-scoped tungod kay ang .btn--sm kay wala sa global
+   components.css). */
+.suppliers-page .btn--sm {
+    padding: 4px 10px;
+    font-size: 12px;
+}
