@@ -1,0 +1,53 @@
+/* Kani nga styles kay para lang sa Delivery page
+   (page-scoped kay iya ra sa Delivery developer). */
+
+/* Kani nga panel headings kay para sa duha ka cards sa page. */
+.delivery-panel-title {
+    margin: 0 0 4px;
+    font-size: 16px;
+}
+
+.delivery-panel-subtitle {
+    margin: 0 0 var(--space-4);
+    color: var(--color-text-muted);
+    font-size: 13px;
+}
+
+/* Kani nga wrapper kay para dili ma-squish ang mga table
+   sa gubang nga tan-aw. */
+.delivery-page .data-table {
+    overflow-x: auto;
+}
+
+/* Kani nga boxed action buttons kay para sa AR row actions
+   (parehas sa Suppliers nga compact nga outline buttons). */
+.delivery-page .btn-action-box {
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--color-white);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.delivery-page .btn-action-box:hover:not(:disabled) {
+    border-color: var(--color-teal);
+    color: var(--color-teal);
+}
+
+.delivery-page .btn-action-box:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+/* Kani nga gap kay para sa duha ka action buttons sa usa ka cell. */
+.delivery-page .delivery-actions {
+    white-space: nowrap;
+}
+
+.delivery-page .delivery-actions .btn-action-box + .btn-action-box {
+    margin-left: var(--space-2);
+}

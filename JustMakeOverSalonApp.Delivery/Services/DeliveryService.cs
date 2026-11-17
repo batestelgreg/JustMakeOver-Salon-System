@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Threading.Tasks;
+using JustMakeOverSalonApp.Core.Contracts;
 using JustMakeOverSalonApp.Core.Models;
 using JustMakeOverSalonApp.Core.Validation;
+using JustMakeOverSalonApp.Delivery.Repositories;
 
 namespace JustMakeOverSalonApp.Delivery.Services
 {
@@ -17,18 +19,73 @@ namespace JustMakeOverSalonApp.Delivery.Services
                 throw new ArgumentNullException(nameof(repository));
         }
 
-        /* Diri ibutang ang imong service methods. Pananglitan sa pattern:
-        public Task LoadSomethingAsync(CurrentUser actor)
+        // Kani nga method nagkuha sa TANANG page data sa usa ra ka call
+        // (allocated requisitions + AR records).
+        public Task<Models.DeliveryOverview> LoadOverviewAsync(CurrentUser actor)
         {
-            // Kani nga permission check kay backend-side, dili lang frontend.
-            actor.RequirePermission("<module>.view");
-
-            return Task.Run(() =>
-            {
-                // Kani nga lugar kay para sa validation + repository call.
-                throw new BusinessException("This operation is not yet implemented.");
-            });
+            actor.RequirePermission(PermissionCodes.DeliveryView);
+            return Task.FromResult(repository.LoadOverview(actor.UserID));
         }
-        */
+
+        // Kani nga method nag-generate sa AR (Figure 10 step 1).
+        public Task<Tuple<int, string>> GenerateARAsync(CurrentUser actor, int requisitionID)
+        {
+            actor.RequirePermission(PermissionCodes.DeliveryManage);
+
+            if (requisitionID <= 0)
+            {
+                throw new BusinessException("A valid requisition is required.");
+            }
+
+            return Task.FromResult(repository.GenerateAR(actor.UserID, requisitionID));
+        }
+
+        // Kani nga method nag-mark issued sa AR (issue step).
+        public Task MarkIssuedAsync(CurrentUser actor, int deliveryID)
+        {
+            actor.RequirePermission(PermissionCodes.DeliveryManage);
+
+            if (deliveryID <= 0)
+            {
+                throw new BusinessException("A valid acknowledgement receipt is required.");
+            }
+
+            repository.MarkIssued(actor.UserID, deliveryID);
+            return Task.CompletedTask;
+        }
+
+        // Kani nga method nag-note discrepancy sa AR (discrepancy branch).
+        public Task NoteDiscrepancyAsync(CurrentUser actor, int deliveryID, string notes)
+        {
+            actor.RequirePermission(PermissionCodes.DeliveryManage);
+
+            if (deliveryID <= 0)
+            {
+                throw new BusinessException("A valid acknowledgement receipt is required.");
+            }
+
+            if (string.IsNullOrWhiteSpace(notes))
+            {
+                throw new BusinessException("A discrepancy note is required.");
+            }
+
+            repository.NoteDiscrepancy(actor.UserID, deliveryID, notes.Trim());
+            return Task.CompletedTask;
+        }
+
+        // Kani nga method nag-complete sa AR: e-sign + deduction +
+        // requisition Fulfilled + requester notification.
+        public Task CompleteAsync(CurrentUser actor, int deliveryID)
+        {
+            actor.RequirePermission(PermissionCodes.DeliveryManage);
+
+            if (deliveryID <= 0)
+            {
+                throw new BusinessException("A valid acknowledgement receipt is required.");
+            }
+
+            repository.Complete(actor.UserID, deliveryID);
+            return Task.CompletedTask;
+        }
     }
 }

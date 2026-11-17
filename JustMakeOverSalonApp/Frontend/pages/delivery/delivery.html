@@ -1,0 +1,113 @@
+<!-- Kani nga delivery page kay para sa internal delivery sa requesting
+     department (Figure 10 Proposed Delivery Flowchart): AR generation,
+     issue, discrepancy note, e-sign, deduction ug requisition Fulfilled. -->
+<div class="delivery-page">
+    <div class="page-header">
+        <div>
+            <h2 class="page-header__title">Delivery</h2>
+            <p class="page-header__subtitle">Generate acknowledgement receipts and deliver allocated items.</p>
+        </div>
+        <button type="button" class="btn btn--ghost" id="btnRefreshDelivery">Refresh</button>
+    </div>
+
+    <!-- Kani nga card kay para sa allocated requisitions nga ready na
+         para sa AR generation (ang START sa Figure 10: items allocated). -->
+    <div class="card">
+        <h3 class="delivery-panel-title">Allocated Requisitions</h3>
+        <p class="delivery-panel-subtitle">Fully allocated requisitions ready for an acknowledgement receipt.</p>
+        <div class="data-table">
+            <table id="allocatedTable">
+                <thead>
+                    <tr>
+                        <th>Requisition</th>
+                        <th>Requestor</th>
+                        <th>Request date</th>
+                        <th>Required date</th>
+                        <th>Items</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="allocatedTableBody">
+                    <tr><td colspan="6" class="data-table__empty">Loading allocated requisitions&hellip;</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Kani nga card kay para sa AR records (open ug completed). -->
+    <div class="card u-mt-6">
+        <h3 class="delivery-panel-title">Acknowledgement Receipts</h3>
+        <p class="delivery-panel-subtitle">Issue the items, check them against the AR, then sign to complete the delivery.</p>
+        <div class="data-table">
+            <table id="deliveriesTable">
+                <thead>
+                    <tr>
+                        <th>AR #</th>
+                        <th>Requisition</th>
+                        <th>Requestor</th>
+                        <th>Items</th>
+                        <th>Generated</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="deliveriesTableBody">
+                    <tr><td colspan="7" class="data-table__empty">Loading acknowledgement receipts&hellip;</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Kani nga modal kay para sa discrepancy note sa AR (NO branch sa
+         diamond sa Figure 10). -->
+    <div id="discrepancyModal" class="modal-overlay u-hidden">
+        <div class="modal">
+            <div class="modal__header">
+                <h3 class="modal__title" id="discrepancyModalTitle">Note Discrepancy</h3>
+                <button type="button" class="modal__close" id="btnCloseDiscrepancyModal" aria-label="Close">&times;</button>
+            </div>
+            <form id="discrepancyForm" novalidate>
+                <div class="modal__body">
+                    <input type="hidden" id="discrepancyDeliveryID" value="">
+                    <p class="u-text-muted u-mb-4" id="discrepancyARInfo"></p>
+                    <div class="form-field">
+                        <label class="form-field__label" for="txtDiscrepancyNotes">Discrepancy details</label>
+                        <textarea id="txtDiscrepancyNotes" class="form-field__input" rows="4"
+                                  maxlength="1000" placeholder="Describe what is missing or damaged&hellip;"></textarea>
+                        <span class="form-field__error" id="errorDiscrepancyNotes"></span>
+                    </div>
+                    <p class="u-text-muted" style="font-size: 12px;">
+                        The inventory team will be notified. The item replacement or record
+                        correction is done in the Inventory module.
+                    </p>
+                </div>
+                <div class="modal__footer">
+                    <button type="button" class="btn btn--ghost" id="btnCancelDiscrepancy">Cancel</button>
+                    <button type="submit" class="btn btn--primary" id="btnSaveDiscrepancy">Save Note</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Kani nga modal kay para sa confirmation sa e-sign ug completion
+         (custom nga pop up, dili ang native nga confirm). -->
+    <div id="deliverySignModal" class="modal-overlay u-hidden">
+        <div class="modal">
+            <div class="modal__header">
+                <h3 class="modal__title">Sign &amp; Complete Delivery</h3>
+                <button type="button" class="modal__close" id="btnCloseDeliverySignModal" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal__body">
+                <p id="deliverySignModalMessage" style="margin: 0;"></p>
+                <p class="u-text-muted u-mt-4" style="font-size: 12px; margin-bottom: 0;">
+                    Signing deducts the issued quantity from stock and marks the
+                    requisition as fulfilled.
+                </p>
+            </div>
+            <div class="modal__footer">
+                <button type="button" class="btn btn--ghost" id="btnCancelDeliverySign">Cancel</button>
+                <button type="button" class="btn btn--primary" id="btnConfirmDeliverySign">Sign &amp; Complete</button>
+            </div>
+        </div>
+    </div>
+</div>

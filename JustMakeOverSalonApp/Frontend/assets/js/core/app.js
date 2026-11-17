@@ -35,6 +35,7 @@ import '../routes/requisitions-route.js';
 import '../routes/inventory-route.js';
 import '../routes/purchasing-route.js';
 import '../routes/receiving-route.js';
+import '../routes/delivery-route.js';
 import '../routes/notifications-route.js';
 import '../routes/settings-route.js';
 import '../routes/suppliers-route.js';
