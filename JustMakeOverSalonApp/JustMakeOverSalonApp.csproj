@@ -174,9 +174,22 @@
     <Content Include="bin\Debug\runtimes\win-arm64\native\WebView2Loader.dll" />
     <Content Include="bin\Debug\runtimes\win-x64\native\WebView2Loader.dll" />
     <Content Include="bin\Debug\runtimes\win-x86\native\WebView2Loader.dll" />
-    <Content Include="Frontend\**\*.*">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+	  <!-- Other frontend files are included automatically. -->
+	  <Content Include="Frontend\**\*.*"
+			   Exclude="Frontend\pages\purchasing\**\*.*">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </Content>
+
+	  <!-- Include Purchasing once and copy it into the running application. -->
+	  <Content Include="Frontend\pages\purchasing\purchasing.html">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </Content>
+	  <Content Include="Frontend\pages\purchasing\purchasing.css">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </Content>
+	  <Content Include="Frontend\pages\purchasing\purchasing.js">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </Content>
     <Content Include="Frontend\pages\users\users.html" />
     <Content Include="Frontend\pages\users\users.js" />
     <Content Include="obj\Debug\JustMakeOverSalonApp.csproj.FileListAbsolute.txt" />

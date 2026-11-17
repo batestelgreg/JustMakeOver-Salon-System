@@ -1,35 +1,57 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Web.Script.Serialization;
 using JustMakeOverSalonApp.Core.Bridge;
 using JustMakeOverSalonApp.Core.Data;
+using JustMakeOverSalonApp.Purchasing.Repositories;
+using JustMakeOverSalonApp.Purchasing.Services;
 
 namespace JustMakeOverSalonApp.Purchasing.Operations
 {
-    // Kani nga class kay mo-register sa tanang bridge operations sa Purchasing module.
-    // Kini nga file kay iya ra sa Purchasing developer - dili na mo-touch sa FrontendBridge.cs.
+    // Registers the frontend-to-C# operations.
     public sealed class PurchasingModule : IModuleOperations
     {
         private IOperationContext context;
-        private Services.PurchasingService service;
+        private PurchasingService service;
 
-        public void RegisterOperations(OperationRegistry registry, IOperationContext context)
+        public void RegisterOperations(
+            OperationRegistry registry,
+            IOperationContext context)
         {
-            // Kani nga context ug service kay gigamit sa tanang handlers sa module.
             this.context = context;
-            this.service = new Services.PurchasingService(
-                new Repositories.PurchasingRepository(new SqlConnectionFactory()));
 
-            // Kani nga linya kay pananglitan - i-uncomment ug i-adjust:
-            // registry.Register("PurchasingList", HandlePurchasingListAsync);
+            service = new PurchasingService(
+                new PurchasingRepository(new SqlConnectionFactory()));
+
+            registry.Register(
+                "PurchasingWorkspaceLoad", HandleLoadAsync);
+
+            registry.Register(
+                "PurchasingWorkspaceAction", HandleActionAsync);
         }
 
-        /* Kani nga block kay pananglitan sa handler pattern:
-        private async Task HandlePurchasingListAsync(Dictionary<string, object> payload, string requestID)
+        private async Task HandleLoadAsync(
+            Dictionary<string, object> payload,
+            string requestID)
         {
-            var actor = context.RequireUser();
-            var items = await service.LoadSomethingAsync(actor);
-            context.SendResponse(requestID, true, new { items }, null);
+            var result = await service.LoadAsync(context.RequireUser());
+            context.SendResponse(requestID, true, result, null);
         }
-        */
+
+        private async Task HandleActionAsync(
+            Dictionary<string, object> payload,
+            string requestID)
+        {
+            string action = context.GetValueAsString(payload, "action");
+
+            // Serialize input values, never interpolate them into SQL.
+            var serializer = new JavaScriptSerializer();
+            string json = serializer.Serialize(payload);
+
+            var result = await service.ExecuteAsync(
+                context.RequireUser(), action, json);
+
+            context.SendResponse(requestID, true, result, null);
+        }
     }
 }
