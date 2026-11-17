@@ -19,10 +19,14 @@ import { publish, AppEvents } from './events.js';
 
 // Kani nga set kay para sa mga FYI nga types - ang ilang target
 // action kay ang pagbasa ra, so click = mark read + redirect.
+// Ang REQUISITION_FULFILLED kay naka-deliver na ang items (ang
+// delivery mao ang ilang completing action, V010 trigger ang
+// mo-auto-mark kung ma-Fulfilled ang requisition).
 const INFO_ONLY_TYPES = new Set([
     'REQUISITION_APPROVED',
     'REQUISITION_REJECTED',
-    'STOCK_RESERVED'
+    'STOCK_RESERVED',
+    'REQUISITION_FULFILLED'
 ]);
 
 /**
@@ -80,16 +84,22 @@ export function navigateToNotification(notification) {
     let params = {};
 
     if (type === 'REQUISITION_SUBMITTED' || type === 'REQUISITION_APPROVED' ||
-        type === 'REQUISITION_REJECTED' || type === 'STOCK_RESERVED') {
+        type === 'REQUISITION_REJECTED' || type === 'STOCK_RESERVED' ||
+        type === 'REQUISITION_FULFILLED') {
         // Kani nga mga types kay naka-tie sa usa ka requisition - ang
         // target kay ang Requisitions page (pending/review panel).
         name = 'requisitions';
         params = { highlight: { type: 'requisition', id: entityID } };
     } else if (type === 'STOCK_SHORTAGE') {
-        // Kani nga type kay naka-tie sa replenishment request (RefP) -
+        // Kani nga type kay naka-tie sa replenishment request (RefF) -
         // ang pending RepF queue kay sa Receiving page.
         name = 'receiving';
         params = { highlight: { type: 'repf', id: entityID } };
+    } else if (type === 'DELIVERY_DISCREPANCY') {
+        // Kani nga type kay naka-tie sa acknowledgement receipt (AR) -
+        // ang target kay ang Delivery page (AR row nga may discrepancy).
+        name = 'delivery';
+        params = { highlight: { type: 'delivery', id: entityID } };
     } else if (type === 'LOW_STOCK') {
         // Kani nga type kay naka-tie sa item (reorder point) - ang
         // target kay ang item row sa Inventory page.

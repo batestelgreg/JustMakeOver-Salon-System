@@ -20,6 +20,7 @@ const NAVIGATION_SECTIONS = [
             { name: 'requisitions', label: 'Requisitions', permission: 'requisitions.view' },
             { name: 'purchasing', label: 'Purchasing', permission: 'purchasing.view' },
             { name: 'receiving', label: 'Receiving', permission: 'receiving.view' },
+            { name: 'delivery', label: 'Delivery', permission: 'delivery.view' },
             { name: 'notifications', label: 'Notifications', permission: 'dashboard.view' }
         ]
     },
@@ -41,6 +42,7 @@ const ICON_PATHS = {
     requisitions: 'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z',
     purchasing: 'M7 18c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm10 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zM7.2 14.6l.1-.1 1-1.5h7.4c.8 0 1.4-.4 1.7-1l3.6-6.5L19.3 5l-3.6 6.5H8.5L4.3 3H1v2h2l3.6 7.6-1.4 2.5c-.7 1.3.3 2.9 1.7 2.9H19v-2H7.2z',
     receiving: 'M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z',
+    delivery: 'M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.9-9l1.44 2H16v-2h3.9zM18 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z',
     notifications: 'M12 22a2 2 0 002-2h-4a2 2 0 002 2zm6-6V11a6 6 0 00-5-5.9V4a1 1 0 10-2 0v1.1A6 6 0 006 11v5l-2 2v1h16v-1l-2-2z',
     users: 'M16 11a4 4 0 10-8 0 4 4 0 008 0zm-8 8a8 8 0 0116 0H8zM2 12a3 3 0 106 0 3 3 0 00-6 0z',
     suppliers: 'M2 20V8l5 4 5-6 5 6 5-4v12H2z',

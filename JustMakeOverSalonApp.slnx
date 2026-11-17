@@ -9,6 +9,7 @@
     <File Path="Database/Migrations/V007_RequisitionApproval.sql" />
     <File Path="Database/Migrations/V008_Suppliers.sql" />
     <File Path="Database/Migrations/V009_NotificationAutoMark.sql" />
+    <File Path="Database/Migrations/V010_Delivery.sql" />
   </Folder>
   <Project Path="JustMakeOverSalonApp.Core/JustMakeOverSalonApp.Core.csproj" Id="8b2c0d5e-4a31-4f7b-9e6c-1d2a5f84b7a9" />
   <Project Path="JustMakeOverSalonApp.Delivery/JustMakeOverSalonApp.Delivery.csproj" Id="a1000000-0000-4000-9000-000000000004" />
