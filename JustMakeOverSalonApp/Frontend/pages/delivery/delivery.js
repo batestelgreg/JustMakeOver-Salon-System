@@ -72,7 +72,7 @@ async function reloadAll(root) {
         }
         const deliveriesBody = root.querySelector('#deliveriesTableBody');
         if (deliveriesBody) {
-            deliveriesBody.innerHTML = '<tr><td colspan="7" class="data-table__empty">' +
+            deliveriesBody.innerHTML = '<tr><td colspan="9" class="data-table__empty">' +
                 'The acknowledgement receipts could not be loaded.</td></tr>';
         }
     }
@@ -128,7 +128,7 @@ function renderDeliveriesTable(root) {
     }
 
     if (deliveriesData.length === 0) {
-        body.innerHTML = '<tr><td colspan="7" class="data-table__empty">' +
+        body.innerHTML = '<tr><td colspan="9" class="data-table__empty">' +
             'No acknowledgement receipts yet. Generate one from an allocated requisition.</td></tr>';
         return;
     }
@@ -167,6 +167,12 @@ function renderDeliveriesTable(root) {
             '<td>' + escapeHtml(delivery.RequestorName) + '</td>' +
             '<td>' + escapeHtml(delivery.ItemsSummary || '\u2014') + '</td>' +
             '<td>' + formatDate(delivery.GeneratedDate, true) + '</td>' +
+            '<td>' + formatDate(delivery.IssuedDate, true) + '</td>' +
+            '<td>' + (delivery.SignedByName
+                ? escapeHtml(delivery.SignedByName) +
+                  '<br><span class="u-text-muted" style="font-size: 12px;">' +
+                  formatDate(delivery.SignedDate, true) + '</span>'
+                : '\u2014') + '</td>' +
             '<td><span class="' + badgeClass + '">' + escapeHtml(delivery.Status) + '</span>' +
             discrepancyFlag + '</td>' +
             '<td class="delivery-actions">' + actions + '</td>' +
