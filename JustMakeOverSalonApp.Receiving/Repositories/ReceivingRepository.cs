@@ -126,7 +126,8 @@ namespace JustMakeOverSalonApp.Receiving.Repositories
                 QuantityNeeded = reader.GetInt32(5),
                 DateGenerated = reader.GetDateTime(6),
                 QuantityOnHand = reader.GetInt32(7),
-                QuantityAvailable = reader.GetInt32(8)
+                QuantityAvailable = reader.GetInt32(8),
+                QuantityReceived = reader.GetInt32(9)
             };
         }
 

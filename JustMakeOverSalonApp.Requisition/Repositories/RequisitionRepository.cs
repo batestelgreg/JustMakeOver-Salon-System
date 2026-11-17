@@ -206,8 +206,9 @@ namespace JustMakeOverSalonApp.Requisition.Repositories
                     }
 
 
-                    // Send a notification to all active users
-                    // para mahibaw-an nila nga naay new requisition.
+                    // Kani nga notification kay para lang sa mga approver
+                    // (requisitions.approve permission: Admin + Manager)
+                    // — dili na sa tanang active users para dili noisy.
                     using (var command = new SqlCommand(@"
                         INSERT INTO NOTIFICATIONS
                         (
@@ -221,7 +222,7 @@ namespace JustMakeOverSalonApp.Requisition.Repositories
                             CreatedAt
                         )
                         SELECT
-                            UserID,
+                            u.UserID,
                             'REQUISITION_SUBMITTED',
                             'New Requisition Submitted',
                             @Message,
@@ -229,8 +230,11 @@ namespace JustMakeOverSalonApp.Requisition.Repositories
                             @RequisitionID,
                             0,
                             SYSDATETIME()
-                        FROM USERS
-                        WHERE IsActive = 1;
+                        FROM USERS u
+                        INNER JOIN ROLE_PERMISSIONS rp ON rp.RoleID = u.RoleID
+                        INNER JOIN PERMISSIONS p ON p.PermissionID = rp.PermissionID
+                        WHERE u.IsActive = 1
+                          AND p.PermissionCode = 'requisitions.approve';
                     ", connection, transaction))
                     {
                         command.Parameters.Add("@Message", SqlDbType.NVarChar, 500)
@@ -544,7 +548,7 @@ namespace JustMakeOverSalonApp.Requisition.Repositories
                     ON r.RequisitionID = rd.RequisitionID
                 LEFT JOIN ITEMS AS i
                     ON rd.ItemID = i.ItemID
-                WHERE r.Status IN ('Approved', 'Rejected')
+                WHERE r.Status IN ('Approved', 'Rejected', 'Fulfilled')
                 ORDER BY r.RequestDate DESC, r.RequisitionID DESC;
             ", connection))
             using (var reader = command.ExecuteReader())

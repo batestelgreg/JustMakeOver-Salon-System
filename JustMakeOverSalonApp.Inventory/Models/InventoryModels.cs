@@ -74,6 +74,10 @@ namespace JustMakeOverSalonApp.Inventory.Models
         public int QuantityNeeded { get; set; }
         public DateTime DateGenerated { get; set; }
         public string Status { get; set; }
+
+        // Kani nga field kay para sa trace: ang requisition nga
+        // nag-generate sa shortage (Requisition # sa RepF table).
+        public int? OriginRequisitionID { get; set; }
     }
 
     // Kani nga model kay para sa result sa issuance (flowchart Figure 8.A).

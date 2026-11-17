@@ -18,6 +18,10 @@ namespace JustMakeOverSalonApp.Receiving.Models
         // igo na ba ang stock bisan wala pa madawatan ang RepF.
         public int QuantityOnHand { get; set; }
         public int QuantityAvailable { get; set; }
+
+        // Kani nga field kay para sa partial receive tracking: ang
+        // remaining needed = QuantityNeeded - QuantityReceived.
+        public int QuantityReceived { get; set; }
     }
 
     // Kani nga model kay para sa usa ka narecord na nga receipt sa history.

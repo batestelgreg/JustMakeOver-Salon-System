@@ -26,7 +26,8 @@ const INFO_ONLY_TYPES = new Set([
     'REQUISITION_APPROVED',
     'REQUISITION_REJECTED',
     'STOCK_RESERVED',
-    'REQUISITION_FULFILLED'
+    'REQUISITION_FULFILLED',
+    'REQUISITION_CANCELLED'
 ]);
 
 /**
@@ -85,11 +86,17 @@ export function navigateToNotification(notification) {
 
     if (type === 'REQUISITION_SUBMITTED' || type === 'REQUISITION_APPROVED' ||
         type === 'REQUISITION_REJECTED' || type === 'STOCK_RESERVED' ||
-        type === 'REQUISITION_FULFILLED') {
+        type === 'REQUISITION_FULFILLED' || type === 'REQUISITION_CANCELLED') {
         // Kani nga mga types kay naka-tie sa usa ka requisition - ang
         // target kay ang Requisitions page (pending/review panel).
         name = 'requisitions';
         params = { highlight: { type: 'requisition', id: entityID } };
+    } else if (type === 'REQUISITION_ALLOCATED') {
+        // Kani nga type kay action-required sa Delivery: ang tanang
+        // items allocated na ug kinahanglan pa og Generate AR. Ang
+        // target kay ang Allocated Requisitions panel (row highlight).
+        name = 'delivery';
+        params = { highlight: { type: 'allocated', id: entityID } };
     } else if (type === 'STOCK_SHORTAGE') {
         // Kani nga type kay naka-tie sa replenishment request (RefF) -
         // ang pending RepF queue kay sa Receiving page.
