@@ -1,0 +1,155 @@
+﻿<!-- Purchasing owns procurement and supplier delivery checks.
+     Receiving owns RM processing and inventory updates. -->
+<section class="purchasing-page">
+    <header class="purchasing-toolbar">
+        <div>
+            <h2>Purchasing</h2>
+            <p>Requests, quotations, purchase orders, and supplier follow-ups.</p>
+        </div>
+        <button type="button" id="purchasingRefresh">Refresh</button>
+    </header>
+
+    <p id="purchasingMessage" role="status" aria-live="polite"></p>
+
+    <section class="purchasing-panel">
+        <h3>Pending replenishments</h3>
+        <div id="replenishmentTable"></div>
+
+        <h3>Purchase Requests</h3>
+        <div id="requestTable"></div>
+    </section>
+
+    <section class="purchasing-panel">
+        <h3>Supplier quotations</h3>
+        <p>
+            Record one to three supplier quotations, then compare.
+            Editing a quotation clears the previous recommendation.
+        </p>
+
+        <label for="quotationPR">Purchase Request</label>
+        <select id="quotationPR"></select>
+
+        <form id="quotationForm" class="purchasing-form">
+            <label>
+                Supplier
+                <select id="quotationSupplier" required></select>
+            </label>
+
+            <label>
+                Unit price (₱)
+                <input name="price" type="number"
+                       min="0" max="99999999.99" step="0.01" required>
+            </label>
+
+            <button type="submit" data-manage>Save quotation</button>
+            <button type="button" id="compareSuppliers" data-manage>
+                Compare &amp; recommend
+            </button>
+        </form>
+
+        <div id="quotationTable"></div>
+
+        <form id="createPOForm" class="purchasing-form">
+            <label>
+                Expected supplier delivery
+                <input name="expectedDate" type="date" required>
+            </label>
+            <button type="submit" data-manage>Create PO</button>
+        </form>
+    </section>
+
+    <section class="purchasing-panel">
+        <h3>Annual purchasing budget</h3>
+        <div id="budgetTable"></div>
+
+        <form id="budgetForm" class="purchasing-form" hidden>
+            <label>
+                Budget year
+                <input name="year" type="number"
+                       min="2000" max="2100" required>
+            </label>
+            <label>
+                Budget amount (₱)
+                <input name="amount" type="number"
+                       min="0" max="999999999999.99" step="0.01" required>
+            </label>
+            <button type="submit">Save budget</button>
+        </form>
+    </section>
+
+    <section class="purchasing-panel">
+        <h3>Purchase Orders</h3>
+        <p>
+            Open an email draft or print a PO. Mark it sent only after
+            actually sending it to the supplier.
+        </p>
+        <div id="orderTable"></div>
+    </section>
+
+    <section class="purchasing-panel">
+        <h3>Supplier delivery check</h3>
+        <p>
+            Accepted items are handed to Receiving for RM processing.
+            This form does not add stock.
+        </p>
+
+        <form id="receiptForm" class="purchasing-form">
+            <label>
+                Purchase Order
+                <select id="receiptPO" required></select>
+            </label>
+            <label>
+                Supplier DR number
+                <input name="drNumber" maxlength="100" required>
+            </label>
+            <label>
+                Delivered quantity
+                <input name="delivered" type="number" min="1" step="1" required>
+            </label>
+            <label>
+                Accepted quantity
+                <input name="accepted" type="number" min="0" step="1" required>
+            </label>
+            <label>
+                Rejected quantity
+                <input name="rejected" type="number"
+                       min="0" step="1" value="0" required>
+            </label>
+            <label class="purchasing-wide">
+                Discrepancy or inspection notes
+                <textarea name="notes" maxlength="1000" rows="3"></textarea>
+            </label>
+            <button type="submit" data-manage>Record delivery check</button>
+        </form>
+
+        <div id="receiptTable"></div>
+    </section>
+
+    <section class="purchasing-panel">
+        <h3>Outstanding delivery follow-ups</h3>
+        <p>
+            Refresh creates daily follow-up drafts for due POs with
+            outstanding quantities. Email drafts must still be sent.
+        </p>
+        <div id="followupTable"></div>
+    </section>
+
+    <!-- Native dialog avoids browser prompt/confirm restrictions in WebView2. -->
+    <dialog id="purchasingDecision">
+        <form id="decisionForm">
+            <h3>Reject Purchase Order</h3>
+            <label>
+                Reason
+                <textarea id="decisionReason"
+                          maxlength="1000" rows="4" required></textarea>
+            </label>
+            <div class="purchasing-toolbar">
+                <button type="button" id="cancelDecision">Cancel</button>
+                <button type="submit">Reject PO</button>
+            </div>
+        </form>
+    </dialog>
+
+    <!-- Printing includes only the selected PO. -->
+    <article id="purchaseOrderPrint" hidden></article>
+</section>
