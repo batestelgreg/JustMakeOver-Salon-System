@@ -42,11 +42,15 @@ export async function init(root, params = {}) {
 
     await reloadAll(root);
 
-    // Kani nga params handling kay para sa notification redirect
-    // (DELIVERY_DISCREPANCY -> AR): i-highlight ug i-scroll ang AR row.
+    // Kani nga params handling kay para sa notification redirect:
+    // DELIVERY_DISCREPANCY -> AR row, REQUISITION_ALLOCATED ->
+    // Allocated Requisitions row. I-highlight ug i-scroll sila.
     const highlightID = Number(params?.highlight?.id);
     if (params?.highlight?.type === 'delivery' && highlightID > 0) {
         highlightTargetRow(root, '#deliveriesTableBody [data-delivery-id="' + highlightID + '"]');
+    } else if (params?.highlight?.type === 'allocated' && highlightID > 0) {
+        highlightTargetRow(root,
+            '#allocatedTableBody [data-allocated-requisition-id="' + highlightID + '"]');
     }
 }
 

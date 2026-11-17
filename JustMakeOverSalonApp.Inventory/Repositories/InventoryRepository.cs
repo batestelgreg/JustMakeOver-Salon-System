@@ -470,7 +470,10 @@ namespace JustMakeOverSalonApp.Inventory.Repositories
                 ItemCode = reader.GetString(3),
                 QuantityNeeded = reader.GetInt32(4),
                 DateGenerated = reader.GetDateTime(5),
-                Status = reader.GetString(6)
+                Status = reader.GetString(6),
+                OriginRequisitionID = reader.IsDBNull(7)
+                    ? (int?)null
+                    : reader.GetInt32(7)
             };
         }
     }

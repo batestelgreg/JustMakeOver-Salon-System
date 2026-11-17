@@ -164,6 +164,11 @@
        mo-gawas ang horizontal scroll instead nga ma-clip ang katapusang
        column (Actions) — mao to nga dili makita ang uban nga buttons. */
     overflow-x: auto;
+    /* Kani nga vertical auto-scroll kay para dili magkaanam og kadako
+       ang box kung daghang rows: ~10 rows ang visible, pag-lapas kay
+       mo-activate ang scroll (tanang modules, shared). */
+    max-height: 540px;
+    overflow-y: auto;
 }
 
 .data-table table {
@@ -179,6 +184,11 @@
     font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
+    /* Kani nga sticky header kay para magpabilin ang column labels
+       while nag-scroll vertically ang tbody. */
+    position: sticky;
+    top: 0;
+    z-index: 1;
 }
 
 .data-table td {

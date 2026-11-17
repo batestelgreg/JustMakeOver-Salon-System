@@ -254,7 +254,7 @@ function renderRepFsTable(root) {
     }
 
     if (repFsData.length === 0) {
-        body.innerHTML = '<tr><td colspan="5" class="data-table__empty">No replenishment requests.</td></tr>';
+        body.innerHTML = '<tr><td colspan="6" class="data-table__empty">No replenishment requests.</td></tr>';
         return;
     }
 
@@ -263,6 +263,12 @@ function renderRepFsTable(root) {
         const row = document.createElement('tr');
         const cells = [
             'REP-' + f.RepFID,
+            // Kani nga cell kay para sa trace: ang requisition nga
+            // nag-generate sa shortage (RF-####), o dash kung reorder
+            // point / manual nga RepF.
+            f.OriginRequisitionID
+                ? 'RF-' + String(f.OriginRequisitionID).padStart(4, '0')
+                : '\u2014',
             f.ItemName + ' (' + f.ItemCode + ')',
             String(f.QuantityNeeded),
             formatDate(f.DateGenerated),

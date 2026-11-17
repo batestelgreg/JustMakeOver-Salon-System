@@ -120,10 +120,14 @@ function renderPendingTable(root) {
         // gikan sa notification redirect (STOCK_SHORTAGE -> RepF row).
         row.setAttribute('data-repf-id', record.RepFID);
 
+        // Kani nga remaining kay para sa partial receive: ang qty
+        // nga nabilin = QuantityNeeded - QuantityReceived.
+        const remaining = record.QuantityNeeded - (record.QuantityReceived || 0);
+
         const cells = [
             'RefP-' + String(record.RepFID).padStart(4, '0'),
             record.ItemName + ' (' + record.ItemCode + ')',
-            String(record.QuantityNeeded) + ' ' + (record.UnitOfMeasure || ''),
+            String(remaining) + ' ' + (record.UnitOfMeasure || ''),
             String(record.QuantityAvailable),
             formatDate(record.DateGenerated)
         ];
@@ -205,14 +209,21 @@ function openReceiveModal(root, repF, preselectItemID) {
 
     if (repF) {
         // Kani nga RepF mode kay fixed ang item: gikan sa pending queue.
+        // Kani nga remaining kay para sa partial receive tracking.
+        const remaining = repF.QuantityNeeded - (repF.QuantityReceived || 0);
+
         itemField.classList.add('u-hidden');
         itemInfo.classList.remove('u-hidden');
-        itemInfo.textContent = repF.ItemName + ' (' + repF.ItemCode + ') \u2014 needs ' +
-            repF.QuantityNeeded + ' ' + (repF.UnitOfMeasure || 'unit(s)');
+        itemInfo.textContent = repF.ItemName + ' (' + repF.ItemCode + ') \u2014 remaining ' +
+            remaining + ' of ' + repF.QuantityNeeded + ' ' +
+            (repF.UnitOfMeasure || 'unit(s)') +
+            ((repF.QuantityReceived || 0) > 0
+                ? ' (received ' + repF.QuantityReceived + ' so far)'
+                : '');
         sourceInfo.textContent = 'Replenishment request RefP-' +
             String(repF.RepFID).padStart(4, '0') + ' \u00b7 generated ' +
             formatDate(repF.DateGenerated);
-        quantityInput.value = String(repF.QuantityNeeded);
+        quantityInput.value = String(remaining);
     } else {
         // Kani nga manual mode kay para sa receipts nga walay RepF reference.
         itemField.classList.remove('u-hidden');
@@ -269,16 +280,29 @@ function wireReceiveForm(root) {
             ? modalRepF.ItemID
             : Number(root.querySelector('#selReceiveItem').value);
         const quantity = parseInt(root.querySelector('#txtReceiveQuantity').value, 10);
+        const errorSpan = root.querySelector('#errorReceiveQuantity');
 
         if (!itemID) {
             showToast('error', 'A valid item is required.');
             return;
         }
         if (!quantity || quantity <= 0) {
-            root.querySelector('#errorReceiveQuantity').textContent =
-                'The quantity must be greater than zero.';
+            errorSpan.textContent = 'The quantity must be greater than zero.';
             return;
         }
+
+        // Kani nga cap kay para sa partial receive: dili molapas ang
+        // nadawat sa remaining needed sa RepF (same guard sa backend).
+        if (modalRepF) {
+            const remaining = modalRepF.QuantityNeeded - (modalRepF.QuantityReceived || 0);
+            if (quantity > remaining) {
+                errorSpan.textContent =
+                    'The quantity cannot exceed the remaining needed quantity (' +
+                    remaining + ').';
+                return;
+            }
+        }
+        errorSpan.textContent = '';
 
         try {
             await invoke('ReceivingSubmit', {
