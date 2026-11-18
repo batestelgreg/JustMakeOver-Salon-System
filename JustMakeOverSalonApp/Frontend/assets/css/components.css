@@ -442,17 +442,31 @@
     padding: clamp(16px, 5vw, 96px);
 }
 
+/* Kini nga box kay fixed (dili mo-scroll): ang table ra ang mo-scroll
+   vertically, para makita gihapon ang header ug ang Close button. */
 .all-requisition-history-modal__box {
     width: 100%;
     max-width: none;
     max-height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Keep the history table readable inside the large popup.
+   Kini nga wrapper maoy mo-own sa vertical scroll sa table. */
+.all-requisition-history-modal__box .table-responsive {
+    width: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
     overflow: auto;
 }
 
-/* Keep the history table readable inside the large popup. */
-.all-requisition-history-modal__box .table-responsive {
-    width: 100%;
-    overflow-x: auto;
+/* Kani nga override kay para usa ra ka scroll container:
+   ang wrapper na ang mo-scroll, dili ang table element. */
+.all-requisition-history-modal__box .table-responsive .data-table {
+    max-height: none;
+    overflow: visible;
 }
 
 /* Align Requisition History heading and button in one row. */
