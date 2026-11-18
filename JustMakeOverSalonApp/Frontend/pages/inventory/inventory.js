@@ -162,13 +162,22 @@ function renderItemsTable(root) {
             row.appendChild(cell);
         });
 
-        // Kani nga status cell kay nagpakita sa low-stock o inactive nga state.
+        // Kani nga status cell kay nagpakita sa no-stock, low-stock,
+        // o inactive nga state. Ang 0 available kay "No stock" na,
+        // dili na "Low stock" (bisan pa og 0 ang reorder point).
+        const hasNoStock = Number(item.QuantityAvailable) <= 0;
         const statusCell = document.createElement('td');
         const statusBadge = document.createElement('span');
         statusBadge.className = 'status-badge ' + (!item.IsActive
             ? 'status-badge--muted'
-            : item.IsLowStock ? 'status-badge--danger' : 'status-badge--success');
-        statusBadge.textContent = !item.IsActive ? 'Inactive' : item.IsLowStock ? 'Low stock' : 'OK';
+            : hasNoStock || item.IsLowStock
+                ? 'status-badge--danger'
+                : 'status-badge--success');
+        statusBadge.textContent = !item.IsActive
+            ? 'Inactive'
+            : hasNoStock
+                ? 'No stock'
+                : item.IsLowStock ? 'Low stock' : 'OK';
         statusCell.appendChild(statusBadge);
         row.appendChild(statusCell);
 
