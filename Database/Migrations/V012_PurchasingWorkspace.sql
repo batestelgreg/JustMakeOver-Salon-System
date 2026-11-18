@@ -21,9 +21,9 @@
 USE JustMakeOverSalonDB;
 GO
 
-/* ================================================================
+/* 
    1. REQUIREMENTS
-   ================================================================ */
+ */
 
 IF COL_LENGTH(
     'dbo.REPLENISHMENT_REQUESTS', 'QuantityReceived'
@@ -39,9 +39,9 @@ IF OBJECT_ID('dbo.usp_Inventory_ReceiveStock', 'P') IS NULL
     THROW 50500, 'The receiving procedure is missing.', 1;
 GO
 
-/* ================================================================
+/* 
    2. PURCHASING TRACKING TABLES
-   ================================================================ */
+*/
 
 IF OBJECT_ID('dbo.PURCHASING_PO_TRACKING', 'U') IS NULL
 BEGIN
@@ -114,7 +114,7 @@ BEGIN
 END;
 GO
 
-/* ================================================================
+/* 
    3. CONSERVATIVE REPAIR OF LEGACY PR STATUS
 
    The old CreatePR procedure marked an unreceived RepF Processed.
@@ -126,7 +126,7 @@ GO
      - no applied Receiving Memo for the PR.
 
    Records with receiving evidence are left for reconciliation.
-   ================================================================ */
+*/
 
 UPDATE f
 SET Status = 'Pending'
@@ -170,9 +170,9 @@ WHERE f.Status = 'Processed'
   );
 GO
 
-/* ================================================================
+/*
    4. PO SUMMARY
-   ================================================================ */
+*/
 
 CREATE OR ALTER VIEW dbo.vw_PurchasingWorkspacePO
 AS
@@ -226,11 +226,11 @@ OUTER APPLY
 ) m;
 GO
 
-/* ================================================================
+/* 
    5. PURCHASING ACTIONS
 
    Compatible with the C# PurchasingWorkspaceAction operation.
-   ================================================================ */
+ */
 
 CREATE OR ALTER PROCEDURE dbo.usp_PurchasingWorkspace_Action
     @ActorUserID INT,
@@ -350,10 +350,10 @@ BEGIN
         IF @LockResult < 0
             THROW 50502, 'Purchasing is busy. Please try again.', 1;
 
-        /* --------------------------------------------------------
+        /* 
            CREATE PR
            Keep the RepF Pending for V011 Receiving.
-           -------------------------------------------------------- */
+  */
 
         IF @Action = 'CreatePR'
         BEGIN
@@ -387,9 +387,9 @@ BEGIN
             SET @Message = N'Purchase Request created. Replenishment remains pending for receiving.';
         END
 
-        /* --------------------------------------------------------
+        /* 
            SAVE QUOTATION
-           -------------------------------------------------------- */
+   */
 
         ELSE IF @Action = 'SaveQuotation'
         BEGIN
@@ -473,9 +473,9 @@ BEGIN
             SET @Message = N'Quotation saved. Compare again before creating a PO.';
         END
 
-        /* --------------------------------------------------------
+        /* 
            COMPARE AND RECOMMEND
-           -------------------------------------------------------- */
+    */
 
         ELSE IF @Action = 'Recommend'
         BEGIN
@@ -514,12 +514,12 @@ BEGIN
             SET @Message = N'Lowest-priced active supplier recommended.';
         END
 
-        /* --------------------------------------------------------
+        /* 
            CREATE PO
            Order remaining quantity, not original QuantityNeeded.
            Do not call the legacy CreatePO procedure because it
            requires a Processed RepF.
-           -------------------------------------------------------- */
+           */
 
         ELSE IF @Action = 'CreatePO'
         BEGIN
@@ -640,9 +640,9 @@ BEGIN
             SET @Message = N'PO created for the remaining quantity and awaiting approval.';
         END
 
-        /* --------------------------------------------------------
+        /*
            BUDGET
-           -------------------------------------------------------- */
+           */
 
         ELSE IF @Action = 'SetBudget'
         BEGIN
@@ -661,9 +661,9 @@ BEGIN
             SET @Message = N'Annual budget saved.';
         END
 
-        /* --------------------------------------------------------
+        /* 
            APPROVAL AND REJECTION
-           -------------------------------------------------------- */
+            */
 
         ELSE IF @Action = 'ApprovePO'
         BEGIN
@@ -749,9 +749,9 @@ BEGIN
             SET @Message = N'PR reopened. Update quotations and compare again.';
         END
 
-        /* --------------------------------------------------------
+        /* 
            RECORD SUPPLIER DISPATCH
-           -------------------------------------------------------- */
+          */
 
         ELSE IF @Action = 'DispatchPO'
         BEGIN
@@ -780,10 +780,10 @@ BEGIN
             SET @Message = N'Supplier dispatch recorded.';
         END
 
-        /* --------------------------------------------------------
+        /* 
            SUPPLIER DELIVERY INSPECTION
            This records the DR only. It does not add stock.
-           -------------------------------------------------------- */
+           */
 
         ELSE IF @Action = 'RecordDR'
         BEGIN
@@ -934,7 +934,7 @@ BEGIN
 END;
 GO
 
-/* ================================================================
+/* 
    6. RECEIVING INTEGRATION FOR CHECKED SUPPLIER DRs
 
    Receiving developer calls this procedure using:
@@ -943,7 +943,7 @@ GO
 
    It calls V011's receiving procedure exactly once.
    It does not call usp_Inventory_UpdateFromDelivery afterward.
-   ================================================================ */
+  */
 
 CREATE OR ALTER PROCEDURE dbo.usp_Purchasing_ReceiveCheckedDR
     @ActorUserID INT,
@@ -1129,11 +1129,11 @@ BEGIN
 END;
 GO
 
-/* ================================================================
+/* 
    7. PURCHASING WORKSPACE DATA
 
    Result order matches PurchasingRepository.Load().
-   ================================================================ */
+   */
 
 CREATE OR ALTER PROCEDURE dbo.usp_PurchasingWorkspace_Load
     @ActorUserID INT
@@ -1345,7 +1345,7 @@ BEGIN
 END;
 GO
 
-/* ================================================================
+/*
    8. CHECKED-DR RECEIVING QUEUE FOR THE RECEIVING DEVELOPER
 
    These rows should be processed using:
@@ -1353,7 +1353,7 @@ GO
 
    They must not also be received manually through the direct RepF
    receiving form.
-   ================================================================ */
+    */
 
 CREATE OR ALTER PROCEDURE dbo.usp_Purchasing_GetCheckedDRQueue
     @ActorUserID INT

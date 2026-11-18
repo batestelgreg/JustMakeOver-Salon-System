@@ -49,7 +49,7 @@ export async function init(root, params = {}) {
     // (LOW_STOCK): i-highlight ug i-scroll ang specific nga item row.
     const highlightID = Number(params?.highlight?.id);
     if (params?.highlight?.type === 'item' && highlightID > 0) {
-        highlightTargetRow(root, '#itemsTableBody [data-item-id="' + highlightID + '"]');
+        highlightTargetRow(root, '#itemsTableBody [data-item-id="' + highlightID + '"]', params?.notification);
     }
 }
 

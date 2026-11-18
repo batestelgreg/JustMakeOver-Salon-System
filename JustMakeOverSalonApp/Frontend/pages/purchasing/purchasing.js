@@ -1,4 +1,5 @@
 ﻿import { invoke } from '../../assets/js/core/bridge.js';
+import { highlightTargetRow } from '../../assets/js/core/notification-nav.js';
 
 let current = null;
 
@@ -11,7 +12,7 @@ const date = (value) => value
     ? new Date(value).toLocaleDateString('en-PH')
     : '—';
 
-export async function init(root) {
+export async function init(root, params = {}) {
     const view = {
         root,
         data: null,
@@ -40,6 +41,16 @@ export async function init(root) {
         new Date().getFullYear();
 
     await refresh(view);
+
+    // Kani nga params handling kay para sa PO_REJECTED notification:
+    // i-highlight ug i-scroll ang na-reject nga PO row.
+    const highlightID = Number(params?.highlight?.id);
+    if (params?.highlight?.type === 'po' && highlightID > 0) {
+        highlightTargetRow(
+            root,
+            '#orderTable [data-po-id="' + highlightID + '"]',
+            params?.notification);
+    }
 }
 
 export function destroy() {
@@ -162,7 +173,7 @@ async function act(view, action, payload = {}) {
 }
 
 // Build cells with textContent to avoid interpreting database values as HTML.
-function table(view, selector, headings, rows, build) {
+function table(view, selector, headings, rows, build, rowAttrs) {
     const host = find(view, selector);
     host.replaceChildren();
 
@@ -188,6 +199,15 @@ function table(view, selector, headings, rows, build) {
     } else {
         rows.forEach((record) => {
             const row = body.insertRow();
+
+            // Kani nga data attributes kay para sa notification
+            // highlight targeting (PANanglitan PO_REJECTED -> PO row).
+            if (rowAttrs) {
+                Object.entries(rowAttrs(record) || {}).forEach(([name, value]) => {
+                    row.setAttribute(name, String(value));
+                });
+            }
+
             build(record).forEach((value) => {
                 const cell = row.insertCell();
                 if (value instanceof Node) cell.appendChild(value);
@@ -287,7 +307,8 @@ function render(view) {
                 p.CanManage && r.Status === 'Approved'
                 && ['I sent this PO', 'DispatchPO', r.POID]
             ])
-        ]);
+        ],
+        (r) => ({ 'data-po-id': r.POID }));
 
     selectOptions(find(view, '#receiptPO'),
         d.orders.filter((r) =>

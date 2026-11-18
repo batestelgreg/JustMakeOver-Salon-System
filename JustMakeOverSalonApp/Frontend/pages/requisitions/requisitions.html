@@ -330,4 +330,56 @@
         </div>
     </div>
 
+    <!-- REVISE REQUISITION MODAL (Rejected -> edit + resubmit) -->
+    <div id="reviseModal" class="modal-overlay" hidden>
+        <div class="modal-box">
+            <div class="modal-header">
+                <h2>Revise Requisition</h2>
+                <p>Update the required date, justification, or item quantities, then resubmit for approval.</p>
+            </div>
+
+            <div class="form-field">
+                <label for="reviseRequiredDate">Required Date</label>
+                <input type="date" id="reviseRequiredDate" class="form-field__input" required>
+            </div>
+
+            <div class="form-field">
+                <label for="reviseJustification">Justification</label>
+                <textarea id="reviseJustification"
+                          class="form-field__input"
+                          rows="3"
+                          maxlength="500"
+                          required></textarea>
+            </div>
+
+            <div class="form-field">
+                <label>Items and Quantities</label>
+                <div id="reviseItems" class="revise-items"></div>
+            </div>
+
+            <span class="form-field__error" id="reviseError"></span>
+
+            <div class="modal-actions">
+                <button type="button" id="closeReviseModal" class="btn">Cancel</button>
+                <button type="button" id="confirmRevise" class="btn btn--primary">Resubmit Requisition</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- REASON MODAL (read-only rejection/cancellation reason) -->
+    <div id="reasonModal" class="modal-overlay" hidden>
+        <div class="modal-box">
+            <div class="modal-header">
+                <h2>Requisition Reason</h2>
+                <p id="reasonModalInfo" class="u-text-muted"></p>
+            </div>
+
+            <p id="reasonModalText" style="white-space: pre-wrap;"></p>
+
+            <div class="modal-actions">
+                <button type="button" id="closeReasonModal" class="btn">Close</button>
+            </div>
+        </div>
+    </div>
+
 </section>

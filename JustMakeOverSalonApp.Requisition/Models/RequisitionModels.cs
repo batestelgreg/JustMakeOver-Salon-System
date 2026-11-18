@@ -36,6 +36,10 @@ namespace JustMakeOverSalonApp.Requisition.Models
         // Reason nga ibutang kung ang requisition is rejected.
         public string RejectionReason { get; set; }
 
+        // Kini nga timestamp kay ma-set kung ma-Fulfilled na ang
+        // requisition (archive marker; nagpabilin ang tanang history).
+        public DateTime? ArchivedAt { get; set; }
+
         // List of items included sa main requisition.
         public List<RequisitionDetailModel> Items { get; set; }
             = new List<RequisitionDetailModel>();
@@ -132,6 +136,12 @@ namespace JustMakeOverSalonApp.Requisition.Models
 
         // Current status sa requisition.
         public string Status { get; set; }
+
+        // Kani nga duha kay para sa Reason button ug archive marker:
+        // RejectionReason = rejection/cancellation reason (full text),
+        // ArchivedAt = set kung Fulfilled na ang requisition.
+        public string RejectionReason { get; set; }
+        public DateTime? ArchivedAt { get; set; }
 
         // List of items nga apil sa specific requisition.
         public List<RequisitionDetailModel> Items { get; set; }

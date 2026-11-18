@@ -13,6 +13,31 @@
         </div>
     </div>
 
+    <!-- Kani nga card kay para sa checked DR queue: accepted supplier
+         deliveries gikan sa Purchasing nga ready na i-receive sa stock. -->
+    <div class="card u-mb-6" id="checkedDRCard">
+        <h3 class="u-mb-4" style="font-size: 17px;">Checked Supplier Deliveries</h3>
+        <p class="u-text-muted u-mb-4">These deliveries were checked in Purchasing. Receiving them adds the accepted quantity to stock.</p>
+        <div class="data-table">
+            <table id="checkedDRTable">
+                <thead>
+                    <tr>
+                        <th>DR #</th>
+                        <th>PO #</th>
+                        <th>Supplier DR</th>
+                        <th>Item</th>
+                        <th>Qty Accepted</th>
+                        <th>Delivery Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="checkedDRTableBody">
+                    <tr><td colspan="7" class="data-table__empty">Loading checked deliveries&hellip;</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     <!-- Kani nga card kay para sa pending queue: mga RepF nga gipa-abot pa. -->
     <div class="card">
         <h3 class="u-mb-4" style="font-size: 17px;">Pending to Receive</h3>
@@ -56,6 +81,25 @@
                     <tr><td colspan="8" class="data-table__empty">Loading history&hellip;</td></tr>
                 </tbody>
             </table>
+        </div>
+    </div>
+
+    <!-- Kani nga modal kay para sa pag-confirm sa checked DR receipt.
+         Ang accepted quantity gikan sa supplier na ang gamiton. -->
+    <div id="checkedDRModal" class="modal-overlay u-hidden">
+        <div class="modal">
+            <div class="modal__header">
+                <h3 class="modal__title">Receive Checked Delivery</h3>
+                <button type="button" class="modal__close" id="btnCloseCheckedDR" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal__body">
+                <p class="u-text-muted u-mb-4" id="checkedDRInfo"></p>
+                <p class="u-text-muted u-mb-4" id="checkedDRNotes"></p>
+            </div>
+            <div class="modal__footer">
+                <button type="button" class="btn btn--ghost" id="btnCancelCheckedDR">Cancel</button>
+                <button type="button" class="btn btn--primary" id="btnConfirmCheckedDR">Receive to Stock</button>
+            </div>
         </div>
     </div>
 

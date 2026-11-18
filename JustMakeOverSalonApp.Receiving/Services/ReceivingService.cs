@@ -56,5 +56,20 @@ namespace JustMakeOverSalonApp.Receiving.Services
 
             return Task.CompletedTask;
         }
+
+        // Kani nga method nag-receive sa checked DR gikan sa Purchasing.
+        public Task ReceiveCheckedDRAsync(CurrentUser actor, int drID)
+        {
+            actor.RequirePermission(PermissionCodes.ReceivingManage);
+
+            if (drID <= 0)
+            {
+                throw new BusinessException("A valid delivery receipt is required.");
+            }
+
+            repository.ReceiveCheckedDR(actor.UserID, drID);
+
+            return Task.CompletedTask;
+        }
     }
 }

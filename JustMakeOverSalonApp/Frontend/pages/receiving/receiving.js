@@ -12,8 +12,10 @@ import { highlightTargetRow } from '../../assets/js/core/notification-nav.js';
 let pendingData = [];
 let historyData = [];
 let itemsData = [];
+let checkedDRsData = [];
 let refreshHandler = null;
 let modalRepF = null;
+let selectedDRID = null;
 
 /**
  * Kani nga init kay nag-wire sa mga buttons ug nag-load sa page data.
@@ -34,6 +36,7 @@ export async function init(root, params = {}) {
 
     wireModalClosers(root);
     wireReceiveForm(root);
+    wireCheckedDRForm(root);
 
     await reloadAll(root);
 
@@ -55,7 +58,13 @@ export async function init(root, params = {}) {
     // sa pending queue.
     const highlightID = Number(params?.highlight?.id);
     if (params?.highlight?.type === 'repf' && highlightID > 0) {
-        highlightTargetRow(root, '#pendingTableBody [data-repf-id="' + highlightID + '"]');
+        highlightTargetRow(root, '#pendingTableBody [data-repf-id="' + highlightID + '"]', params?.notification);
+    }
+
+    // Kani nga highlight kay para sa PURCHASE_DELIVERY notification:
+    // checked DR row ang i-scroll ug i-highlight.
+    if (params?.highlight?.type === 'checkeddr' && highlightID > 0) {
+        highlightTargetRow(root, '#checkedDRTableBody [data-drid="' + highlightID + '"]', params?.notification);
     }
 }
 
@@ -70,7 +79,9 @@ async function reloadAll(root) {
         pendingData = overview.pending || [];
         historyData = overview.history || [];
         itemsData = overview.items || [];
+        checkedDRsData = overview.checkedDRs || [];
 
+        renderCheckedDRTable(root);
         renderPendingTable(root);
         renderHistoryTable(root);
     } catch (error) {
@@ -79,6 +90,11 @@ async function reloadAll(root) {
         if (body) {
             body.innerHTML = '<tr><td colspan="6" class="data-table__empty">' +
                 'The receiving data could not be loaded.</td></tr>';
+        }
+        const checkedBody = root.querySelector('#checkedDRTableBody');
+        if (checkedBody) {
+            checkedBody.innerHTML = '<tr><td colspan="7" class="data-table__empty">' +
+                'Checked deliveries could not be loaded.</td></tr>';
         }
     }
 }
@@ -92,6 +108,61 @@ function applyPermissionGating(root) {
             button.disabled = true;
             button.title = 'You do not have permission for this action.';
         }
+    });
+}
+
+/**
+ * Kani nga render kay para sa checked DR queue: accepted supplier
+ * deliveries gikan sa Purchasing nga wala pa na-add sa stock.
+ */
+function renderCheckedDRTable(root) {
+    const body = root.querySelector('#checkedDRTableBody');
+    if (!body) {
+        return;
+    }
+
+    if (checkedDRsData.length === 0) {
+        body.innerHTML = '<tr><td colspan="7" class="data-table__empty">' +
+            'No checked deliveries are waiting to be received.</td></tr>';
+        return;
+    }
+
+    const canManage = hasPermission('receiving.manage');
+
+    body.innerHTML = '';
+    checkedDRsData.forEach((record) => {
+        const row = document.createElement('tr');
+        row.setAttribute('data-drid', record.DRID);
+
+        const cells = [
+            'DR-' + String(record.DRID).padStart(4, '0'),
+            'PO-' + String(record.POID).padStart(4, '0'),
+            record.SupplierDRNumber || '\u2014',
+            record.ItemName + ' (' + record.ItemCode + ')',
+            String(record.QuantityAccepted),
+            formatDate(record.DeliveryDate)
+        ];
+        cells.forEach((value) => {
+            const cell = document.createElement('td');
+            cell.textContent = value;
+            row.appendChild(cell);
+        });
+
+        // Kani nga action kay nag-open sa confirm modal (custom, walay
+        // native confirm) para ma-receive ang accepted quantity.
+        const actionsCell = document.createElement('td');
+        if (canManage) {
+            const receiveButton = document.createElement('button');
+            receiveButton.type = 'button';
+            receiveButton.className = 'btn btn--sm btn-action--receive';
+            receiveButton.textContent = 'Receive';
+            receiveButton.addEventListener('click', () => openCheckedDRModal(root, record));
+            actionsCell.appendChild(receiveButton);
+        } else {
+            actionsCell.textContent = '\u2014';
+        }
+        row.appendChild(actionsCell);
+        body.appendChild(row);
     });
 }
 
@@ -250,10 +321,58 @@ function openReceiveModal(root, repF, preselectItemID) {
 }
 
 /**
+ * Kani nga modal kay nag-confirm sa pag-receive sa checked DR.
+ * Ang accepted quantity (gikan sa supplier check) na ang gamiton.
+ */
+function openCheckedDRModal(root, record) {
+    selectedDRID = record.DRID;
+
+    root.querySelector('#checkedDRInfo').textContent =
+        record.ItemName + ' (' + record.ItemCode + ') \u2014 accepted ' +
+        record.QuantityAccepted + ' unit(s) from PO-' +
+        String(record.POID).padStart(4, '0') +
+        (record.SupplierDRNumber ? ' (Supplier DR: ' + record.SupplierDRNumber + ')' : '') +
+        ' \u00b7 delivered ' + formatDate(record.DeliveryDate);
+
+    root.querySelector('#checkedDRNotes').textContent = record.Notes
+        ? 'Notes: ' + record.Notes
+        : 'No supplier notes were recorded.';
+
+    root.querySelector('#checkedDRModal').classList.remove('u-hidden');
+}
+
+/**
+ * Kani nga wiring kay para sa checked DR confirmation modal.
+ */
+function wireCheckedDRForm(root) {
+    root.querySelector('#btnConfirmCheckedDR')?.addEventListener('click', async () => {
+        if (!selectedDRID) {
+            return;
+        }
+
+        const button = root.querySelector('#btnConfirmCheckedDR');
+        button.disabled = true;
+
+        try {
+            await invoke('ReceivingCheckedDR', { drid: String(selectedDRID) });
+            showToast('success', 'The checked delivery was received and stock was updated.');
+            root.querySelector('#checkedDRModal').classList.add('u-hidden');
+            selectedDRID = null;
+            await reloadAll(root);
+        } catch (error) {
+            showToast('error', error.message);
+        } finally {
+            button.disabled = false;
+        }
+    });
+}
+
+/**
  * Kani nga wiring kay para sa modal close buttons ug overlay click.
  */
 function wireModalClosers(root) {
-    [['#btnCloseReceiveModal', '#receiveModal'], ['#btnCancelReceive', '#receiveModal']]
+    [['#btnCloseReceiveModal', '#receiveModal'], ['#btnCancelReceive', '#receiveModal'],
+     ['#btnCloseCheckedDR', '#checkedDRModal'], ['#btnCancelCheckedDR', '#checkedDRModal']]
         .forEach(([buttonSelector, modalSelector]) => {
             root.querySelector(buttonSelector)?.addEventListener('click', () => {
                 root.querySelector(modalSelector).classList.add('u-hidden');
@@ -263,6 +382,12 @@ function wireModalClosers(root) {
     root.querySelector('#receiveModal')?.addEventListener('click', (event) => {
         if (event.target === root.querySelector('#receiveModal')) {
             root.querySelector('#receiveModal').classList.add('u-hidden');
+        }
+    });
+
+    root.querySelector('#checkedDRModal')?.addEventListener('click', (event) => {
+        if (event.target === root.querySelector('#checkedDRModal')) {
+            root.querySelector('#checkedDRModal').classList.add('u-hidden');
         }
     });
 }
@@ -359,4 +484,5 @@ function formatDate(value, withTime) {
 export function destroy() {
     refreshHandler = null;
     modalRepF = null;
+    selectedDRID = null;
 }

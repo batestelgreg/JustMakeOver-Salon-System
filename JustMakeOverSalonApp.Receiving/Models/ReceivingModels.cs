@@ -56,12 +56,31 @@ namespace JustMakeOverSalonApp.Receiving.Models
         public int QuantityAvailable { get; set; }
     }
 
+    // Kani nga model kay para sa checked DR nga naghulat pa nga
+    // ma-receive sa receiving clerk (gikan sa Purchasing workspace).
+    // QuantityAccepted ang tinuod nga nadawat gikan sa supplier.
+    public sealed class ReceivingCheckedDRRecord
+    {
+        public int DRID { get; set; }
+        public int POID { get; set; }
+        public string SupplierDRNumber { get; set; }
+        public int RepFID { get; set; }
+        public int ItemID { get; set; }
+        public string ItemCode { get; set; }
+        public string ItemName { get; set; }
+        public int QuantityAccepted { get; set; }
+        public DateTime DeliveryDate { get; set; }
+        public string Notes { get; set; }
+    }
+
     // Kani nga model kay nagdala sa TANANG page data sa usa ka database call
-    // (pending queue + history + items) aron usa ra ka connection ang gamiton.
+    // (pending queue + history + items + checked DR queue) aron usa ra ka
+    // connection ang gamiton.
     public sealed class ReceivingOverview
     {
         public IList<ReceivingPendingRecord> Pending { get; set; }
         public IList<ReceivingHistoryRecord> History { get; set; }
         public IList<ReceivingItemRecord> Items { get; set; }
+        public IList<ReceivingCheckedDRRecord> CheckedDRs { get; set; }
     }
 }

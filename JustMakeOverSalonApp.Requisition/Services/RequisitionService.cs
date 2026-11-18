@@ -271,5 +271,80 @@ namespace JustMakeOverSalonApp.Requisition.Services
                 reason.Trim());
         }
 
+        // FUNCTION 7: ReviseRequisition
+        // Kani nga method kay nag-revise sa REJECTED requisition sa
+        // requestor ug nag-resubmit balik sa approvers (flowchart:
+        // "Revise request? YES -> balik sa RF form").
+        public void ReviseRequisition(
+            CurrentUser actor,
+            int requisitionID,
+            DateTime requiredDate,
+            string justification,
+            List<RequisitionDetailModel> items)
+        {
+            if (actor == null)
+            {
+                throw new ArgumentException(
+                    "Invalid user session.");
+            }
+
+            // Same permission sa paghimo og request kay resubmission ni.
+            actor.RequirePermission("requisitions.create");
+
+            if (requisitionID <= 0)
+            {
+                throw new ArgumentException(
+                    "Invalid requisition selected.");
+            }
+
+            // Parehas sa CreateRequisition ang validation rules.
+            if (requiredDate.Date < DateTime.Today)
+            {
+                throw new ArgumentException(
+                    "Required date cannot be in the past.");
+            }
+
+            if (string.IsNullOrWhiteSpace(justification))
+            {
+                throw new ArgumentException(
+                    "Please provide a justification.");
+            }
+
+            if (justification.Length > 500)
+            {
+                throw new ArgumentException(
+                    "Justification cannot exceed 500 characters.");
+            }
+
+            if (items == null || items.Count == 0)
+            {
+                throw new ArgumentException(
+                    "Please select at least one item.");
+            }
+
+            foreach (var item in items)
+            {
+                if (item.ItemID <= 0)
+                {
+                    throw new ArgumentException(
+                        "Invalid item selected.");
+                }
+
+                if (item.QuantityRequested <= 0)
+                {
+                    throw new ArgumentException(
+                        "Requested quantity must be greater than zero.");
+                }
+            }
+
+            // Ang repository na ang mo-check sa owner ug Rejected status.
+            repository.ReviseRequisition(
+                requisitionID,
+                actor.UserID,
+                requiredDate,
+                justification.Trim(),
+                items);
+        }
+
     }
 }
