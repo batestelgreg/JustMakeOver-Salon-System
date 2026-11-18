@@ -162,22 +162,38 @@ function renderItemsTable(root) {
             row.appendChild(cell);
         });
 
-        // Kani nga status cell kay nagpakita sa no-stock, low-stock,
-        // o inactive nga state. Ang 0 available kay "No stock" na,
-        // dili na "Low stock" (bisan pa og 0 ang reorder point).
-        const hasNoStock = Number(item.QuantityAvailable) <= 0;
+        // Kani nga status cell kay nagpakita sa no-stock, fully reserved,
+        // low-stock, o inactive nga state:
+        //   No stock       -> On Hand = 0 (wala nay pisikal nga stock)
+        //   Fully reserved -> On Hand > 0 pero Available = 0
+        //                     (tanan nga stock kay para sa requisitions)
+        //   Low stock      -> Available <= ReorderPoint
+        const onHandQuantity = Number(item.QuantityOnHand);
+        const availableQuantity = Number(item.QuantityAvailable);
+        const hasNoStock = onHandQuantity <= 0;
+        const isFullyReserved = !hasNoStock && availableQuantity <= 0;
+
+        let statusClass = 'status-badge--success';
+        let statusLabel = 'OK';
+
+        if (!item.IsActive) {
+            statusClass = 'status-badge--muted';
+            statusLabel = 'Inactive';
+        } else if (hasNoStock) {
+            statusClass = 'status-badge--danger';
+            statusLabel = 'No stock';
+        } else if (isFullyReserved) {
+            statusClass = 'status-badge--warning';
+            statusLabel = 'Fully reserved';
+        } else if (item.IsLowStock) {
+            statusClass = 'status-badge--danger';
+            statusLabel = 'Low stock';
+        }
+
         const statusCell = document.createElement('td');
         const statusBadge = document.createElement('span');
-        statusBadge.className = 'status-badge ' + (!item.IsActive
-            ? 'status-badge--muted'
-            : hasNoStock || item.IsLowStock
-                ? 'status-badge--danger'
-                : 'status-badge--success');
-        statusBadge.textContent = !item.IsActive
-            ? 'Inactive'
-            : hasNoStock
-                ? 'No stock'
-                : item.IsLowStock ? 'Low stock' : 'OK';
+        statusBadge.className = 'status-badge ' + statusClass;
+        statusBadge.textContent = statusLabel;
         statusCell.appendChild(statusBadge);
         row.appendChild(statusCell);
 

@@ -84,6 +84,13 @@
     color: #b3261e;
 }
 
+/* Kani nga amber badge kay para sa "Fully reserved" nga status:
+   naa pay On Hand pero wala nay Available. */
+.status-badge--warning {
+    background: #fff4e5;
+    color: #8a5300;
+}
+
 .status-badge--muted {
     background: #eef0f3;
     color: #5f6b7a;
