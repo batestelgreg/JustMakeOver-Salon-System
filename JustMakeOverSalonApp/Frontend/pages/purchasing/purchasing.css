@@ -161,3 +161,11 @@
         color: black;
     }
 }
+
+
+/* Keep the printable PO hidden during normal screen use. */
+@media screen {
+    #purchaseOrderPrint {
+        display: none !important;
+    }
+}
