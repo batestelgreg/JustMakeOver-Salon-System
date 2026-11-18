@@ -25,6 +25,9 @@ let selectedRejectionRequisitionID = null;
 // Stores the Requisition ID currently waiting for approval confirmation.
 let selectedApprovalRequisitionID = null;
 
+// Stores the Requisition ID being revised (Rejected -> resubmit).
+let selectedReviseRequisitionID = null;
+
 // FUNCTION 1: init
 // Initializes the Requisition page when the user opens it.
 // Kani nga params kay pwede magdala ug highlight (gikan sa
@@ -67,7 +70,7 @@ export async function init(root, params = {}) {
         const pendingSelector = '#pendingRequisitionsBody [data-requisition-id="' + highlightID + '"]';
         const historySelector = '#requisitionHistoryBody [data-requisition-id="' + highlightID + '"]';
         const selector = root.querySelector(pendingSelector) ? pendingSelector : historySelector;
-        highlightTargetRow(root, selector);
+        highlightTargetRow(root, selector, params?.notification);
     }
 
     // Get the search input from the HTML page.
@@ -160,6 +163,20 @@ export async function init(root, params = {}) {
             confirmRequisitionApproval(root);
         });
     }
+
+    // Kani nga wiring kay para sa revise modal (Rejected -> resubmit).
+    root.querySelector('#closeReviseModal')?.addEventListener('click', function () {
+        closeReviseModal(root);
+    });
+
+    root.querySelector('#confirmRevise')?.addEventListener('click', function () {
+        confirmRequisitionRevision(root);
+    });
+
+    // Kani nga wiring kay para sa read-only Reason modal.
+    root.querySelector('#closeReasonModal')?.addEventListener('click', function () {
+        closeReasonModal(root);
+    });
 }
 
 // FUNCTION 2: loadActiveItems
@@ -827,18 +844,55 @@ function renderRequisitionHistory(root) {
             ? requiredDateValue.toLocaleDateString()
             : 'Invalid Date';
 
-        // Only Pending and Approved requisitions can be cancelled.
+        // Kani nga marker kay para sa delivery archive: Fulfilled na
+        // ang requisition pero nagpabilin ang history row.
+        const archivedValue = parseRequisitionDate(requisition.ArchivedAt);
+        const archivedNote = archivedValue
+            ? '<br><span class="u-text-muted" style="font-size: 11px;">Archived ' +
+              archivedValue.toLocaleDateString() + '</span>'
+            : '';
+
+        // Kani nga actions kay status-based:
+        // Rejected -> Revise + Reason; Pending/Approved -> Cancel;
+        // Cancelled/Fulfilled -> Reason (kung naay reason) o '-'.
         const canCancel =
             requisition.Status === 'Pending' ||
             requisition.Status === 'Approved';
 
-        // Show the Cancel button only when cancellation is allowed.
-        const actionButton = canCancel
-            ? `<button type="button"
-                       class="btn btn--danger btn--sm cancel-requisition-btn"
-                       data-requisition-id="${requisition.RequisitionID}">
-                   Cancel
-               </button>`
+        const actionButtons = [];
+
+        if (requisition.Status === 'Rejected') {
+            actionButtons.push(`
+                <button type="button"
+                        class="btn btn--primary btn--sm revise-requisition-btn"
+                        data-requisition-id="${requisition.RequisitionID}">
+                    Revise
+                </button>
+            `);
+        }
+
+        if (canCancel) {
+            actionButtons.push(`
+                <button type="button"
+                        class="btn btn--danger btn--sm cancel-requisition-btn"
+                        data-requisition-id="${requisition.RequisitionID}">
+                    Cancel
+                </button>
+            `);
+        }
+
+        if (requisition.RejectionReason) {
+            actionButtons.push(`
+                <button type="button"
+                        class="btn btn--ghost btn--sm reason-requisition-btn"
+                        data-requisition-id="${requisition.RequisitionID}">
+                    Reason
+                </button>
+            `);
+        }
+
+        const actionButton = actionButtons.length > 0
+            ? actionButtons.join(' ')
             : '-';
 
         // Return the HTML row containing the requisition information.
@@ -848,7 +902,7 @@ function renderRequisitionHistory(root) {
                 <td>${requestDate}</td>
                 <td>${requiredDate}</td>
                 <td>${requisition.Justification || '-'}</td>
-                <td>${requisition.Status}</td>
+                <td>${requisition.Status}${archivedNote}</td>
                 <td>${items || 'No items'}</td>
                 <td>${actionButton}</td>
             </tr>
@@ -871,6 +925,186 @@ function renderRequisitionHistory(root) {
             cancelRequisition(root, requisitionID);
         });
     });
+
+    // Kani nga wiring kay para sa Revise button (Rejected ra).
+    tableBody.querySelectorAll('.revise-requisition-btn').forEach(button => {
+        button.addEventListener('click', function () {
+            openReviseModal(root, Number(button.dataset.requisitionId));
+        });
+    });
+
+    // Kani nga wiring kay para sa Reason button (read-only view).
+    tableBody.querySelectorAll('.reason-requisition-btn').forEach(button => {
+        button.addEventListener('click', function () {
+            openReasonModal(root, Number(button.dataset.requisitionId));
+        });
+    });
+}
+
+
+// FUNCTION: openReviseModal
+// Opens the revise form sa usa ka Rejected requisition.
+function openReviseModal(root, requisitionID) {
+
+    // Pangitaon ang record gikan sa history data.
+    const requisition = requisitionHistoryData.find(
+        record => record.RequisitionID === requisitionID
+    );
+
+    if (!requisition) {
+        return;
+    }
+
+    selectedReviseRequisitionID = requisitionID;
+
+    // I-populate ang date ug justification.
+    const requiredDateValue = parseRequisitionDate(requisition.RequiredDate);
+    root.querySelector('#reviseRequiredDate').value = requiredDateValue
+        ? toDateInputValue(requiredDateValue)
+        : '';
+    root.querySelector('#reviseJustification').value =
+        requisition.Justification || '';
+    root.querySelector('#reviseError').textContent = '';
+
+    // Kani nga items kay prefilled sa requested quantities.
+    const itemsHost = root.querySelector('#reviseItems');
+    itemsHost.innerHTML = requisition.Items.map(item => `
+        <div class="revise-item">
+            <span class="revise-item__name">${item.ItemName}</span>
+            <input type="number"
+                   class="form-field__input revise-item__qty revise-qty"
+                   data-item-id="${item.ItemID}"
+                   min="1"
+                   value="${item.QuantityRequested}">
+        </div>
+    `).join('');
+
+    root.querySelector('#reviseModal').hidden = false;
+}
+
+
+// FUNCTION: closeReviseModal
+// Closes the revise modal ug gi-clear ang selection.
+function closeReviseModal(root) {
+    root.querySelector('#reviseModal').hidden = true;
+    selectedReviseRequisitionID = null;
+}
+
+
+// FUNCTION: confirmRequisitionRevision
+// Nag-validate ug nag-submit sa revision sa backend.
+async function confirmRequisitionRevision(root) {
+
+    if (!selectedReviseRequisitionID) {
+        return;
+    }
+
+    const errorSpan = root.querySelector('#reviseError');
+    const requiredDate = root.querySelector('#reviseRequiredDate').value;
+    const justification = root.querySelector('#reviseJustification').value.trim();
+    const quantityInputs = Array.from(root.querySelectorAll('#reviseItems .revise-qty'));
+
+    // Same rules sa backend para dili mo-roundtrip kung sayop.
+    if (!requiredDate) {
+        errorSpan.textContent = 'Please provide a required date.';
+        return;
+    }
+
+    const requiredDateValue = new Date(requiredDate + 'T00:00:00');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (requiredDateValue < today) {
+        errorSpan.textContent = 'Required date cannot be in the past.';
+        return;
+    }
+
+    if (!justification) {
+        errorSpan.textContent = 'Please provide a justification.';
+        return;
+    }
+
+    if (quantityInputs.length === 0) {
+        errorSpan.textContent = 'Please select at least one item.';
+        return;
+    }
+
+    const itemIDs = [];
+    const quantities = [];
+
+    for (const input of quantityInputs) {
+        const quantity = parseInt(input.value, 10);
+        if (!quantity || quantity <= 0) {
+            errorSpan.textContent = 'Requested quantity must be greater than zero.';
+            return;
+        }
+        itemIDs.push(String(input.dataset.itemId));
+        quantities.push(String(quantity));
+    }
+
+    errorSpan.textContent = '';
+
+    const confirmButton = root.querySelector('#confirmRevise');
+    confirmButton.disabled = true;
+
+    try {
+        const requisitionID = selectedReviseRequisitionID;
+
+        await invoke('ReviseRequisition', {
+            requisitionID: String(requisitionID),
+            requiredDate: requiredDate,
+            justification: justification,
+            itemIDs: itemIDs,
+            quantities: quantities
+        });
+
+        closeReviseModal(root);
+        showToast('success', 'Requisition #' + requisitionID + ' was revised and resubmitted for approval.');
+        await loadRequisitionHistory(root);
+
+    } catch (error) {
+        showToast('error', error.message);
+
+    } finally {
+        confirmButton.disabled = false;
+    }
+}
+
+
+// FUNCTION: openReasonModal
+// Read-only view sa rejection/cancellation reason.
+function openReasonModal(root, requisitionID) {
+
+    const requisition = requisitionHistoryData.find(
+        record => record.RequisitionID === requisitionID
+    );
+
+    if (!requisition) {
+        return;
+    }
+
+    root.querySelector('#reasonModalInfo').textContent =
+        'Requisition #' + requisition.RequisitionID + ' \u00b7 ' + requisition.Status;
+    root.querySelector('#reasonModalText').textContent =
+        requisition.RejectionReason || '';
+    root.querySelector('#reasonModal').hidden = false;
+}
+
+
+// FUNCTION: closeReasonModal
+// Closes the read-only reason modal.
+function closeReasonModal(root) {
+    root.querySelector('#reasonModal').hidden = true;
+}
+
+
+// FUNCTION: toDateInputValue
+// Converts a Date into the yyyy-mm-dd format nga gigamit sa date input.
+function toDateInputValue(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return year + '-' + month + '-' + day;
 }
 
 

@@ -38,6 +38,7 @@ export async function init(root, params = {}) {
     root.querySelector('#btnRefreshDelivery')?.addEventListener('click', refreshHandler);
 
     wireDiscrepancyModal(root);
+    wireDiscrepancyViewModal(root);
     wireSignModal(root);
 
     await reloadAll(root);
@@ -47,10 +48,11 @@ export async function init(root, params = {}) {
     // Allocated Requisitions row. I-highlight ug i-scroll sila.
     const highlightID = Number(params?.highlight?.id);
     if (params?.highlight?.type === 'delivery' && highlightID > 0) {
-        highlightTargetRow(root, '#deliveriesTableBody [data-delivery-id="' + highlightID + '"]');
+        highlightTargetRow(root, '#deliveriesTableBody [data-delivery-id="' + highlightID + '"]', params?.notification);
     } else if (params?.highlight?.type === 'allocated' && highlightID > 0) {
         highlightTargetRow(root,
-            '#allocatedTableBody [data-allocated-requisition-id="' + highlightID + '"]');
+            '#allocatedTableBody [data-allocated-requisition-id="' + highlightID + '"]',
+            params?.notification);
     }
 }
 
@@ -148,7 +150,8 @@ function renderDeliveriesTable(root) {
         // Kani nga indicator kay para makita dayon kung naay
         // discrepancy note ang AR (NO branch sa diamond).
         const discrepancyFlag = delivery.DiscrepancyNotes
-            ? '<div><span class="badge badge--error">Discrepancy noted</span></div>'
+            ? '<div><button type="button" class="badge badge--error badge-button btn-discrepancy-view" ' +
+              'data-delivery-id="' + delivery.DeliveryID + '">Discrepancy noted</button></div>'
             : '';
 
         // Kani nga actions kay depende sa status: Generated = mark
@@ -184,6 +187,10 @@ function renderDeliveriesTable(root) {
     }).join('');
 
     // Kani nga wiring kay para sa action buttons (event delegation).
+    body.querySelectorAll('.btn-discrepancy-view').forEach((button) => {
+        button.addEventListener('click', () => openDiscrepancyViewModal(root, button));
+    });
+
     if (canManage) {
         body.querySelectorAll('.btn-mark-issued').forEach((button) => {
             button.addEventListener('click', () => handleMarkIssued(root, button));
@@ -289,6 +296,44 @@ function wireDiscrepancyModal(root) {
             showToast('error', error.message);
         } finally {
             saveButton.disabled = false;
+        }
+    });
+}
+
+/**
+ * Kani nga modal kay read-only view sa discrepancy note. Ang badge
+ * mismo ang clickable kay dili na kinahanglan mag-edit para makita
+ * ang detalye sa discrepancy.
+ */
+function openDiscrepancyViewModal(root, button) {
+    const delivery = deliveriesData.find((record) =>
+        String(record.DeliveryID) === button.dataset.deliveryId);
+    if (!delivery) {
+        return;
+    }
+
+    root.querySelector('#discrepancyViewInfo').textContent =
+        'Acknowledgement receipt ' + delivery.ARCode +
+        ' (requisition #' + delivery.RequisitionID + ') \u00b7 ' +
+        delivery.Status;
+    root.querySelector('#discrepancyViewNotes').textContent =
+        delivery.DiscrepancyNotes || '';
+    root.querySelector('#discrepancyViewModal').classList.remove('u-hidden');
+}
+
+/**
+ * Kani nga wiring kay para sa discrepancy view modal.
+ */
+function wireDiscrepancyViewModal(root) {
+    const closeModal = () => {
+        root.querySelector('#discrepancyViewModal').classList.add('u-hidden');
+    };
+
+    root.querySelector('#btnCloseDiscrepancyView')?.addEventListener('click', closeModal);
+    root.querySelector('#btnCloseDiscrepancyViewFooter')?.addEventListener('click', closeModal);
+    root.querySelector('#discrepancyViewModal')?.addEventListener('click', (event) => {
+        if (event.target === root.querySelector('#discrepancyViewModal')) {
+            closeModal();
         }
     });
 }

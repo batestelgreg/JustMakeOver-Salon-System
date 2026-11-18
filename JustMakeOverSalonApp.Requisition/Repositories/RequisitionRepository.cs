@@ -282,6 +282,8 @@ namespace JustMakeOverSalonApp.Requisition.Repositories
                     r.RequiredDate,
                     r.Justification,
                     r.Status,
+                    r.RejectionReason,
+                    r.ArchivedAt,
                     rd.RequisitionDetailID,
                     rd.ItemID,
                     i.ItemName,
@@ -337,7 +339,17 @@ namespace JustMakeOverSalonApp.Requisition.Repositories
                                     ? ""
                                     : reader.GetString(reader.GetOrdinal("Justification")),
                                 Status = reader.GetString(
-                                    reader.GetOrdinal("Status"))
+                                    reader.GetOrdinal("Status")),
+                                RejectionReason = reader.IsDBNull(
+                                    reader.GetOrdinal("RejectionReason"))
+                                    ? ""
+                                    : reader.GetString(
+                                        reader.GetOrdinal("RejectionReason")),
+                                ArchivedAt = reader.IsDBNull(
+                                    reader.GetOrdinal("ArchivedAt"))
+                                    ? (DateTime?)null
+                                    : reader.GetDateTime(
+                                        reader.GetOrdinal("ArchivedAt"))
                             };
 
                             // Add the main requisition to the history list.
@@ -401,6 +413,7 @@ namespace JustMakeOverSalonApp.Requisition.Repositories
                     r.Justification,
                     r.Status AS RequisitionStatus,
                     r.RejectionReason,
+                    r.ArchivedAt,
                     rd.RequisitionDetailID,
                     rd.ItemID,
                     i.ItemName,
@@ -469,6 +482,11 @@ namespace JustMakeOverSalonApp.Requisition.Repositories
                                 ? ""
                                 : reader.GetString(
                                     reader.GetOrdinal("RejectionReason")),
+                            ArchivedAt = reader.IsDBNull(
+                                reader.GetOrdinal("ArchivedAt"))
+                                ? (DateTime?)null
+                                : reader.GetDateTime(
+                                    reader.GetOrdinal("ArchivedAt")),
                             Items = new List<RequisitionDetailModel>()
                         };
 
@@ -535,6 +553,7 @@ namespace JustMakeOverSalonApp.Requisition.Repositories
                     r.Justification,
                     r.Status AS RequisitionStatus,
                     r.RejectionReason,
+                    r.ArchivedAt,
                     rd.RequisitionDetailID,
                     rd.ItemID,
                     i.ItemName,
@@ -548,7 +567,7 @@ namespace JustMakeOverSalonApp.Requisition.Repositories
                     ON r.RequisitionID = rd.RequisitionID
                 LEFT JOIN ITEMS AS i
                     ON rd.ItemID = i.ItemID
-                WHERE r.Status IN ('Approved', 'Rejected', 'Fulfilled')
+                WHERE r.Status IN ('Approved', 'Rejected', 'Fulfilled', 'Cancelled')
                 ORDER BY r.RequestDate DESC, r.RequisitionID DESC;
             ", connection))
             using (var reader = command.ExecuteReader())
@@ -602,6 +621,11 @@ namespace JustMakeOverSalonApp.Requisition.Repositories
                                 ? ""
                                 : reader.GetString(
                                     reader.GetOrdinal("RejectionReason")),
+                            ArchivedAt = reader.IsDBNull(
+                                reader.GetOrdinal("ArchivedAt"))
+                                ? (DateTime?)null
+                                : reader.GetDateTime(
+                                    reader.GetOrdinal("ArchivedAt")),
                             Items = new List<RequisitionDetailModel>()
                         };
 
@@ -730,6 +754,175 @@ namespace JustMakeOverSalonApp.Requisition.Repositories
                     .Value = reason;
 
                 command.ExecuteNonQuery();
+            }
+        }
+
+        // FUNCTION 8: ReviseRequisition
+        // Kani nga method nag-revise sa usa ka Rejected requisition ug
+        // nag-resubmit balik sa approvers (flowchart: "Revise request?
+        // YES -> balik sa RF form"). Usa ra ka transaction para kung
+        // naay error, dili ma-partial ang revision.
+        public void ReviseRequisition(
+            int requisitionID,
+            int requestorUserID,
+            DateTime requiredDate,
+            string justification,
+            List<RequisitionDetailModel> items)
+        {
+            using (var connection = connectionFactory.CreateOpenConnection())
+            using (var transaction = connection.BeginTransaction())
+            {
+                try
+                {
+                    // Kani nga lock kay para dili ma-revise samtang gi-review.
+                    using (var command = new SqlCommand(@"
+                        SELECT RequestorUserID, Status
+                        FROM REQUISITIONS WITH (UPDLOCK, HOLDLOCK)
+                        WHERE RequisitionID = @RequisitionID;
+                    ", connection, transaction))
+                    {
+                        command.Parameters.Add("@RequisitionID", SqlDbType.Int)
+                            .Value = requisitionID;
+
+                        using (var reader = command.ExecuteReader())
+                        {
+                            if (!reader.Read())
+                            {
+                                throw new ArgumentException(
+                                    "The requisition was not found.");
+                            }
+
+                            int ownerUserID = reader.GetInt32(0);
+                            string status = reader.GetString(1);
+
+                            if (ownerUserID != requestorUserID)
+                            {
+                                throw new ArgumentException(
+                                    "Only the requestor can revise this requisition.");
+                            }
+
+                            if (status != "Rejected")
+                            {
+                                throw new ArgumentException(
+                                    "Only a rejected requisition can be revised.");
+                            }
+                        }
+                    }
+
+                    // Kani nga delete kay para ma-replace ang daan nga items.
+                    using (var command = new SqlCommand(@"
+                        DELETE FROM REQUISITION_DETAILS
+                        WHERE RequisitionID = @RequisitionID;
+                    ", connection, transaction))
+                    {
+                        command.Parameters.Add("@RequisitionID", SqlDbType.Int)
+                            .Value = requisitionID;
+                        command.ExecuteNonQuery();
+                    }
+
+                    // Kani nga loop kay nag-insert sa bag-ong revised items.
+                    foreach (var item in items)
+                    {
+                        using (var command = new SqlCommand(@"
+                            INSERT INTO REQUISITION_DETAILS
+                            (RequisitionID, ItemID, QuantityRequested)
+                            VALUES (@RequisitionID, @ItemID, @QuantityRequested);
+                        ", connection, transaction))
+                        {
+                            command.Parameters.Add("@RequisitionID", SqlDbType.Int)
+                                .Value = requisitionID;
+                            command.Parameters.Add("@ItemID", SqlDbType.Int)
+                                .Value = item.ItemID;
+                            command.Parameters.Add("@QuantityRequested", SqlDbType.Int)
+                                .Value = item.QuantityRequested;
+                            command.ExecuteNonQuery();
+                        }
+                    }
+
+                    // Kani nga update kay nag-balik sa requisition sa Pending
+                    // ug nagtangtang sa daan nga rejection reason.
+                    using (var command = new SqlCommand(@"
+                        UPDATE REQUISITIONS
+                        SET RequiredDate = @RequiredDate,
+                            Justification = @Justification,
+                            Status = 'Pending',
+                            RejectionReason = NULL,
+                            ArchivedAt = NULL
+                        WHERE RequisitionID = @RequisitionID;
+                    ", connection, transaction))
+                    {
+                        command.Parameters.Add("@RequiredDate", SqlDbType.Date)
+                            .Value = requiredDate.Date;
+                        command.Parameters.Add("@Justification", SqlDbType.NVarChar, 500)
+                            .Value = string.IsNullOrWhiteSpace(justification)
+                                ? (object)DBNull.Value
+                                : justification;
+                        command.Parameters.Add("@RequisitionID", SqlDbType.Int)
+                            .Value = requisitionID;
+                        command.ExecuteNonQuery();
+                    }
+
+                    // Kani nga notification kay para sa mga approver: bag-o
+                    // nga revision ang naghulat sa ilang review.
+                    using (var command = new SqlCommand(@"
+                        INSERT INTO NOTIFICATIONS
+                        (
+                            RecipientUserID,
+                            NotificationType,
+                            Title,
+                            Message,
+                            RelatedEntityType,
+                            RelatedEntityID,
+                            IsRead,
+                            CreatedAt
+                        )
+                        SELECT
+                            u.UserID,
+                            'REQUISITION_SUBMITTED',
+                            'Requisition revised and resubmitted',
+                            @Message,
+                            'REQUISITION',
+                            @RequisitionID,
+                            0,
+                            SYSDATETIME()
+                        FROM USERS u
+                        INNER JOIN ROLE_PERMISSIONS rp ON rp.RoleID = u.RoleID
+                        INNER JOIN PERMISSIONS p ON p.PermissionID = rp.PermissionID
+                        WHERE u.IsActive = 1
+                          AND p.PermissionCode = 'requisitions.approve';
+                    ", connection, transaction))
+                    {
+                        command.Parameters.Add("@Message", SqlDbType.NVarChar, 500)
+                            .Value = "Requisition #" + requisitionID
+                                + " was revised and resubmitted for review.";
+                        command.Parameters.Add("@RequisitionID", SqlDbType.Int)
+                            .Value = requisitionID;
+                        command.ExecuteNonQuery();
+                    }
+
+                    // Kani nga audit row kay para naay trace sa revision.
+                    using (var command = new SqlCommand(@"
+                        INSERT INTO USER_AUDIT_LOGS
+                        (ActorUserID, TargetUserID, ActionType, Description)
+                        VALUES
+                        (@ActorUserID, @ActorUserID, 'REQUISITION_REVISED', @Description);
+                    ", connection, transaction))
+                    {
+                        command.Parameters.Add("@ActorUserID", SqlDbType.Int)
+                            .Value = requestorUserID;
+                        command.Parameters.Add("@Description", SqlDbType.NVarChar, 500)
+                            .Value = "Requisition #" + requisitionID
+                                + " revised and resubmitted.";
+                        command.ExecuteNonQuery();
+                    }
+
+                    transaction.Commit();
+                }
+                catch
+                {
+                    transaction.Rollback();
+                    throw;
+                }
             }
         }
 

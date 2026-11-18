@@ -57,3 +57,29 @@
 #submitRequisition {
     margin-top: 8px;
 }
+
+/* Kani nga mga style kay para sa Revise modal items list. */
+.revise-items {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.revise-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 12px;
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 8px;
+}
+
+.revise-item__name {
+    font-size: 14px;
+}
+
+.revise-item__qty {
+    width: 96px;
+    flex: 0 0 auto;
+}

@@ -226,6 +226,21 @@
 .badge--neutral { background: var(--color-bg); color: var(--color-text-muted); }
 .badge--gold { background: var(--color-gold-tint); color: var(--color-warning); }
 
+/* Kani nga badge-button kay para sa clickable badges (PANanglitan
+   discrepancy note): same look sa badge pero interactive. */
+.badge-button {
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    line-height: inherit;
+}
+
+.badge-button:hover,
+.badge-button:focus-visible {
+    filter: brightness(0.94);
+    text-decoration: underline;
+}
+
 /* Kani nga modal kay para sa confirmations ug dialogs. */
 .modal-overlay {
     position: fixed;

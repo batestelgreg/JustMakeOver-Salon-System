@@ -3,7 +3,10 @@
  * notification types padung sa ilang target panels (Figure 6/7/8
  * ug Figure 8.B destinations):
  *   - REQUISITION_* ug STOCK_RESERVED  -> Requisitions page
+ *   - STOCK_ALLOCATED                 -> Requisitions page
  *   - STOCK_SHORTAGE (RefP)           -> Receiving page (RepF queue)
+ *   - PURCHASE_DELIVERY (DR)          -> Receiving page (checked DR row)
+ *   - PO_REJECTED (PO)                -> Purchasing page (PO row)
  *   - LOW_STOCK (item)                -> Inventory page (item row)
  * Dugang pa: ang INFORMATIONAL types (requestor FYI: APPROVED,
  * REJECTED, STOCK_RESERVED) kay mo-auto-mark read atong click kay
@@ -16,6 +19,8 @@
  */
 import { invoke } from './bridge.js';
 import { publish, AppEvents } from './events.js';
+import { hasPermission } from './state.js';
+import { showToast } from '../components/toast.js';
 
 // Kani nga set kay para sa mga FYI nga types - ang ilang target
 // action kay ang pagbasa ra, so click = mark read + redirect.
@@ -26,6 +31,7 @@ const INFO_ONLY_TYPES = new Set([
     'REQUISITION_APPROVED',
     'REQUISITION_REJECTED',
     'STOCK_RESERVED',
+    'STOCK_ALLOCATED',
     'REQUISITION_FULFILLED',
     'REQUISITION_CANCELLED'
 ]);
@@ -47,10 +53,10 @@ function decrementUnreadBadge() {
 }
 
 /**
- * Kani nga helper kay mo-mark read sa usa ka informational
- * notification (unread ra ang mo-mark) ug mo-decrement sa badge.
+ * Kani nga helper kay mo-mark read sa usa ka notification (unread ra
+ * ang mo-mark) ug mo-decrement sa badge.
  */
-function markInfoNotificationRead(notification) {
+function markNotificationRead(notification) {
     if (notification?.IsRead) {
         return;
     }
@@ -65,6 +71,13 @@ function markInfoNotificationRead(notification) {
         // Kani nga catch kay para ang mark-read failure dili
         // mo-crash ang navigation.
     });
+}
+
+/**
+ * Kani nga helper kay para sa informational types (basa = action).
+ */
+function markInfoNotificationRead(notification) {
+    markNotificationRead(notification);
 }
 
 /**
@@ -83,38 +96,66 @@ export function navigateToNotification(notification) {
 
     let name = null;
     let params = {};
+    let permission = null;
 
     if (type === 'REQUISITION_SUBMITTED' || type === 'REQUISITION_APPROVED' ||
         type === 'REQUISITION_REJECTED' || type === 'STOCK_RESERVED' ||
-        type === 'REQUISITION_FULFILLED' || type === 'REQUISITION_CANCELLED') {
+        type === 'STOCK_ALLOCATED' || type === 'REQUISITION_FULFILLED' ||
+        type === 'REQUISITION_CANCELLED') {
         // Kani nga mga types kay naka-tie sa usa ka requisition - ang
-        // target kay ang Requisitions page (pending/review panel).
+        // target kay ang Requisitions page (history/review panel).
         name = 'requisitions';
         params = { highlight: { type: 'requisition', id: entityID } };
+        permission = 'requisitions.view';
     } else if (type === 'REQUISITION_ALLOCATED') {
         // Kani nga type kay action-required sa Delivery: ang tanang
         // items allocated na ug kinahanglan pa og Generate AR. Ang
         // target kay ang Allocated Requisitions panel (row highlight).
         name = 'delivery';
         params = { highlight: { type: 'allocated', id: entityID } };
+        permission = 'delivery.view';
     } else if (type === 'STOCK_SHORTAGE') {
-        // Kani nga type kay naka-tie sa replenishment request (RefF) -
+        // Kani nga type kay naka-tie sa replenishment request (RepF) -
         // ang pending RepF queue kay sa Receiving page.
         name = 'receiving';
         params = { highlight: { type: 'repf', id: entityID } };
+        permission = 'receiving.view';
+    } else if (type === 'PURCHASE_DELIVERY') {
+        // Kani nga type kay naka-tie sa checked DR - ang Receiving
+        // page ang mo-process niini (checked DR queue row).
+        name = 'receiving';
+        params = { highlight: { type: 'checkeddr', id: entityID } };
+        permission = 'receiving.view';
+    } else if (type === 'PO_REJECTED') {
+        // Kani nga type kay naka-tie sa purchase order (PO) - ang
+        // target kay ang Purchasing page (PO row).
+        name = 'purchasing';
+        params = { highlight: { type: 'po', id: entityID } };
+        permission = 'purchasing.view';
     } else if (type === 'DELIVERY_DISCREPANCY') {
         // Kani nga type kay naka-tie sa acknowledgement receipt (AR) -
         // ang target kay ang Delivery page (AR row nga may discrepancy).
         name = 'delivery';
         params = { highlight: { type: 'delivery', id: entityID } };
+        permission = 'delivery.view';
     } else if (type === 'LOW_STOCK') {
         // Kani nga type kay naka-tie sa item (reorder point) - ang
         // target kay ang item row sa Inventory page.
         name = 'inventory';
         params = { highlight: { type: 'item', id: entityID } };
+        permission = 'inventory.view';
     }
 
     if (!name) {
+        return false;
+    }
+
+    // Kani nga gating kay para dili mo-navigate ang user sa page nga
+    // wala siya permission. Mark read na lang kay wala nay action
+    // nga mahimo niini para kaniya, ug naa'y toast info.
+    if (permission && !hasPermission(permission)) {
+        markNotificationRead(notification);
+        showToast('info', 'You do not have permission to open this notification.');
         return false;
     }
 
@@ -124,7 +165,12 @@ export function navigateToNotification(notification) {
         markInfoNotificationRead(notification);
     }
 
-    publish(AppEvents.Navigate, { name, params });
+    // Kani nga notification param kay para sa missing-row feedback:
+    // kung wala na ang target row, mo-toast ug mark read ang page.
+    publish(AppEvents.Navigate, {
+        name,
+        params: { ...params, notification }
+    });
     return true;
 }
 
@@ -134,8 +180,11 @@ export function navigateToNotification(notification) {
  * ang highlight behavior.
  * @param {HTMLElement} root - page container
  * @param {string} selector - CSS selector sa target row
+ * @param {object} [notification] - notification nga gi-click (optional);
+ *   kung wala na ang target row, i-mark read + toast aron dili mag-stuck
+ *   ang unread badge sa walay kapuslanan.
  */
-export function highlightTargetRow(root, selector) {
+export function highlightTargetRow(root, selector, notification) {
     if (!root || !selector) {
         return;
     }
@@ -145,6 +194,12 @@ export function highlightTargetRow(root, selector) {
     requestAnimationFrame(() => {
         const target = root.querySelector(selector);
         if (!target) {
+            // Kani nga branch kay para sa missing row (deleted/archived):
+            // wala nay action nga mahimo, so mark read + info toast.
+            if (notification) {
+                markNotificationRead(notification);
+                showToast('info', 'The related record is no longer available.');
+            }
             return;
         }
 

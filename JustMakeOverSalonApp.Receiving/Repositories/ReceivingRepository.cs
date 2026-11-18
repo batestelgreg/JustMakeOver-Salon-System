@@ -29,7 +29,8 @@ namespace JustMakeOverSalonApp.Receiving.Repositories
             {
                 Pending = new List<ReceivingPendingRecord>(),
                 History = new List<ReceivingHistoryRecord>(),
-                Items = new List<ReceivingItemRecord>()
+                Items = new List<ReceivingItemRecord>(),
+                CheckedDRs = new List<ReceivingCheckedDRRecord>()
             };
 
             using (var connection = connectionFactory.CreateOpenConnection())
@@ -85,6 +86,25 @@ namespace JustMakeOverSalonApp.Receiving.Repositories
                         }
                     }
                 }
+
+                // Kani nga ikaupat nga resultset kay para sa checked DR
+                // queue gikan sa Purchasing (accepted supplier deliveries).
+                // Parehas nga connection, usa ra ka page load.
+                using (var command = new SqlCommand("usp_Purchasing_GetCheckedDRQueue", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                })
+                {
+                    command.Parameters.Add("@ActorUserID", SqlDbType.Int).Value = actorUserID;
+
+                    using (var reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            overview.CheckedDRs.Add(MapCheckedDR(reader));
+                        }
+                    }
+                }
             }
 
             return overview;
@@ -108,6 +128,24 @@ namespace JustMakeOverSalonApp.Receiving.Repositories
                     repFID.HasValue ? (object)repFID.Value : DBNull.Value;
                 command.Parameters.Add("@Remarks", SqlDbType.NVarChar, 1000).Value =
                     string.IsNullOrWhiteSpace(remarks) ? (object)DBNull.Value : remarks;
+
+                command.ExecuteNonQuery();
+            }
+        }
+
+        // Kani nga method nag-receive sa checked DR gikan sa Purchasing.
+        // Ang stored procedure (shared engine) ang nag-update sa stock,
+        // reservations ug RM record - walay duplicate nga logic dinhi.
+        public void ReceiveCheckedDR(int actorUserID, int drID)
+        {
+            using (var connection = connectionFactory.CreateOpenConnection())
+            using (var command = new SqlCommand("usp_Purchasing_ReceiveCheckedDR", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            })
+            {
+                command.Parameters.Add("@ActorUserID", SqlDbType.Int).Value = actorUserID;
+                command.Parameters.Add("@DRID", SqlDbType.Int).Value = drID;
 
                 command.ExecuteNonQuery();
             }
@@ -161,6 +199,24 @@ namespace JustMakeOverSalonApp.Receiving.Repositories
                 UnitOfMeasure = reader.GetString(3),
                 QuantityOnHand = reader.GetInt32(4),
                 QuantityAvailable = reader.GetInt32(5)
+            };
+        }
+
+        // Kani nga mapper nag-convert sa checked DR row.
+        private static ReceivingCheckedDRRecord MapCheckedDR(SqlDataReader reader)
+        {
+            return new ReceivingCheckedDRRecord
+            {
+                DRID = reader.GetInt32(0),
+                POID = reader.GetInt32(1),
+                SupplierDRNumber = reader.IsDBNull(2) ? null : reader.GetString(2),
+                RepFID = reader.GetInt32(3),
+                ItemID = reader.GetInt32(4),
+                ItemCode = reader.GetString(5),
+                ItemName = reader.GetString(6),
+                QuantityAccepted = reader.GetInt32(7),
+                DeliveryDate = reader.GetDateTime(8),
+                Notes = reader.IsDBNull(9) ? null : reader.GetString(9)
             };
         }
     }

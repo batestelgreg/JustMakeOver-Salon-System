@@ -22,6 +22,7 @@ namespace JustMakeOverSalonApp.Receiving.Operations
             // Kani mga operation names kay ang bridge contract sa Receiving page.
             registry.Register("ReceivingOverview", HandleReceivingOverviewAsync);
             registry.Register("ReceivingSubmit", HandleReceivingSubmitAsync);
+            registry.Register("ReceivingCheckedDR", HandleReceivingCheckedDRAsync);
         }
 
         // Kani nga handler nagdala sa TANANG page data sa usa ra ka response
@@ -37,7 +38,8 @@ namespace JustMakeOverSalonApp.Receiving.Operations
             {
                 pending = overview.Pending,
                 history = overview.History,
-                items = overview.Items
+                items = overview.Items,
+                checkedDRs = overview.CheckedDRs
             }, null);
         }
 
@@ -51,6 +53,17 @@ namespace JustMakeOverSalonApp.Receiving.Operations
                 context.GetValueAsInt(payload, "quantityReceived"),
                 ParseOptionalID(context.GetValueAsString(payload, "repFID")),
                 context.GetValueAsString(payload, "remarks"));
+
+            context.SendResponse(requestID, true, null, null);
+        }
+
+        // Kani nga handler nag-receive sa checked DR gikan sa Purchasing.
+        private async Task HandleReceivingCheckedDRAsync(Dictionary<string, object> payload, string requestID)
+        {
+            var actor = context.RequireUser();
+            await service.ReceiveCheckedDRAsync(
+                actor,
+                context.GetValueAsInt(payload, "drid"));
 
             context.SendResponse(requestID, true, null, null);
         }
