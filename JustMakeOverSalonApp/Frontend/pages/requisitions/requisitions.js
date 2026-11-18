@@ -791,8 +791,51 @@ async function loadRequisitionHistory(root) {
     }
 }
 
-// FUNCTION 8: renderRequisitionHistory
-// Displays the user's previous requisitions in the history table.
+// Kani nga constant kay 10 ka rows ra ang visible sa history table;
+// kung molapas, ang table wrapper ra ang mo-scroll vertically.
+const HISTORY_VISIBLE_ROWS = 10;
+
+// Kani nga helper kay mag-set sa max-height sa table wrapper base sa
+// aktwal nga gitas-on sa header + 10 ka rows. Variable man ang height
+// sa row (naay "Archived" nga second line), mao nga computed ni.
+function applyVisibleRowLimit(wrapper, visibleRows) {
+    if (!wrapper) {
+        return;
+    }
+
+    const table = wrapper.querySelector('table');
+    const head = table ? table.tHead : null;
+    const body = table ? table.tBodies[0] : null;
+
+    if (!table || !body) {
+        return;
+    }
+
+    // Reset una para ma-measure ang natural nga height.
+    wrapper.style.maxHeight = '';
+    wrapper.style.overflowY = '';
+
+    const rows = Array.from(body.rows);
+
+    // Kung 10 ra o mas dyutay ang rows, walay scroll nga kinahanglan.
+    if (rows.length <= visibleRows) {
+        return;
+    }
+
+    let visibleHeight = head ? head.offsetHeight : 0;
+    for (let index = 0; index < visibleRows; index += 1) {
+        visibleHeight += rows[index].offsetHeight;
+    }
+
+    // Kung 0 ang height (hidden pa ang page), ayaw i-set para dili
+    // mo-collapse ang table.
+    if (visibleHeight <= 0) {
+        return;
+    }
+
+    wrapper.style.maxHeight = visibleHeight + 'px';
+    wrapper.style.overflowY = 'auto';
+}
 
 // FUNCTION 8: renderRequisitionHistory
 // Displays the user's previous requisitions in the history table.
@@ -939,6 +982,12 @@ function renderRequisitionHistory(root) {
             openReasonModal(root, Number(button.dataset.requisitionId));
         });
     });
+
+    // Kani nga call kay para 10 ra ka rows ang visible sa history table;
+    // kung molapas, ang wrapper ra ang mo-scroll vertically.
+    applyVisibleRowLimit(
+        tableBody.closest('.requisition-history-scroll'),
+        HISTORY_VISIBLE_ROWS);
 }
 
 

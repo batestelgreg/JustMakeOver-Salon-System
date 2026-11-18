@@ -83,3 +83,37 @@
     width: 96px;
     flex: 0 0 auto;
 }
+
+/* Kani nga history table wrapper kay 10 ka rows ra ang gitas-on.
+   Kung molapas, dinhi ra mo-gawas ang vertical auto-scroll, dili
+   ang tibuok page. Ang JS mag-set sa aktwal nga max-height. */
+.requisition-history-scroll {
+    max-height: 700px; /* fallback kung wala pa ma-set sa JS */
+    overflow-y: auto;
+}
+
+/* Kani nga override kay para ang wrapper (dili ang <table>) maoy
+   mo-scroll; dinhi motapot ang sticky header. Fixed layout + wrapped
+   cells para mo-fit gyud sa card width (walay horizontal overflow). */
+.requisition-history-scroll .data-table {
+    max-height: none;
+    overflow: visible;
+    table-layout: fixed;
+}
+
+.requisition-history-scroll .data-table th,
+.requisition-history-scroll .data-table td {
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-break: normal;
+}
+
+/* Kani nga column widths kay para dili ma-compress ang Status ug
+   Action samtang ang Justification/Items ra ang mo-wrap. */
+.requisition-history-scroll .data-table th:nth-child(1) { width: 8%; }
+.requisition-history-scroll .data-table th:nth-child(2) { width: 14%; }
+.requisition-history-scroll .data-table th:nth-child(3) { width: 11%; }
+.requisition-history-scroll .data-table th:nth-child(4) { width: 23%; }
+.requisition-history-scroll .data-table th:nth-child(5) { width: 12%; }
+.requisition-history-scroll .data-table th:nth-child(6) { width: 20%; }
+.requisition-history-scroll .data-table th:nth-child(7) { width: 12%; }
