@@ -7,16 +7,19 @@ using JustMakeOverSalonApp.Purchasing.Repositories;
 
 namespace JustMakeOverSalonApp.Purchasing.Services
 {
-    // Handles session validation and keeps database work off the UI thread.
+    // Validates the session and keeps database work off the UI thread.
     public sealed class PurchasingService
     {
         private readonly PurchasingRepository repository;
 
+        // Each supported action is declared once.
         private static readonly HashSet<string> AllowedActions =
             new HashSet<string>(StringComparer.Ordinal)
             {
                 "CreatePR",
+                "RemovePR",
                 "SaveQuotation",
+                "RemoveQuotation",
                 "Recommend",
                 "CreatePO",
                 "SetBudget",
@@ -35,7 +38,8 @@ namespace JustMakeOverSalonApp.Purchasing.Services
                 ?? throw new ArgumentNullException(nameof(repository));
         }
 
-        public Task<Dictionary<string, object>> LoadAsync(CurrentUser actor)
+        public Task<Dictionary<string, object>> LoadAsync(
+            CurrentUser actor)
         {
             RequireActor(actor);
 
@@ -57,19 +61,27 @@ namespace JustMakeOverSalonApp.Purchasing.Services
             RequireActor(actor);
 
             if (!AllowedActions.Contains(action ?? string.Empty))
-                throw new BusinessException("Unknown purchasing action.");
+            {
+                throw new BusinessException(
+                    "Unknown purchasing action.");
+            }
 
-            // SQL rechecks live permissions and approval roles.
-            // Do not accept a user ID supplied by the browser.
+            // SQL rechecks live permissions and record status.
+            // Use the authenticated user, not a browser-supplied ID.
             return Task.Run(() =>
-                repository.Execute(actor.UserID, action, payloadJson));
+                repository.Execute(
+                    actor.UserID,
+                    action,
+                    payloadJson));
         }
 
         private static void RequireActor(CurrentUser actor)
         {
             if (actor == null)
+            {
                 throw new BusinessException(
                     "Please sign in before accessing Purchasing.");
+            }
         }
     }
 }
