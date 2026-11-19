@@ -9,12 +9,13 @@
     Its replenishment request remains unchanged.
 
     Existing Purchasing actions are forwarded to V012.
+    Re-runnable: ang procedure kay CREATE OR ALTER.
 */
 
 USE JustMakeOverSalonDB;
 GO
 
-CREATE PROCEDURE dbo.usp_PurchasingWorkspace_ActionWithRemoval
+CREATE OR ALTER PROCEDURE dbo.usp_PurchasingWorkspace_ActionWithRemoval
     @ActorUserID INT,
     @Action VARCHAR(30),
     @Payload NVARCHAR(MAX)
