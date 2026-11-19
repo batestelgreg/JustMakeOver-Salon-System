@@ -1,4 +1,4 @@
-﻿/* All styles are scoped to Purchasing. */
+﻿/* Purchasing page */
 .purchasing-page {
     max-width: 1400px;
     margin: 0 auto;
@@ -35,6 +35,7 @@
     line-height: 1.5;
 }
 
+/* Tables */
 .purchasing-table-wrapper {
     overflow-x: auto;
     margin: 16px 0;
@@ -64,6 +65,7 @@
         border-bottom: 0;
     }
 
+/* Forms */
 .purchasing-page label {
     display: block;
 }
@@ -103,6 +105,7 @@
     max-width: 500px;
 }
 
+/* General buttons */
 .purchasing-page button,
 .purchasing-page a.purchasing-email {
     display: inline-block;
@@ -126,8 +129,11 @@
     min-height: 24px;
 }
 
+/* Existing PO rejection dialog */
 #purchasingDecision {
+    box-sizing: border-box;
     width: min(480px, 85vw);
+    margin: auto;
     border: 1px solid #ccd6e0;
     border-radius: 12px;
     padding: 24px;
@@ -141,7 +147,128 @@
     display: none !important;
 }
 
-/* The JS adds this body class only while printing a selected PO. */
+/* Table action alignment */
+.purchasing-row-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+/* Orange Remove buttons */
+.purchasing-page button.purchasing-remove-trigger {
+    margin: 0;
+    padding: 8px 14px;
+    border: 1px solid #ffb43b;
+    border-radius: 10px;
+    background: #ffb43b;
+    color: #172333;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 3px 9px rgb(255 180 59 / 28%);
+    transition: background-color 150ms ease, box-shadow 150ms ease;
+}
+
+    .purchasing-page button.purchasing-remove-trigger:hover {
+        background: #f5a623;
+        border-color: #f5a623;
+        box-shadow: 0 4px 12px rgb(245 166 35 / 35%);
+    }
+
+/* Confirmation dialog */
+.purchasing-page .purchasing-remove-dialog {
+    box-sizing: border-box;
+    width: min(450px, calc(100vw - 32px));
+    max-height: calc(100vh - 40px);
+    margin: auto;
+    padding: 0;
+    overflow-y: auto;
+    border: 0;
+    border-radius: 12px;
+    background: white;
+    color: #182538;
+    font: inherit;
+    box-shadow: 0 16px 48px rgb(0 0 0 / 20%);
+}
+
+.purchasing-remove-dialog::backdrop {
+    background: rgb(0 0 0 / 48%);
+}
+
+.purchasing-remove-content {
+    padding: 24px;
+}
+
+    .purchasing-remove-content h3 {
+        margin: 0 0 10px;
+        font-family: Georgia, 'Times New Roman', serif;
+        font-size: 23px;
+        font-weight: 700;
+        color: #182538;
+    }
+
+    .purchasing-remove-content p {
+        margin: 0;
+        color: #666;
+        font-size: 14px;
+        line-height: 1.6;
+        overflow-wrap: anywhere;
+    }
+
+.purchasing-remove-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 26px;
+}
+
+.purchasing-page .purchasing-remove-actions button {
+    margin: 0;
+    padding: 12px 18px;
+    border-radius: 9px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.purchasing-page button.purchasing-remove-cancel {
+    border: 1px solid transparent;
+    background: transparent;
+    color: #263449;
+    box-shadow: none;
+}
+
+    .purchasing-page button.purchasing-remove-cancel:hover {
+        background: #f3f4f6;
+    }
+
+.purchasing-page button.purchasing-remove-confirm {
+    border: 1px solid #ffb43b;
+    background: #ffb43b;
+    color: #172333;
+    box-shadow: 0 3px 9px rgb(255 180 59 / 28%);
+}
+
+    .purchasing-page button.purchasing-remove-confirm:hover {
+        border-color: #f5a623;
+        background: #f5a623;
+    }
+
+.purchasing-page .purchasing-row-actions button:focus-visible,
+.purchasing-page .purchasing-remove-actions button:focus-visible {
+    outline: 3px solid #155e86;
+    outline-offset: 3px;
+}
+
+/* Hide print content during normal screen use */
+@media screen {
+    #purchaseOrderPrint {
+        display: none !important;
+    }
+}
+
+/* Print only the selected Purchase Order */
 @media print {
     body.purchasing-print > * {
         visibility: hidden;
@@ -159,5 +286,161 @@
         padding: 30px;
         background: white;
         color: black;
+    }
+}
+
+
+/* Style the removal dialog wherever it is mounted. */
+dialog.purchasing-remove-dialog {
+    box-sizing: border-box !important;
+    width: 450px !important;
+    max-width: calc(100vw - 32px) !important;
+    max-height: calc(100vh - 40px) !important;
+    margin: auto !important;
+    padding: 0 !important;
+    overflow-y: auto;
+    border: none !important;
+    border-radius: 12px !important;
+    background: white !important;
+    color: #182538;
+    box-shadow: 0 16px 48px rgb(0 0 0 / 20%);
+}
+
+    dialog.purchasing-remove-dialog::backdrop {
+        background: rgb(0 0 0 / 48%);
+    }
+
+    dialog.purchasing-remove-dialog .purchasing-remove-content {
+        padding: 24px;
+    }
+
+    dialog.purchasing-remove-dialog h3 {
+        margin: 0 0 10px;
+        font-family: Georgia, 'Times New Roman', serif;
+        font-size: 23px;
+        color: #182538;
+    }
+
+    dialog.purchasing-remove-dialog p {
+        margin: 0;
+        color: #666;
+        font-size: 14px;
+        line-height: 1.6;
+        overflow-wrap: anywhere;
+    }
+
+    dialog.purchasing-remove-dialog .purchasing-remove-actions {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 26px;
+    }
+
+    dialog.purchasing-remove-dialog button {
+        display: inline-block;
+        margin: 0;
+        padding: 12px 18px;
+        border-radius: 9px;
+        font-family: inherit;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+        dialog.purchasing-remove-dialog button.purchasing-remove-cancel {
+            border: 1px solid transparent;
+            background: transparent;
+            color: #263449;
+            box-shadow: none;
+        }
+
+        dialog.purchasing-remove-dialog button.purchasing-remove-confirm {
+            border: 1px solid #ffb43b;
+            background: #ffb43b;
+            color: #172333;
+            box-shadow: 0 3px 9px rgb(255 180 59 / 28%);
+        }
+
+            dialog.purchasing-remove-dialog button.purchasing-remove-confirm:hover {
+                background: #f5a623;
+                border-color: #f5a623;
+            }
+
+        dialog.purchasing-remove-dialog button:focus-visible {
+            outline: 3px solid #155e86;
+            outline-offset: 3px;
+        }
+
+
+/* Purchasing notification in the upper-right corner. */
+.purchasing-toast {
+    position: fixed;
+    top: 96px;
+    right: 24px;
+    z-index: 10000;
+    box-sizing: border-box;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    width: min(380px, calc(100vw - 32px));
+    padding: 18px 20px;
+    border: 1px solid #dce3ec;
+    border-left: 5px solid #23935d;
+    border-radius: 10px;
+    background: white;
+    color: #10283f;
+    font-family: inherit;
+    box-shadow: 0 8px 28px rgb(15 23 42 / 16%);
+}
+
+    .purchasing-toast > div {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .purchasing-toast strong {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 15px;
+    }
+
+    .purchasing-toast p {
+        margin: 0;
+        color: #526477;
+        font-size: 14px;
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+    }
+
+    .purchasing-toast > button {
+        flex-shrink: 0;
+        margin: 0;
+        padding: 0 4px;
+        border: 0;
+        background: transparent;
+        color: #64748b;
+        font-size: 24px;
+        line-height: 1;
+        cursor: pointer;
+    }
+
+        .purchasing-toast > button:hover {
+            color: #10283f;
+        }
+
+        .purchasing-toast > button:focus-visible {
+            outline: 2px solid #155e86;
+            outline-offset: 3px;
+        }
+
+.purchasing-toast-error {
+    border-left-color: #c83d32;
+}
+
+@media print {
+    .purchasing-toast {
+        display: none !important;
     }
 }

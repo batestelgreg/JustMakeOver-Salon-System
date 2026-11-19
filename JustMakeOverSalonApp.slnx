@@ -13,6 +13,7 @@
     <File Path="Database/Migrations/V011_FlowFixes.sql" />
     <File Path="Database/Migrations/V012_PurchasingWorkspace.sql" />
     <File Path="Database/Migrations/V013_FlowPolish.sql" />
+    <File Path="Database/Migrations/V014_PurchasingRemoval.sql" />
   </Folder>
   <Project Path="JustMakeOverSalonApp.Core/JustMakeOverSalonApp.Core.csproj" Id="8b2c0d5e-4a31-4f7b-9e6c-1d2a5f84b7a9" />
   <Project Path="JustMakeOverSalonApp.Delivery/JustMakeOverSalonApp.Delivery.csproj" Id="a1000000-0000-4000-9000-000000000004" />
