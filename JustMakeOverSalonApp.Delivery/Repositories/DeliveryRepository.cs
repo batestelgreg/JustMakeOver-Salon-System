@@ -122,10 +122,29 @@ namespace JustMakeOverSalonApp.Delivery.Repositories
 
         // Kani nga method nag-complete sa AR: e-sign + stock deduction +
         // requisition Fulfilled + requester notification (usa ka call).
-        public void Complete(int actorUserID, int deliveryID)
+        // Ang signature kay PNG data URL nga gikan sa signature pad.
+        public void Complete(int actorUserID, int deliveryID, string signature)
         {
             using (var connection = connectionFactory.CreateOpenConnection())
             using (var command = new SqlCommand("usp_Delivery_Complete", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            })
+            {
+                command.Parameters.Add("@ActorUserID", SqlDbType.Int).Value = actorUserID;
+                command.Parameters.Add("@DeliveryID", SqlDbType.Int).Value = deliveryID;
+                command.Parameters.Add("@Signature", SqlDbType.NVarChar, -1).Value = signature;
+
+                command.ExecuteNonQuery();
+            }
+        }
+
+        // Kani nga method nag-balik sa AR ngadto sa 'Generated' human sa
+        // discrepancy correction (re-issue loop sa Figure 10).
+        public void Reissue(int actorUserID, int deliveryID)
+        {
+            using (var connection = connectionFactory.CreateOpenConnection())
+            using (var command = new SqlCommand("usp_Delivery_Reissue", connection)
             {
                 CommandType = CommandType.StoredProcedure
             })

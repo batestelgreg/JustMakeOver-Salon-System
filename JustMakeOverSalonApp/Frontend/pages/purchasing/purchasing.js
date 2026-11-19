@@ -256,13 +256,17 @@ function buttons(items) {
     const group = document.createElement('div');
     group.className = 'purchasing-row-actions';
 
-    items.filter(Boolean).forEach(([label, action, id]) => {
+    items.filter(Boolean).forEach(([label, action, id, title]) => {
         const button = document.createElement('button');
 
         button.type = 'button';
         button.textContent = label;
         button.dataset.action = action;
         button.dataset.id = String(id);
+
+        // Kani nga tooltip kay para sa manual-send nga steps (ang system
+        // wala magpadala og email).
+        if (title) button.title = title;
 
         if (action === 'RemovePR' || action === 'RemoveQuotation') {
             button.classList.add('purchasing-remove-trigger');
@@ -422,16 +426,16 @@ function render(view) {
             r.OutstandingQuantity,
             buttons([
                 ['Print PO', 'PrintPO', r.POID],
-                ['Email draft', 'EmailPO', r.POID],
+                ['Email PO draft', 'EmailPO', r.POID, 'Opens a draft in your email app. The system does not send the email automatically.'],
 
                 p.CanApprove && r.Status === 'Pending Approval'
-                && ['Approve', 'ApprovePO', r.POID],
+                && ['Approve', 'ApprovePO', r.POID, 'Approving opens the supplier email draft. The system does not send it automatically.'],
 
                 p.CanApprove && r.Status === 'Pending Approval'
                 && ['Reject', 'RejectPO', r.POID],
 
                 p.CanManage && r.Status === 'Approved'
-                && ['I sent this PO', 'DispatchPO', r.POID]
+                && ['Mark as sent', 'DispatchPO', r.POID, 'Use this only after you actually sent the PO to the supplier.']
             ])
         ]);
 
@@ -481,10 +485,10 @@ function render(view) {
             r.POID, r.SupplierName, date(r.ReminderDate), r.Message,
             r.SentAt ? date(r.SentAt) : 'Not marked sent',
             buttons([
-                ['Email draft', 'EmailFollowup', r.FollowupID],
+                ['Open email draft', 'EmailFollowup', r.FollowupID, 'Opens a draft in your email app. The system does not send the reminder automatically.'],
 
                 p.CanManage && !r.SentAt
-                && ['I sent this follow-up', 'FollowupSent', r.FollowupID]
+                && ['Mark follow-up sent', 'FollowupSent', r.FollowupID, 'Use this only after you actually sent the reminder to the supplier.']
             ])
         ]);
 }
@@ -694,7 +698,25 @@ async function handleClick(view, event) {
         find(view, '#decisionReason').value = '';
         find(view, '#purchasingDecision').showModal();
     } else if (['ApprovePO', 'DispatchPO'].includes(action)) {
-        await act(view, action, { poID: id });
+        const succeeded = await act(view, action, { poID: id });
+
+        // Kani nga block kay para mo-abli dayon sa supplier email draft
+        // human ma-approve ang PO (send step sa flowchart). Ang system
+        // wala mo-send, draft lang ang iabli; ang "Mark as sent" button
+        // ang mo-confirm nga napadala na.
+        if (succeeded && action === 'ApprovePO' && !view.closed) {
+            const approved = view.data?.orders.find((r) => r.POID === id);
+
+            if (approved) {
+                email(
+                    view,
+                    approved.SupplierEmail,
+                    'Purchase Order #' + id,
+                    orderText(approved),
+                    'PO approved. '
+                );
+            }
+        }
     } else if (action === 'FollowupSent') {
         await act(view, action, { followupID: id });
     } else if (action === 'ReplacementSent') {
@@ -760,12 +782,13 @@ function orderText(order) {
     ].join('\n');
 }
 
-function email(view, address, subject, body) {
+function email(view, address, subject, body, prefix = '') {
     if (!address) {
         say(view,
-            'This supplier has no email address. Update it under Suppliers '
-            + 'or contact the supplier through your usual channel.');
-        return;
+            prefix + 'This supplier has no email address. Update it under Suppliers '
+            + 'or contact the supplier through your usual channel. '
+            + 'The system does not send email automatically.');
+        return false;
     }
 
     const link = document.createElement('a');
@@ -779,8 +802,10 @@ function email(view, address, subject, body) {
     link.remove();
 
     say(view,
-        'Email draft requested. Send it in your email application, '
-        + 'then use the corresponding “I sent…” button.');
+        prefix + 'Your email app opened a draft. The system does not send email '
+        + 'automatically — send the draft there, then click the matching button '
+        + 'in the row (“Mark as sent” / “Mark follow-up sent”) to record it.');
+    return true;
 }
 
 function printOrder(view, order) {

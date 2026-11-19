@@ -25,6 +25,7 @@ namespace JustMakeOverSalonApp.Delivery.Operations
             registry.Register("DeliveryMarkIssued", HandleDeliveryMarkIssuedAsync);
             registry.Register("DeliveryNoteDiscrepancy", HandleDeliveryNoteDiscrepancyAsync);
             registry.Register("DeliveryComplete", HandleDeliveryCompleteAsync);
+            registry.Register("DeliveryReissue", HandleDeliveryReissueAsync);
         }
 
         // Kani nga handler nagdala sa TANANG page data sa usa ra ka response
@@ -85,8 +86,20 @@ namespace JustMakeOverSalonApp.Delivery.Operations
         {
             var actor = context.RequireUser();
             var deliveryID = ParseID(context.GetValueAsString(payload, "deliveryID"));
+            var signature = context.GetValueAsString(payload, "signature");
 
-            await service.CompleteAsync(actor, deliveryID);
+            await service.CompleteAsync(actor, deliveryID, signature);
+            context.SendResponse(requestID, true, null, null);
+        }
+
+        // Kani nga handler nag-reissue sa AR human ma-correct ang
+        // discrepancy (balik sa 'Generated').
+        private async Task HandleDeliveryReissueAsync(Dictionary<string, object> payload, string requestID)
+        {
+            var actor = context.RequireUser();
+            var deliveryID = ParseID(context.GetValueAsString(payload, "deliveryID"));
+
+            await service.ReissueAsync(actor, deliveryID);
             context.SendResponse(requestID, true, null, null);
         }
 

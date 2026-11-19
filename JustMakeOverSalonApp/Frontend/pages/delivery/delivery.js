@@ -19,6 +19,10 @@ let refreshHandler = null;
 // dili ang native nga confirm dialog).
 let pendingSignDelivery = null;
 
+// Kani nga state kay para sa pending re-issue confirmation human sa
+// discrepancy correction (custom modal usab).
+let pendingReissueDelivery = null;
+
 /**
  * Kani nga init kay nag-wire sa mga buttons ug nag-load sa page data.
  * Ang params kay pwede magdala ug highlight gikan sa notification
@@ -40,6 +44,7 @@ export async function init(root, params = {}) {
     wireDiscrepancyModal(root);
     wireDiscrepancyViewModal(root);
     wireSignModal(root);
+    wireReissueModal(root);
 
     await reloadAll(root);
 
@@ -155,7 +160,8 @@ function renderDeliveriesTable(root) {
             : '';
 
         // Kani nga actions kay depende sa status: Generated = mark
-        // issued; Issued = discrepancy + sign; Completed = wala na.
+        // issued; Issued = discrepancy + (re-issue kung naay noted
+        // discrepancy) + sign; Completed = wala na.
         let actions = '\u2014';
         if (canManage && delivery.Status === 'Generated') {
             actions = '<button type="button" class="btn btn-action-box btn-mark-issued" data-delivery-id="' +
@@ -164,6 +170,10 @@ function renderDeliveriesTable(root) {
             actions =
                 '<button type="button" class="btn btn-action-box btn-discrepancy" data-delivery-id="' +
                 delivery.DeliveryID + '">Note discrepancy</button>' +
+                (delivery.DiscrepancyNotes
+                    ? '<button type="button" class="btn btn-action-box btn-reissue" data-delivery-id="' +
+                      delivery.DeliveryID + '">Re-issue</button>'
+                    : '') +
                 '<button type="button" class="btn btn-action-box btn-sign" data-delivery-id="' +
                 delivery.DeliveryID + '">Sign &amp; complete</button>';
         }
@@ -200,6 +210,9 @@ function renderDeliveriesTable(root) {
         });
         body.querySelectorAll('.btn-sign').forEach((button) => {
             button.addEventListener('click', () => openSignModal(root, button));
+        });
+        body.querySelectorAll('.btn-reissue').forEach((button) => {
+            button.addEventListener('click', () => openReissueModal(root, button));
         });
     }
 }
@@ -339,8 +352,8 @@ function wireDiscrepancyViewModal(root) {
 }
 
 /**
- * Kani nga modal kay para sa e-sign confirmation (custom nga pop up,
- * dili ang native nga confirm dialog).
+ * Kani nga modal kay para sa e-sign (signature pad) ug completion
+ * (custom nga pop up, dili ang native nga confirm dialog).
  */
 function openSignModal(root, button) {
     const delivery = deliveriesData.find((record) =>
@@ -352,15 +365,102 @@ function openSignModal(root, button) {
     pendingSignDelivery = delivery;
     root.querySelector('#deliverySignModalMessage').textContent =
         'Sign the acknowledgement receipt ' + delivery.ARCode +
-        ' and complete the delivery of ' + (delivery.ItemsSummary || 'the items') + '?';
+        ' and complete the delivery of ' + (delivery.ItemsSummary || 'the items') + '.';
     root.querySelector('#btnConfirmDeliverySign').disabled = false;
+    clearSignaturePad(root);
     root.querySelector('#deliverySignModal').classList.remove('u-hidden');
 }
 
 /**
- * Kani nga wiring kay para sa sign confirmation modal.
+ * Kani nga helper kay nag-reset sa signature canvas (puti nga background
+ * ug walay ink) ug nag-clear sa error message.
+ */
+function clearSignaturePad(root) {
+    const canvas = root.querySelector('#deliverySignaturePad');
+    if (!canvas) {
+        return;
+    }
+
+    const context = canvas.getContext('2d');
+    context.fillStyle = '#ffffff';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.strokeStyle = '#1a1a1a';
+    context.lineWidth = 2.2;
+    context.lineCap = 'round';
+    context.lineJoin = 'round';
+
+    // Kani nga flag kay ang source of truth kung naay ink na.
+    canvas.dataset.signed = '0';
+
+    const error = root.querySelector('#errorDeliverySignature');
+    if (error) {
+        error.textContent = '';
+    }
+}
+
+/**
+ * Kani nga wiring kay para sa signature pad ug sa sign confirmation modal.
+ * Pointer events ang gamit para mo-work sa mouse ug touch.
  */
 function wireSignModal(root) {
+    const canvas = root.querySelector('#deliverySignaturePad');
+    let drawing = false;
+
+    const point = (event) => {
+        const rect = canvas.getBoundingClientRect();
+        return {
+            x: (event.clientX - rect.left) * (canvas.width / rect.width),
+            y: (event.clientY - rect.top) * (canvas.height / rect.height)
+        };
+    };
+
+    if (canvas) {
+        canvas.addEventListener('pointerdown', (event) => {
+            const context = canvas.getContext('2d');
+            const p = point(event);
+
+            drawing = true;
+            canvas.dataset.signed = '1';
+            canvas.setPointerCapture(event.pointerId);
+
+            const error = root.querySelector('#errorDeliverySignature');
+            if (error) {
+                error.textContent = '';
+            }
+
+            // Kani nga dot kay para makita ang start sa stroke.
+            context.beginPath();
+            context.moveTo(p.x, p.y);
+            context.lineTo(p.x + 0.1, p.y + 0.1);
+            context.stroke();
+            context.beginPath();
+            context.moveTo(p.x, p.y);
+            event.preventDefault();
+        });
+
+        canvas.addEventListener('pointermove', (event) => {
+            if (!drawing) {
+                return;
+            }
+
+            const context = canvas.getContext('2d');
+            const p = point(event);
+
+            context.lineTo(p.x, p.y);
+            context.stroke();
+            context.beginPath();
+            context.moveTo(p.x, p.y);
+            event.preventDefault();
+        });
+
+        const stopDrawing = () => {
+            drawing = false;
+        };
+
+        canvas.addEventListener('pointerup', stopDrawing);
+        canvas.addEventListener('pointercancel', stopDrawing);
+    }
+
     const closeModal = () => {
         pendingSignDelivery = null;
         root.querySelector('#deliverySignModal').classList.add('u-hidden');
@@ -368,6 +468,7 @@ function wireSignModal(root) {
 
     root.querySelector('#btnCloseDeliverySignModal')?.addEventListener('click', closeModal);
     root.querySelector('#btnCancelDeliverySign')?.addEventListener('click', closeModal);
+    root.querySelector('#btnClearSignature')?.addEventListener('click', () => clearSignaturePad(root));
     root.querySelector('#deliverySignModal')?.addEventListener('click', (event) => {
         if (event.target === root.querySelector('#deliverySignModal')) {
             closeModal();
@@ -381,15 +482,82 @@ function wireSignModal(root) {
             return;
         }
 
+        // Kani nga guard kay para dili ma-complete ang delivery nga
+        // walay drawn signature.
+        if (!canvas || canvas.dataset.signed !== '1') {
+            root.querySelector('#errorDeliverySignature').textContent =
+                'Please sign before completing the delivery.';
+            return;
+        }
+
         const deliveryID = String(pendingSignDelivery.DeliveryID);
         const confirmButton = root.querySelector('#btnConfirmDeliverySign');
+        const signature = canvas.toDataURL('image/png');
 
         confirmButton.disabled = true;
         try {
             // Kani nga invoke kay nagdala sa tibuok completion: e-sign +
             // stock deduction + requisition Fulfilled + notification.
-            await invoke('DeliveryComplete', { deliveryID });
+            await invoke('DeliveryComplete', { deliveryID, signature });
             showToast('success', 'The delivery was completed and the requester was notified.');
+            closeModal();
+            await reloadAll(root);
+        } catch (error) {
+            showToast('error', error.message);
+            confirmButton.disabled = false;
+        }
+    });
+}
+
+/**
+ * Kani nga modal kay para sa re-issue confirmation human ma-correct ang
+ * discrepancy (custom nga pop up, dili native confirm dialog).
+ */
+function openReissueModal(root, button) {
+    const delivery = deliveriesData.find((record) =>
+        String(record.DeliveryID) === button.dataset.deliveryId);
+    if (!delivery || !delivery.DiscrepancyNotes) {
+        return;
+    }
+
+    pendingReissueDelivery = delivery;
+    root.querySelector('#deliveryReissueModalMessage').textContent =
+        'Return the acknowledgement receipt ' + delivery.ARCode +
+        ' (requisition #' + delivery.RequisitionID + ') to Generated so the ' +
+        'corrected items can be issued again?';
+    root.querySelector('#btnConfirmDeliveryReissue').disabled = false;
+    root.querySelector('#deliveryReissueModal').classList.remove('u-hidden');
+}
+
+/**
+ * Kani nga wiring kay para sa re-issue confirmation modal.
+ */
+function wireReissueModal(root) {
+    const closeModal = () => {
+        pendingReissueDelivery = null;
+        root.querySelector('#deliveryReissueModal').classList.add('u-hidden');
+    };
+
+    root.querySelector('#btnCloseDeliveryReissueModal')?.addEventListener('click', closeModal);
+    root.querySelector('#btnCancelDeliveryReissue')?.addEventListener('click', closeModal);
+    root.querySelector('#deliveryReissueModal')?.addEventListener('click', (event) => {
+        if (event.target === root.querySelector('#deliveryReissueModal')) {
+            closeModal();
+        }
+    });
+
+    root.querySelector('#btnConfirmDeliveryReissue')?.addEventListener('click', async () => {
+        if (!pendingReissueDelivery) {
+            return;
+        }
+
+        const deliveryID = String(pendingReissueDelivery.DeliveryID);
+        const confirmButton = root.querySelector('#btnConfirmDeliveryReissue');
+
+        confirmButton.disabled = true;
+        try {
+            await invoke('DeliveryReissue', { deliveryID });
+            showToast('success', 'The acknowledgement receipt was returned to Generated for re-issue.');
             closeModal();
             await reloadAll(root);
         } catch (error) {
@@ -449,4 +617,5 @@ export function destroy() {
     allocatedData = [];
     deliveriesData = [];
     pendingSignDelivery = null;
+    pendingReissueDelivery = null;
 }

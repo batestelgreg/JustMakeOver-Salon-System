@@ -119,14 +119,45 @@
             </div>
             <div class="modal__body">
                 <p id="deliverySignModalMessage" style="margin: 0;"></p>
+                <div class="signature-pad">
+                    <div class="signature-pad__header">
+                        <span class="signature-pad__label">Staff signature</span>
+                        <button type="button" class="btn btn--ghost btn--sm" id="btnClearSignature">Clear</button>
+                    </div>
+                    <canvas id="deliverySignaturePad" class="signature-pad__canvas"
+                            width="600" height="200" aria-label="Signature pad"></canvas>
+                    <span class="form-field__error" id="errorDeliverySignature"></span>
+                </div>
                 <p class="u-text-muted u-mt-4" style="font-size: 12px; margin-bottom: 0;">
-                    Signing deducts the issued quantity from stock and marks the
+                    Draw your signature above. Signing deducts the issued quantity from stock and marks the
                     requisition as fulfilled.
                 </p>
             </div>
             <div class="modal__footer">
                 <button type="button" class="btn btn--ghost" id="btnCancelDeliverySign">Cancel</button>
                 <button type="button" class="btn btn--primary" id="btnConfirmDeliverySign">Sign &amp; Complete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kani nga modal kay para sa re-issue confirmation human ma-correct
+         ang discrepancy (custom nga pop up, dili native confirm). -->
+    <div id="deliveryReissueModal" class="modal-overlay u-hidden">
+        <div class="modal">
+            <div class="modal__header">
+                <h3 class="modal__title">Re-issue Acknowledgement Receipt</h3>
+                <button type="button" class="modal__close" id="btnCloseDeliveryReissueModal" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal__body">
+                <p id="deliveryReissueModalMessage" style="margin: 0;"></p>
+                <p class="u-text-muted u-mt-4" style="font-size: 12px; margin-bottom: 0;">
+                    The receipt returns to Generated so the corrected items can be issued
+                    again. Its discrepancy note is kept for reference.
+                </p>
+            </div>
+            <div class="modal__footer">
+                <button type="button" class="btn btn--ghost" id="btnCancelDeliveryReissue">Cancel</button>
+                <button type="button" class="btn btn--primary" id="btnConfirmDeliveryReissue">Re-issue</button>
             </div>
         </div>
     </div>
