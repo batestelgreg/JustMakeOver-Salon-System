@@ -75,7 +75,7 @@ namespace JustMakeOverSalonApp.Delivery.Services
 
         // Kani nga method nag-complete sa AR: e-sign + deduction +
         // requisition Fulfilled + requester notification.
-        public Task CompleteAsync(CurrentUser actor, int deliveryID)
+        public Task CompleteAsync(CurrentUser actor, int deliveryID, string signature)
         {
             actor.RequirePermission(PermissionCodes.DeliveryManage);
 
@@ -84,7 +84,39 @@ namespace JustMakeOverSalonApp.Delivery.Services
                 throw new BusinessException("A valid acknowledgement receipt is required.");
             }
 
-            repository.Complete(actor.UserID, deliveryID);
+            // Kani nga validation kay parehas sa database guard: kinahanglan
+            // naay drawn signature sa dili pa ma-complete ang delivery.
+            if (string.IsNullOrWhiteSpace(signature))
+            {
+                throw new BusinessException("A signature is required before completing the delivery.");
+            }
+
+            if (!signature.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new BusinessException("The signature image is not valid.");
+            }
+
+            if (signature.Length > 2000000)
+            {
+                throw new BusinessException("The signature image is too large.");
+            }
+
+            repository.Complete(actor.UserID, deliveryID, signature);
+            return Task.CompletedTask;
+        }
+
+        // Kani nga method nag-balik sa AR ngadto sa 'Generated' para
+        // ma-issue pag-usab human ma-correct ang discrepancy.
+        public Task ReissueAsync(CurrentUser actor, int deliveryID)
+        {
+            actor.RequirePermission(PermissionCodes.DeliveryManage);
+
+            if (deliveryID <= 0)
+            {
+                throw new BusinessException("A valid acknowledgement receipt is required.");
+            }
+
+            repository.Reissue(actor.UserID, deliveryID);
             return Task.CompletedTask;
         }
     }

@@ -33,7 +33,8 @@ const INFO_ONLY_TYPES = new Set([
     'STOCK_RESERVED',
     'STOCK_ALLOCATED',
     'REQUISITION_FULFILLED',
-    'REQUISITION_CANCELLED'
+    'REQUISITION_CANCELLED',
+    'DELIVERY_REISSUED'
 ]);
 
 /**
@@ -127,11 +128,23 @@ export function navigateToNotification(notification) {
         params = { highlight: { type: 'checkeddr', id: entityID } };
         permission = 'receiving.view';
     } else if (type === 'PO_REJECTED') {
-        // Kani nga type kay naka-tie sa purchase order (PO) - ang
-        // target kay ang Purchasing page (PO row).
-        name = 'purchasing';
-        params = { highlight: { type: 'po', id: entityID } };
-        permission = 'purchasing.view';
+        // Kani nga type kay para sa naghimo sa PR (Purchasing page) ug
+        // karon para usab sa requisition requestor (Requisitions page):
+        // "Hold or revise the request."
+        const onRequisition =
+            String(notification?.RelatedEntityType || '') === 'REQUISITION';
+
+        name = onRequisition ? 'requisitions' : 'purchasing';
+        params = onRequisition
+            ? { highlight: { type: 'requisition', id: entityID } }
+            : { highlight: { type: 'po', id: entityID } };
+        permission = onRequisition ? 'requisitions.view' : 'purchasing.view';
+    } else if (type === 'DELIVERY_REISSUED') {
+        // Kani nga type kay naka-tie sa acknowledgement receipt (AR) nga
+        // gi-reissue human sa discrepancy correction - Delivery page.
+        name = 'delivery';
+        params = { highlight: { type: 'delivery', id: entityID } };
+        permission = 'delivery.view';
     } else if (type === 'DELIVERY_DISCREPANCY') {
         // Kani nga type kay naka-tie sa acknowledgement receipt (AR) -
         // ang target kay ang Delivery page (AR row nga may discrepancy).
@@ -161,7 +174,9 @@ export function navigateToNotification(notification) {
 
     // Kani nga block kay para sa informational types: ang pagbasa sa
     // outcome maoy "action", so mo-auto-mark read dayon atong click.
-    if (INFO_ONLY_TYPES.has(type)) {
+    if (INFO_ONLY_TYPES.has(type)
+        || (type === 'PO_REJECTED'
+            && String(notification?.RelatedEntityType || '') === 'REQUISITION')) {
         markInfoNotificationRead(notification);
     }
 
