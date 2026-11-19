@@ -258,6 +258,11 @@ async function submitRequisition(root) {
         // Reload the history para makita dayon ang newly submitted requisition.
         await loadRequisitionHistory(root);
 
+        // Refresh the pending list for Admin and Manager.
+        if (hasPermission('requisitions.approve')) {
+            await loadPendingRequisitions(root);
+        }
+
     } catch (error) {
         // Display the error message if submission fails.
         showToast('error', error.message);
