@@ -197,11 +197,24 @@ async function act(view, action, payload = {}) {
     }
 
     if (!view.closed) {
-        await refresh(
-            view,
-            result.Message
-            + (result.ID ? ' Record #' + result.ID + '.' : '')
-        );
+        const confirmation = result.Message
+            + (result.DeliveryReference
+                ? ' Reference: ' + result.DeliveryReference + '.'
+                : result.ID
+                    ? ' Record #' + result.ID + '.'
+                    : '');
+
+        await refresh(view, confirmation);
+
+        if (!view.closed
+            && action === 'RecordDR'
+            && result.DeliveryReference) {
+            const reference = find(view, '#deliveryReference');
+
+            if (reference) {
+                reference.value = result.DeliveryReference;
+            }
+        }
     }
 
     return true;
@@ -452,7 +465,7 @@ function render(view) {
 
     table(view, '#receiptTable',
         [
-            'DR', 'Supplier DR', 'PO', 'Delivered', 'Accepted',
+            'DR', 'Delivery reference', 'PO', 'Delivered', 'Accepted',
             'Rejected', 'Inspection / notes',
             'Receiving handoff', 'Actions'
         ],

@@ -100,8 +100,14 @@
                 <select id="receiptPO" required></select>
             </label>
             <label>
-                Supplier DR number
-                <input name="drNumber" maxlength="100" required>
+                Delivery reference
+                <input id="deliveryReference"
+                       type="text"
+                       value="Generated when saved"
+                       readonly
+                       tabindex="-1"
+                       autocomplete="off"
+                       aria-label="Automatically generated delivery reference">
             </label>
             <label>
                 Delivered quantity

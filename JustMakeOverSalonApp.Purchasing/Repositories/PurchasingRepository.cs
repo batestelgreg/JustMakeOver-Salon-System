@@ -79,7 +79,7 @@ namespace JustMakeOverSalonApp.Purchasing.Repositories
             using (var connection =
                 connectionFactory.CreateOpenConnection())
             using (var command = new SqlCommand(
-                "dbo.usp_PurchasingWorkspace_ActionWithRemoval",
+                "dbo.usp_PurchasingWorkspace_ActionWithDeliveryReference",
                 connection))
             {
                 command.CommandType = CommandType.StoredProcedure;
