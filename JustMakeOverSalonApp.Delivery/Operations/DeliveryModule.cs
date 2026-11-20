@@ -26,6 +26,7 @@ namespace JustMakeOverSalonApp.Delivery.Operations
             registry.Register("DeliveryNoteDiscrepancy", HandleDeliveryNoteDiscrepancyAsync);
             registry.Register("DeliveryComplete", HandleDeliveryCompleteAsync);
             registry.Register("DeliveryReissue", HandleDeliveryReissueAsync);
+            registry.Register("DeliverySignature", HandleDeliverySignatureAsync);
         }
 
         // Kani nga handler nagdala sa TANANG page data sa usa ra ka response
@@ -101,6 +102,22 @@ namespace JustMakeOverSalonApp.Delivery.Operations
 
             await service.ReissueAsync(actor, deliveryID);
             context.SendResponse(requestID, true, null, null);
+        }
+
+        // Kani nga handler nagkuha sa signature image sa AR (on-demand,
+        // para sa "View signature" modal).
+        private async Task HandleDeliverySignatureAsync(Dictionary<string, object> payload, string requestID)
+        {
+            var actor = context.RequireUser();
+            var deliveryID = ParseID(context.GetValueAsString(payload, "deliveryID"));
+
+            var signature = await service.GetSignatureAsync(actor, deliveryID);
+
+            // Kani nga wrap kay para lowercase ang JSON keys.
+            context.SendResponse(requestID, true, new
+            {
+                signature
+            }, null);
         }
 
         // Kani nga helper kay para sa safe ID parsing (empty o invalid = 0,

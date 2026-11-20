@@ -27,6 +27,20 @@ namespace JustMakeOverSalonApp.Delivery.Services
             return Task.FromResult(repository.LoadOverview(actor.UserID));
         }
 
+        // Kani nga method nagkuha sa on-demand signature sa AR para sa
+        // "View signature" modal (delivery.view permission).
+        public Task<Models.DeliverySignatureRecord> GetSignatureAsync(CurrentUser actor, int deliveryID)
+        {
+            actor.RequirePermission(PermissionCodes.DeliveryView);
+
+            if (deliveryID <= 0)
+            {
+                throw new BusinessException("A valid acknowledgement receipt is required.");
+            }
+
+            return Task.FromResult(repository.GetSignature(actor.UserID, deliveryID));
+        }
+
         // Kani nga method nag-generate sa AR (Figure 10 step 1).
         public Task<Tuple<int, string>> GenerateARAsync(CurrentUser actor, int requisitionID)
         {

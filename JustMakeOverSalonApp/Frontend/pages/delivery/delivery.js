@@ -45,6 +45,7 @@ export async function init(root, params = {}) {
     wireDiscrepancyViewModal(root);
     wireSignModal(root);
     wireReissueModal(root);
+    wireSignatureViewModal(root);
 
     await reloadAll(root);
 
@@ -153,15 +154,17 @@ function renderDeliveriesTable(root) {
             : (delivery.Status === 'Issued' ? 'badge badge--info' : 'badge badge--neutral');
 
         // Kani nga indicator kay para makita dayon kung naay
-        // discrepancy note ang AR (NO branch sa diamond).
+        // discrepancy note ang AR (NO branch sa diamond). Compact chip
+        // para dili mo-2 lines ug dili bug-at tan-awon.
         const discrepancyFlag = delivery.DiscrepancyNotes
-            ? '<div><button type="button" class="badge badge--error badge-button btn-discrepancy-view" ' +
-              'data-delivery-id="' + delivery.DeliveryID + '">Discrepancy noted</button></div>'
+            ? '<button type="button" class="badge badge--error badge-button delivery-discrepancy-chip btn-discrepancy-view" ' +
+              'data-delivery-id="' + delivery.DeliveryID + '" ' +
+              'title="Click to view the discrepancy details.">Discrepancy noted</button>'
             : '';
 
         // Kani nga actions kay depende sa status: Generated = mark
         // issued; Issued = discrepancy + (re-issue kung naay noted
-        // discrepancy) + sign; Completed = wala na.
+        // discrepancy) + sign; Completed = view signature (kung naa).
         let actions = '\u2014';
         if (canManage && delivery.Status === 'Generated') {
             actions = '<button type="button" class="btn btn-action-box btn-mark-issued" data-delivery-id="' +
@@ -176,6 +179,9 @@ function renderDeliveriesTable(root) {
                     : '') +
                 '<button type="button" class="btn btn-action-box btn-sign" data-delivery-id="' +
                 delivery.DeliveryID + '">Sign &amp; complete</button>';
+        } else if (delivery.Status === 'Completed' && delivery.HasSignature) {
+            actions = '<button type="button" class="btn btn-action-box btn-view-signature" data-delivery-id="' +
+                delivery.DeliveryID + '">View signature</button>';
         }
 
         return '<tr data-delivery-id="' + delivery.DeliveryID + '">' +
@@ -190,7 +196,8 @@ function renderDeliveriesTable(root) {
                   '<br><span class="u-text-muted" style="font-size: 12px;">' +
                   formatDate(delivery.SignedDate, true) + '</span>'
                 : '\u2014') + '</td>' +
-            '<td><span class="' + badgeClass + '">' + escapeHtml(delivery.Status) + '</span>' +
+            '<td class="delivery-status-cell">' +
+            '<span class="' + badgeClass + '">' + escapeHtml(delivery.Status) + '</span>' +
             discrepancyFlag + '</td>' +
             '<td class="delivery-actions">' + actions + '</td>' +
             '</tr>';
@@ -199,6 +206,12 @@ function renderDeliveriesTable(root) {
     // Kani nga wiring kay para sa action buttons (event delegation).
     body.querySelectorAll('.btn-discrepancy-view').forEach((button) => {
         button.addEventListener('click', () => openDiscrepancyViewModal(root, button));
+    });
+
+    // Kani nga wiring kay para sa View signature (delivery.view ra ang
+    // kinahanglan, dili delivery.manage).
+    body.querySelectorAll('.btn-view-signature').forEach((button) => {
+        button.addEventListener('click', () => openSignatureViewModal(root, button));
     });
 
     if (canManage) {
