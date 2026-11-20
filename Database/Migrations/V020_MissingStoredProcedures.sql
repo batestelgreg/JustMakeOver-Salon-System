@@ -32,9 +32,9 @@
 USE JustMakeOverSalonDB;
 GO
 
-/* ============================================================
+/* 
    A. LOGIN UG SESSION
-   ============================================================ */
+    */
 
 /* Kani nga procedure para makuha ang account details sa login.
    Apil na ang RoleName para kabalo ang app asa siya mo-redirect. */
@@ -154,9 +154,9 @@ BEGIN
 END;
 GO
 
-/* ============================================================
+/* 
    B. USER ROLE ASSIGNMENT
-   ============================================================ */
+   */
 
 /* Kani nga procedure para sa pag-assign og role sa user.
    Ang Admin pwede ra mo-assign og Manager, Inventory Staff,
@@ -246,9 +246,9 @@ BEGIN
 END;
 GO
 
-/* ============================================================
+/* 
    C. PURCHASING APPROVAL UG BUDGET
-   ============================================================ */
+   */
 
 /* Kani nga procedure nag-set sa annual purchasing budget.
    Admin ra ang makahimo, ug dili pwede ibutang ubos sa na-commit
