@@ -581,6 +581,82 @@ function wireReissueModal(root) {
 }
 
 /**
+ * Kani nga modal kay para sa "View signature" sa completed AR.
+ * On-demand ang DB call (DeliverySignature) para dili mo-bug-at ang
+ * page load; usa ra ka record ang i-fetch.
+ */
+function openSignatureViewModal(root, button) {
+    const delivery = deliveriesData.find((record) =>
+        String(record.DeliveryID) === button.dataset.deliveryId);
+    if (!delivery) {
+        return;
+    }
+
+    const modal = root.querySelector('#signatureViewModal');
+    const info = root.querySelector('#signatureViewInfo');
+    const image = root.querySelector('#signatureViewImage');
+    const empty = root.querySelector('#signatureViewEmpty');
+
+    info.textContent = delivery.ARCode + ' \u00b7 loading signature\u2026';
+    image.hidden = true;
+    image.removeAttribute('src');
+    empty.textContent =
+        'No signature image is stored for this acknowledgement receipt.';
+    empty.classList.add('u-hidden');
+    modal.classList.remove('u-hidden');
+
+    invoke('DeliverySignature', { deliveryID: String(delivery.DeliveryID) })
+        .then((result) => {
+            const signature = result?.signature;
+            const data = signature?.SignatureData;
+
+            // Kani nga guard kay para data:image/ ra ang ibutang sa img src.
+            if (!signature || !data || !data.startsWith('data:image/')) {
+                info.textContent =
+                    delivery.ARCode + ' (requisition #' + delivery.RequisitionID + ')';
+                empty.classList.remove('u-hidden');
+                return;
+            }
+
+            info.textContent =
+                signature.ARCode + ' \u00b7 signed by ' +
+                (signature.SignedByName || 'unknown user') + ' on ' +
+                formatDate(signature.SignedDate, true);
+            image.src = data;
+            image.hidden = false;
+        })
+        .catch((error) => {
+            info.textContent =
+                delivery.ARCode + ' (requisition #' + delivery.RequisitionID + ')';
+            empty.textContent = error.message;
+            empty.classList.remove('u-hidden');
+        });
+}
+
+/**
+ * Kani nga wiring kay para sa signature view modal (closers ug overlay).
+ */
+function wireSignatureViewModal(root) {
+    const modal = root.querySelector('#signatureViewModal');
+    const image = root.querySelector('#signatureViewImage');
+
+    const closeModal = () => {
+        modal.classList.add('u-hidden');
+        // Kani nga cleanup kay para dili mag-stay ang dako nga data URL
+        // sa DOM human ma-close.
+        image.removeAttribute('src');
+    };
+
+    root.querySelector('#btnCloseSignatureView')?.addEventListener('click', closeModal);
+    root.querySelector('#btnCloseSignatureViewFooter')?.addEventListener('click', closeModal);
+    modal?.addEventListener('click', (event) => {
+        if (event.target === modal) {
+            closeModal();
+        }
+    });
+}
+
+/**
  * Kani nga helper nag-format sa date para sa display (/Date(ticks)/ format).
  */
 function formatDate(value, withTime) {
