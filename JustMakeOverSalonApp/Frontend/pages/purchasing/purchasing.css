@@ -444,3 +444,64 @@ dialog.purchasing-remove-dialog {
         display: none !important;
     }
 }
+
+/* Purchasing buttons matching the orange Select style. */
+.purchasing-page button,
+.purchasing-page a.purchasing-email {
+    padding: 9px 14px;
+    border: 1px solid #ffb43b;
+    border-radius: 10px;
+    background: #ffb43b;
+    color: #172333;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    box-shadow: 0 3px 9px rgb(255 180 59 / 28%);
+    transition: background-color 150ms ease, box-shadow 150ms ease;
+}
+
+    .purchasing-page button:hover:not(:disabled),
+    .purchasing-page a.purchasing-email:hover {
+        background: #f5a623;
+        border-color: #f5a623;
+        box-shadow: 0 4px 12px rgb(245 166 35 / 35%);
+    }
+
+    .purchasing-page button:disabled {
+        background: #f1f3f5;
+        border-color: #dce3ec;
+        color: #8a97a6;
+        opacity: 1;
+        cursor: not-allowed;
+        box-shadow: none;
+    }
+
+    .purchasing-page button:focus-visible,
+    .purchasing-page a.purchasing-email:focus-visible {
+        outline: 3px solid #155e86;
+        outline-offset: 3px;
+    }
+
+/* Keep Close in the removal dialog as a plain secondary action. */
+dialog.purchasing-remove-dialog button.purchasing-remove-cancel {
+    background: transparent;
+    border-color: transparent;
+    color: #263449;
+    box-shadow: none;
+}
+
+    dialog.purchasing-remove-dialog button.purchasing-remove-cancel:hover {
+        background: #f3f4f6;
+        border-color: transparent;
+        box-shadow: none;
+    }
+
+/* System-generated reference: visible but not interactive. */
+.purchasing-page #deliveryReference {
+    background: #f3f6fa;
+    color: #526477;
+    cursor: default;
+    pointer-events: none;
+}
