@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/Database/">
+    <File Path="Database/Migrations/V000_BaseSchema.sql" />
     <File Path="Database/Migrations/V001_UserManagementAuditDashboard.sql" />
     <File Path="Database/Migrations/V002_UserRoleManagement.sql" />
     <File Path="Database/Migrations/V003_Inventory.sql" />
@@ -20,6 +21,7 @@
     <File Path="Database/Migrations/V018_FlowDeviationFixes.sql" />
     <File Path="Database/Migrations/V019_DeliverySignatureView.sql" />
     <File Path="Database/Migrations/V019_PurchasingDeliveryReference.sql" />
+    <File Path="Database/Migrations/V020_MissingStoredProcedures.sql" />
   </Folder>
   <Project Path="JustMakeOverSalonApp.Core/JustMakeOverSalonApp.Core.csproj" Id="8b2c0d5e-4a31-4f7b-9e6c-1d2a5f84b7a9" />
   <Project Path="JustMakeOverSalonApp.Delivery/JustMakeOverSalonApp.Delivery.csproj" Id="a1000000-0000-4000-9000-000000000004" />
