@@ -111,6 +111,43 @@ function canEditQuotations(view, prID) {
     );
 }
 
+// Kini nga check kay nag-mirror sa guards sa stored procedure (50506,
+// 50509, 50511) aron validation message lang ang ipakita sa user kung
+// wala pa ma-compare ug ma-recommend ang quotations.
+function createPOBlockReason(view, prID) {
+    if (!prID) {
+        return 'Please select a Purchase Request first.';
+    }
+
+    const pr = view.data?.requests.find((row) => row.PRID === prID);
+    if (!pr || pr.Status !== 'Open') {
+        return 'Select an open Purchase Request.';
+    }
+
+    const quotations = view.data.quotations.filter(
+        (row) => row.PRID === prID);
+
+    if (quotations.length < 1 || quotations.length > 3) {
+        return 'Record one to three quotations first.';
+    }
+
+    // Kini nga check kay parehas sa proc: ang recommended kinahanglan
+    // mao ang pinakabarato nga quotation sa aktibong supplier. Kung naay
+    // bag-o nga mas barato, kinahanglan i-compare pag-usab.
+    const winner = quotations
+        .filter((row) => row.IsActive)
+        .sort((a, b) => a.QuotedPrice - b.QuotedPrice
+            || a.QuotationID - b.QuotationID)[0];
+    const recommended = quotations.find((row) => row.IsRecommended);
+
+    if (!winner || !recommended || !recommended.IsActive
+        || recommended.QuotationID !== winner.QuotationID) {
+        return 'Compare & recommend quotations first before creating the PO.';
+    }
+
+    return '';
+}
+
 function lock(view, value) {
     view.busy = value;
     if (view.closed) return;
@@ -556,6 +593,18 @@ async function handleSubmit(view, event) {
             price: values.price
         });
     } else if (form.id === 'createPOForm') {
+        // Diri nato i-check daan ang compare/recommend state. Kung
+        // kulang, validation message lang — dili na mo-abot sa database.
+        const blocked = createPOBlockReason(view, prID);
+
+        if (blocked) {
+            // Toast kay fixed-position, makita bisan naka-scroll pa
+            // ang user didto sa Create PO nga button.
+            say(view, blocked);
+            showPurchasingToast(view, blocked, true, 'Create PO');
+            return;
+        }
+
         await act(view, 'CreatePO', { prID, ...values });
     } else if (form.id === 'budgetForm') {
         await act(view, 'SetBudget', values);
@@ -847,7 +896,7 @@ function printOrder(view, order) {
 }
 
 // Displays a temporary notification in the upper-right corner.
-function showPurchasingToast(view, message, isError = false) {
+function showPurchasingToast(view, message, isError = false, titleText = '') {
     if (view.closed) return;
 
     // Replace the previous notification.
@@ -868,9 +917,10 @@ function showPurchasingToast(view, message, isError = false) {
     const content = document.createElement('div');
 
     const title = document.createElement('strong');
-    title.textContent = isError
-        ? 'Comparison failed'
-        : 'Comparison completed';
+    title.textContent = titleText
+        || (isError
+            ? 'Comparison failed'
+            : 'Comparison completed');
 
     const text = document.createElement('p');
     text.textContent = message;

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.SqlClient;
 using System.Threading.Tasks;
 using JustMakeOverSalonApp.Core.Models;
 using JustMakeOverSalonApp.Core.Validation;
@@ -50,7 +51,10 @@ namespace JustMakeOverSalonApp.Purchasing.Services
                     "You do not have permission to view Purchasing.");
             }
 
-            return Task.Run(() => repository.Load(actor.UserID));
+            // Kini nga call kay direkta na (walay Task.Run) kay ang Bridge
+            // mo-dispatch na sa background thread. Ang nested Task.Run maoy
+            // naka-lamoy sa SqlException sa THROW sa stored procedure.
+            return Task.FromResult(repository.Load(actor.UserID));
         }
 
         public Task<Dictionary<string, object>> ExecuteAsync(
@@ -68,11 +72,21 @@ namespace JustMakeOverSalonApp.Purchasing.Services
 
             // SQL rechecks live permissions and record status.
             // Use the authenticated user, not a browser-supplied ID.
-            return Task.Run(() =>
-                repository.Execute(
-                    actor.UserID,
-                    action,
-                    payloadJson));
+            try
+            {
+                return Task.FromResult(
+                    repository.Execute(
+                        actor.UserID,
+                        action,
+                        payloadJson));
+            }
+            catch (SqlException sqlError) when (sqlError.Number >= 50000)
+            {
+                // Ang THROW sa stored procedure kay validation man, dili
+                // crash. I-convert kini ngadto sa BusinessException aron
+                // mensahe lang ang makita sa UI.
+                throw new BusinessException(sqlError.Message);
+            }
         }
 
         private static void RequireActor(CurrentUser actor)
