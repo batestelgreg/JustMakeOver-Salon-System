@@ -32,6 +32,23 @@ namespace JustMakeOverSalonApp.Delivery.Models
         public string DiscrepancyNotes { get; set; }
         public string Status { get; set; }
         public string ItemsSummary { get; set; }
+
+        // Kani nga flag kay gikan sa proc (ESignatureData IS NULL) para
+        // mahibalo ang UI kung naay "View signature" nga maipakita.
+        public bool HasSignature { get; set; }
+    }
+
+    // Kani nga model kay para sa on-demand signature view sa usa ka AR.
+    public sealed class DeliverySignatureRecord
+    {
+        public int DeliveryID { get; set; }
+        public string ARCode { get; set; }
+        public string Status { get; set; }
+        public DateTime? SignedDate { get; set; }
+        public string SignedByName { get; set; }
+
+        // Kani nga string kay PNG data URL (data:image/png;base64,...).
+        public string SignatureData { get; set; }
     }
 
     // Kani nga model kay nagdala sa TANANG page data sa usa ka

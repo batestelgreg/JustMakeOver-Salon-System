@@ -161,4 +161,28 @@
             </div>
         </div>
     </div>
+
+    <!-- Kani nga modal kay para sa "View signature" sa completed AR.
+         On-demand ang fetch (DeliverySignature) para dili mo-bug-at
+         ang page load. -->
+    <div id="signatureViewModal" class="modal-overlay u-hidden">
+        <div class="modal">
+            <div class="modal__header">
+                <h3 class="modal__title">Acknowledgement Receipt Signature</h3>
+                <button type="button" class="modal__close" id="btnCloseSignatureView" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal__body">
+                <p class="u-text-muted u-mb-4" id="signatureViewInfo"></p>
+                <div class="signature-view">
+                    <img id="signatureViewImage" class="signature-view__image" alt="Signature" hidden>
+                    <p id="signatureViewEmpty" class="u-text-muted u-hidden" style="margin: 0;">
+                        No signature image is stored for this acknowledgement receipt.
+                    </p>
+                </div>
+            </div>
+            <div class="modal__footer">
+                <button type="button" class="btn btn--ghost" id="btnCloseSignatureViewFooter">Close</button>
+            </div>
+        </div>
+    </div>
 </div>

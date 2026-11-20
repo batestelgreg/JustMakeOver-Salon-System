@@ -156,6 +156,39 @@ namespace JustMakeOverSalonApp.Delivery.Repositories
             }
         }
 
+        // Kani nga method nagkuha sa on-demand signature sa AR (para sa
+        // "View signature" modal). Dili ni mo-apil sa page load.
+        public DeliverySignatureRecord GetSignature(int actorUserID, int deliveryID)
+        {
+            using (var connection = connectionFactory.CreateOpenConnection())
+            using (var command = new SqlCommand("usp_Delivery_GetSignature", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            })
+            {
+                command.Parameters.Add("@ActorUserID", SqlDbType.Int).Value = actorUserID;
+                command.Parameters.Add("@DeliveryID", SqlDbType.Int).Value = deliveryID;
+
+                using (var reader = command.ExecuteReader())
+                {
+                    if (!reader.Read())
+                    {
+                        return null;
+                    }
+
+                    return new DeliverySignatureRecord
+                    {
+                        DeliveryID = reader.GetInt32(0),
+                        ARCode = reader.GetString(1),
+                        Status = reader.GetString(2),
+                        SignedDate = reader.IsDBNull(3) ? (DateTime?)null : reader.GetDateTime(3),
+                        SignedByName = reader.IsDBNull(4) ? null : reader.GetString(4),
+                        SignatureData = reader.IsDBNull(5) ? null : reader.GetString(5)
+                    };
+                }
+            }
+        }
+
         // Kani nga mapper nag-convert sa row ngadto sa AllocatedRequisitionRecord.
         private static AllocatedRequisitionRecord MapAllocated(SqlDataReader reader)
         {
@@ -185,7 +218,8 @@ namespace JustMakeOverSalonApp.Delivery.Repositories
                 SignedByName = reader.IsDBNull(7) ? null : reader.GetString(7),
                 DiscrepancyNotes = reader.IsDBNull(8) ? null : reader.GetString(8),
                 Status = reader.GetString(9),
-                ItemsSummary = reader.IsDBNull(10) ? null : reader.GetString(10)
+                ItemsSummary = reader.IsDBNull(10) ? null : reader.GetString(10),
+                HasSignature = !reader.IsDBNull(11) && reader.GetBoolean(11)
             };
         }
     }
