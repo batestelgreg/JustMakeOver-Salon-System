@@ -68,10 +68,13 @@ namespace JustMakeOverSalonApp.Delivery.Services
             return Task.CompletedTask;
         }
 
-        // Kani nga method nag-note discrepancy sa AR (discrepancy branch).
+        // Kani nga method nag-note discrepancy sa AR (NO branch sa diamond).
+        // Ang delivery.view ra ang i-require dinhi kay ang DB mismo ang
+        // nag-decide kung ang actor kay delivery manager o ang requestor
+        // sa AR (Figure 10: "Staff notes discrepancy on the AR").
         public Task NoteDiscrepancyAsync(CurrentUser actor, int deliveryID, string notes)
         {
-            actor.RequirePermission(PermissionCodes.DeliveryManage);
+            actor.RequirePermission(PermissionCodes.DeliveryView);
 
             if (deliveryID <= 0)
             {
@@ -87,11 +90,34 @@ namespace JustMakeOverSalonApp.Delivery.Services
             return Task.CompletedTask;
         }
 
-        // Kani nga method nag-complete sa AR: e-sign + deduction +
-        // requisition Fulfilled + requester notification.
-        public Task CompleteAsync(CurrentUser actor, int deliveryID, string signature)
+        // Kani nga method nag-record sa "item replaced or record corrected"
+        // step sa Figure 10. Kinahanglan ni sa dili pa ma-reissue ang AR.
+        public Task RecordCorrectionAsync(CurrentUser actor, int deliveryID, string notes)
         {
             actor.RequirePermission(PermissionCodes.DeliveryManage);
+
+            if (deliveryID <= 0)
+            {
+                throw new BusinessException("A valid acknowledgement receipt is required.");
+            }
+
+            if (string.IsNullOrWhiteSpace(notes))
+            {
+                throw new BusinessException("The correction details are required.");
+            }
+
+            repository.RecordCorrection(actor.UserID, deliveryID, notes.Trim());
+            return Task.CompletedTask;
+        }
+
+        // Kani nga method nag-complete sa AR: e-sign + deduction +
+        // requisition Fulfilled + requester notification.
+        // delivery.view ra ang i-require dinhi kay ang DB mismo ang
+        // nag-decide kung ang actor kay delivery manager o ang requestor
+        // sa AR (Figure 10: "Staff e-signs the AR").
+        public Task CompleteAsync(CurrentUser actor, int deliveryID, string signature)
+        {
+            actor.RequirePermission(PermissionCodes.DeliveryView);
 
             if (deliveryID <= 0)
             {

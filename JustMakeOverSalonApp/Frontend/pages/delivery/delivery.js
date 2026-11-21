@@ -42,6 +42,7 @@ export async function init(root, params = {}) {
     root.querySelector('#btnRefreshDelivery')?.addEventListener('click', refreshHandler);
 
     wireDiscrepancyModal(root);
+    wireCorrectionModal(root);
     wireDiscrepancyViewModal(root);
     wireSignModal(root);
     wireReissueModal(root);
@@ -155,43 +156,72 @@ function renderDeliveriesTable(root) {
 
         // Kani nga indicator kay para makita dayon kung naay
         // discrepancy note ang AR (NO branch sa diamond). Compact chip
-        // para dili mo-2 lines ug dili bug-at tan-awon.
-        // Kung na-resolve na pinaagi sa re-issue, lahi ang label.
+        // para dili mo-2 lines ug dili bug-at tan-awon. Tulo ka state:
+        // open (wala pa ma-correct), correction recorded, resolved.
         const hasOpenDiscrepancy = delivery.HasUnresolvedDiscrepancy === true;
+        const hasCorrection = !!delivery.CorrectedAt;
+        const canAcknowledge = delivery.CanAcknowledge === true;
         const discrepancyFlag = delivery.DiscrepancyNotes
             ? (hasOpenDiscrepancy
-                ? '<button type="button" class="badge badge--error badge-button delivery-discrepancy-chip btn-discrepancy-view" ' +
-                  'data-delivery-id="' + delivery.DeliveryID + '" ' +
-                  'title="Click to view the discrepancy details.">Discrepancy open</button>'
+                ? (hasCorrection
+                    ? '<button type="button" class="badge badge--info badge-button delivery-discrepancy-chip btn-discrepancy-view" ' +
+                      'data-delivery-id="' + delivery.DeliveryID + '" ' +
+                      'title="Click to view the discrepancy and correction details.">Correction recorded</button>'
+                    : '<button type="button" class="badge badge--error badge-button delivery-discrepancy-chip btn-discrepancy-view" ' +
+                      'data-delivery-id="' + delivery.DeliveryID + '" ' +
+                      'title="Click to view the discrepancy details.">Discrepancy open</button>')
                 : '<button type="button" class="badge badge--neutral badge-button delivery-discrepancy-chip btn-discrepancy-view" ' +
                   'data-delivery-id="' + delivery.DeliveryID + '" ' +
                   'title="Click to view the discrepancy details.">Discrepancy resolved</button>')
             : '';
 
-        // Kani nga actions kay depende sa status: Generated = mark
-        // issued; Issued = discrepancy + (re-issue kung naay open
-        // discrepancy) + sign; Completed = view signature (kung naa).
+        // Kani nga actions kay nagsunod sa Figure 10:
+        //  - Generated  = Issue items (inventory side)
+        //  - Issued     = requesting staff: Note discrepancy + Sign;
+        //                 inventory side: Record correction (kung wala pa)
+        //                 o Re-issue (kung na-record na ang correction)
+        //  - Completed  = View signature
         // Kung open ang discrepancy, ang Sign & complete kay blocked
-        // (Figure 10 NO branch: i-issue pag-usab una).
+        // hangtud ma-correct ug ma-reissue ang AR.
         let actions = '\u2014';
         if (canManage && delivery.Status === 'Generated') {
             actions = '<button type="button" class="btn btn-action-box btn-mark-issued" data-delivery-id="' +
-                delivery.DeliveryID + '">Mark as issued</button>';
-        } else if (canManage && delivery.Status === 'Issued') {
-            actions =
-                '<button type="button" class="btn btn-action-box btn-discrepancy" data-delivery-id="' +
-                delivery.DeliveryID + '">Note discrepancy</button>' +
-                (hasOpenDiscrepancy
-                    ? '<button type="button" class="btn btn-action-box btn-reissue" data-delivery-id="' +
-                      delivery.DeliveryID + '">Re-issue</button>'
-                    : '') +
-                (hasOpenDiscrepancy
+                delivery.DeliveryID + '" title="Issue the items to the requesting department.">' +
+                'Issue items</button>';
+        } else if (delivery.Status === 'Issued') {
+            const parts = [];
+
+            if (canAcknowledge) {
+                parts.push(
+                    '<button type="button" class="btn btn-action-box btn-discrepancy" data-delivery-id="' +
+                    delivery.DeliveryID + '">Note discrepancy</button>');
+            }
+
+            if (canManage && hasOpenDiscrepancy && !hasCorrection) {
+                parts.push(
+                    '<button type="button" class="btn btn-action-box btn-correction" data-delivery-id="' +
+                    delivery.DeliveryID + '">Record correction</button>');
+            }
+
+            if (canManage && hasOpenDiscrepancy && hasCorrection) {
+                parts.push(
+                    '<button type="button" class="btn btn-action-box btn-reissue" data-delivery-id="' +
+                    delivery.DeliveryID + '">Re-issue</button>');
+            }
+
+            if (canAcknowledge) {
+                parts.push(hasOpenDiscrepancy
                     ? '<button type="button" class="btn btn-action-box btn-sign-blocked" data-delivery-id="' +
                       delivery.DeliveryID + '" ' +
-                      'title="Re-issue the acknowledgement receipt after the item is replaced or the record is corrected.">' +
+                      'title="Record the correction and re-issue the receipt before signing.">' +
                       'Sign &amp; complete</button>'
                     : '<button type="button" class="btn btn-action-box btn-sign" data-delivery-id="' +
                       delivery.DeliveryID + '">Sign &amp; complete</button>');
+            }
+
+            if (parts.length > 0) {
+                actions = parts.join('');
+            }
         } else if (delivery.Status === 'Completed' && delivery.HasSignature) {
             actions = '<button type="button" class="btn btn-action-box btn-view-signature" data-delivery-id="' +
                 delivery.DeliveryID + '">View signature</button>';
@@ -227,28 +257,35 @@ function renderDeliveriesTable(root) {
         button.addEventListener('click', () => openSignatureViewModal(root, button));
     });
 
+    // Kani nga wiring kay para sa Note discrepancy ug Sign & complete.
+    // Pwede ni sa requesting staff (CanAcknowledge gikan sa DB) o sa
+    // delivery manager, mao nga wala ni gibutang sa canManage block.
+    body.querySelectorAll('.btn-discrepancy').forEach((button) => {
+        button.addEventListener('click', () => openDiscrepancyModal(root, button));
+    });
+    body.querySelectorAll('.btn-sign').forEach((button) => {
+        button.addEventListener('click', () => openSignModal(root, button));
+    });
+
+    // Kani nga blocked button kay naa pa'y open discrepancy: magpakita
+    // og validation message imbes nga mo-open sa sign modal.
+    body.querySelectorAll('.btn-sign-blocked').forEach((button) => {
+        button.addEventListener('click', () => {
+            showToast(
+                'error',
+                'A discrepancy is still open. Record the correction if needed, then re-issue the acknowledgement receipt before signing.');
+        });
+    });
+
     if (canManage) {
         body.querySelectorAll('.btn-mark-issued').forEach((button) => {
             button.addEventListener('click', () => handleMarkIssued(root, button));
         });
-        body.querySelectorAll('.btn-discrepancy').forEach((button) => {
-            button.addEventListener('click', () => openDiscrepancyModal(root, button));
-        });
-        body.querySelectorAll('.btn-sign').forEach((button) => {
-            button.addEventListener('click', () => openSignModal(root, button));
+        body.querySelectorAll('.btn-correction').forEach((button) => {
+            button.addEventListener('click', () => openCorrectionModal(root, button));
         });
         body.querySelectorAll('.btn-reissue').forEach((button) => {
             button.addEventListener('click', () => openReissueModal(root, button));
-        });
-
-        // Kani nga blocked button kay naa pa'y open discrepancy: magpakita
-        // og validation message imbes nga mo-open sa sign modal.
-        body.querySelectorAll('.btn-sign-blocked').forEach((button) => {
-            button.addEventListener('click', () => {
-                showToast(
-                    'error',
-                    'A discrepancy is still open. Re-issue the acknowledgement receipt after the item is replaced or the record is corrected.');
-            });
         });
     }
 }
@@ -350,6 +387,71 @@ function wireDiscrepancyModal(root) {
 }
 
 /**
+ * Kani nga modal kay para sa "item replaced or record corrected"
+ * step sa Figure 10 (inventory side).
+ */
+function openCorrectionModal(root, button) {
+    const delivery = deliveriesData.find((record) =>
+        String(record.DeliveryID) === button.dataset.deliveryId);
+    if (!delivery) {
+        return;
+    }
+
+    root.querySelector('#correctionDeliveryID').value = String(delivery.DeliveryID);
+    root.querySelector('#correctionARInfo').textContent =
+        'Acknowledgement receipt ' + delivery.ARCode + ' (requisition #' + delivery.RequisitionID + ').';
+    root.querySelector('#txtCorrectionNotes').value = delivery.CorrectionNotes || '';
+    root.querySelector('#errorCorrectionNotes').textContent = '';
+    root.querySelector('#correctionModal').classList.remove('u-hidden');
+}
+
+/**
+ * Kani nga wiring kay para sa correction modal (closers, overlay
+ * click, ug submit). Ang gisave dinhi kay ang record sa item
+ * replacement/record correction nga gikinahanglan sa Re-issue.
+ */
+function wireCorrectionModal(root) {
+    const closeModal = () => {
+        root.querySelector('#correctionModal').classList.add('u-hidden');
+    };
+
+    root.querySelector('#btnCloseCorrectionModal')?.addEventListener('click', closeModal);
+    root.querySelector('#btnCancelCorrection')?.addEventListener('click', closeModal);
+    root.querySelector('#correctionModal')?.addEventListener('click', (event) => {
+        if (event.target === root.querySelector('#correctionModal')) {
+            closeModal();
+        }
+    });
+
+    root.querySelector('#correctionForm')?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        const deliveryID = root.querySelector('#correctionDeliveryID').value;
+        const notes = root.querySelector('#txtCorrectionNotes').value.trim();
+        const saveButton = root.querySelector('#btnSaveCorrection');
+
+        if (!notes) {
+            root.querySelector('#errorCorrectionNotes').textContent =
+                'The correction details are required.';
+            return;
+        }
+        root.querySelector('#errorCorrectionNotes').textContent = '';
+
+        saveButton.disabled = true;
+        try {
+            await invoke('DeliveryRecordCorrection', { deliveryID, notes });
+            showToast('success', 'The correction was recorded. The receipt can now be re-issued.');
+            closeModal();
+            await reloadAll(root);
+        } catch (error) {
+            showToast('error', error.message);
+        } finally {
+            saveButton.disabled = false;
+        }
+    });
+}
+
+/**
  * Kani nga modal kay read-only view sa discrepancy note. Ang badge
  * mismo ang clickable kay dili na kinahanglan mag-edit para makita
  * ang detalye sa discrepancy.
@@ -365,8 +467,21 @@ function openDiscrepancyViewModal(root, button) {
         'Acknowledgement receipt ' + delivery.ARCode +
         ' (requisition #' + delivery.RequisitionID + ') \u00b7 ' +
         delivery.Status;
-    root.querySelector('#discrepancyViewNotes').textContent =
-        delivery.DiscrepancyNotes || '';
+
+    // Kani nga lines kay nagpakita sa note ug, kung naa, ang correction
+    // record (item replacement/record correction) ug resolved stamp.
+    const lines = [delivery.DiscrepancyNotes || ''];
+    if (delivery.CorrectedAt) {
+        lines.push(
+            'Correction recorded' +
+            (delivery.CorrectedByName ? ' by ' + delivery.CorrectedByName : '') +
+            ' \u00b7 ' + formatDate(delivery.CorrectedAt, true) +
+            (delivery.CorrectionNotes ? '\n' + delivery.CorrectionNotes : ''));
+    }
+    if (delivery.DiscrepancyResolvedAt) {
+        lines.push('Resolved \u00b7 ' + formatDate(delivery.DiscrepancyResolvedAt, true));
+    }
+    root.querySelector('#discrepancyViewNotes').textContent = lines.join('\n\n');
     root.querySelector('#discrepancyViewModal').classList.remove('u-hidden');
 }
 

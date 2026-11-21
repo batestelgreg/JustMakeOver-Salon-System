@@ -120,6 +120,24 @@ namespace JustMakeOverSalonApp.Delivery.Repositories
             }
         }
 
+        // Kani nga method nag-record sa "item replaced or record corrected"
+        // step sa Figure 10. Kini ang required sa dili pa ma-reissue.
+        public void RecordCorrection(int actorUserID, int deliveryID, string notes)
+        {
+            using (var connection = connectionFactory.CreateOpenConnection())
+            using (var command = new SqlCommand("usp_Delivery_RecordCorrection", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            })
+            {
+                command.Parameters.Add("@ActorUserID", SqlDbType.Int).Value = actorUserID;
+                command.Parameters.Add("@DeliveryID", SqlDbType.Int).Value = deliveryID;
+                command.Parameters.Add("@Notes", SqlDbType.NVarChar, 500).Value = notes;
+
+                command.ExecuteNonQuery();
+            }
+        }
+
         // Kani nga method nag-complete sa AR: e-sign + stock deduction +
         // requisition Fulfilled + requester notification (usa ka call).
         // Ang signature kay PNG data URL nga gikan sa signature pad.
@@ -221,7 +239,11 @@ namespace JustMakeOverSalonApp.Delivery.Repositories
                 ItemsSummary = reader.IsDBNull(10) ? null : reader.GetString(10),
                 HasSignature = !reader.IsDBNull(11) && reader.GetBoolean(11),
                 HasUnresolvedDiscrepancy = !reader.IsDBNull(12) && reader.GetBoolean(12),
-                DiscrepancyResolvedAt = reader.IsDBNull(13) ? (DateTime?)null : reader.GetDateTime(13)
+                DiscrepancyResolvedAt = reader.IsDBNull(13) ? (DateTime?)null : reader.GetDateTime(13),
+                CanAcknowledge = !reader.IsDBNull(14) && reader.GetBoolean(14),
+                CorrectedAt = reader.IsDBNull(15) ? (DateTime?)null : reader.GetDateTime(15),
+                CorrectionNotes = reader.IsDBNull(16) ? null : reader.GetString(16),
+                CorrectedByName = reader.IsDBNull(17) ? null : reader.GetString(17)
             };
         }
     }

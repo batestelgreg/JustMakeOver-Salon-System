@@ -24,6 +24,7 @@ namespace JustMakeOverSalonApp.Delivery.Operations
             registry.Register("DeliveryGenerate", HandleDeliveryGenerateAsync);
             registry.Register("DeliveryMarkIssued", HandleDeliveryMarkIssuedAsync);
             registry.Register("DeliveryNoteDiscrepancy", HandleDeliveryNoteDiscrepancyAsync);
+            registry.Register("DeliveryRecordCorrection", HandleDeliveryRecordCorrectionAsync);
             registry.Register("DeliveryComplete", HandleDeliveryCompleteAsync);
             registry.Register("DeliveryReissue", HandleDeliveryReissueAsync);
             registry.Register("DeliverySignature", HandleDeliverySignatureAsync);
@@ -78,6 +79,18 @@ namespace JustMakeOverSalonApp.Delivery.Operations
             var notes = context.GetValueAsString(payload, "notes");
 
             await service.NoteDiscrepancyAsync(actor, deliveryID, notes);
+            context.SendResponse(requestID, true, null, null);
+        }
+
+        // Kani nga handler nag-record sa item replacement/record
+        // correction (ang box tali sa NO ug "Issue items" sa Figure 10).
+        private async Task HandleDeliveryRecordCorrectionAsync(Dictionary<string, object> payload, string requestID)
+        {
+            var actor = context.RequireUser();
+            var deliveryID = ParseID(context.GetValueAsString(payload, "deliveryID"));
+            var notes = context.GetValueAsString(payload, "notes");
+
+            await service.RecordCorrectionAsync(actor, deliveryID, notes);
             context.SendResponse(requestID, true, null, null);
         }
 

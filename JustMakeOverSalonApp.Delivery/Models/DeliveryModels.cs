@@ -44,6 +44,16 @@ namespace JustMakeOverSalonApp.Delivery.Models
         // Kani nga timestamp kay kanus-a na-close ang discrepancy pinaagi
         // sa re-issue (Status -> Generated -> Issued pag-usab).
         public DateTime? DiscrepancyResolvedAt { get; set; }
+
+        // Kani nga flag kay gikan sa proc: ang actor mismo (requesting
+        // staff o delivery manager) ang makabuhat sa note + e-sign.
+        public bool CanAcknowledge { get; set; }
+
+        // Kani nga mga field kay ang "item replaced or record corrected"
+        // step sa Figure 10 (item replacement/record correction record).
+        public DateTime? CorrectedAt { get; set; }
+        public string CorrectionNotes { get; set; }
+        public string CorrectedByName { get; set; }
     }
 
     // Kani nga model kay para sa on-demand signature view sa usa ka AR.
