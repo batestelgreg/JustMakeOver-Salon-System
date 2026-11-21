@@ -37,7 +37,7 @@
     <!-- Kani nga card kay para sa AR records (open ug completed). -->
     <div class="card u-mt-6">
         <h3 class="delivery-panel-title">Acknowledgement Receipts</h3>
-        <p class="delivery-panel-subtitle">Issue the items, check them against the AR, then sign to complete the delivery.</p>
+        <p class="delivery-panel-subtitle">Issue the items, check them against the AR, record any correction, then sign to complete the delivery.</p>
         <div class="data-table">
             <table id="deliveriesTable">
                 <thead>
@@ -80,12 +80,43 @@
                     </div>
                     <p class="u-text-muted" style="font-size: 12px;">
                         The inventory team will be notified. The item replacement or record
-                        correction is done in the Inventory module.
+                        correction must be recorded before the receipt can be re-issued.
                     </p>
                 </div>
                 <div class="modal__footer">
                     <button type="button" class="btn btn--ghost" id="btnCancelDiscrepancy">Cancel</button>
                     <button type="submit" class="btn btn--primary" id="btnSaveDiscrepancy">Save Note</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Kani nga modal kay para sa "item replaced or record corrected"
+         box sa Figure 10 (tali sa NO ug pagbalik sa Issue items). -->
+    <div id="correctionModal" class="modal-overlay u-hidden">
+        <div class="modal">
+            <div class="modal__header">
+                <h3 class="modal__title">Record Correction</h3>
+                <button type="button" class="modal__close" id="btnCloseCorrectionModal" aria-label="Close">&times;</button>
+            </div>
+            <form id="correctionForm" novalidate>
+                <div class="modal__body">
+                    <input type="hidden" id="correctionDeliveryID" value="">
+                    <p class="u-text-muted u-mb-4" id="correctionARInfo"></p>
+                    <div class="form-field">
+                        <label class="form-field__label" for="txtCorrectionNotes">Correction details</label>
+                        <textarea id="txtCorrectionNotes" class="form-field__input" rows="4"
+                                  maxlength="500" placeholder="Describe the item replacement or record correction&hellip;"></textarea>
+                        <span class="form-field__error" id="errorCorrectionNotes"></span>
+                    </div>
+                    <p class="u-text-muted" style="font-size: 12px;">
+                        Save this after the item is replaced or the record is corrected. The receipt
+                        can then be re-issued so the items are issued to the department again.
+                    </p>
+                </div>
+                <div class="modal__footer">
+                    <button type="button" class="btn btn--ghost" id="btnCancelCorrection">Cancel</button>
+                    <button type="submit" class="btn btn--primary" id="btnSaveCorrection">Save Correction</button>
                 </div>
             </form>
         </div>
