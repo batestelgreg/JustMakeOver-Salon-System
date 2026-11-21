@@ -43,6 +43,19 @@
     cursor: not-allowed;
 }
 
+/* Kani nga blocked sign button kay naa pa'y open discrepancy:
+   parehas og tan-aw sa disabled pero pwede i-click para makita
+   ang rason (toast) imbes nga mo-open sa sign modal. */
+.delivery-page .btn-action-box.btn-sign-blocked {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.delivery-page .btn-action-box.btn-sign-blocked:hover {
+    border-color: var(--color-border);
+    color: var(--color-text-muted);
+}
+
 /* Kani nga gap kay para sa duha ka action buttons sa usa ka cell. */
 .delivery-page .delivery-actions {
     white-space: nowrap;

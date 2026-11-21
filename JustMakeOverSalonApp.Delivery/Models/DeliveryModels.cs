@@ -36,6 +36,14 @@ namespace JustMakeOverSalonApp.Delivery.Models
         // Kani nga flag kay gikan sa proc (ESignatureData IS NULL) para
         // mahibalo ang UI kung naay "View signature" nga maipakita.
         public bool HasSignature { get; set; }
+
+        // Kani nga flag kay gikan sa proc: naay discrepancy note nga wala
+        // pa na-resolve. Kung true, dili pwede mo-sign & complete.
+        public bool HasUnresolvedDiscrepancy { get; set; }
+
+        // Kani nga timestamp kay kanus-a na-close ang discrepancy pinaagi
+        // sa re-issue (Status -> Generated -> Issued pag-usab).
+        public DateTime? DiscrepancyResolvedAt { get; set; }
     }
 
     // Kani nga model kay para sa on-demand signature view sa usa ka AR.

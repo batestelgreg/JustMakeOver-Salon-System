@@ -219,7 +219,9 @@ namespace JustMakeOverSalonApp.Delivery.Repositories
                 DiscrepancyNotes = reader.IsDBNull(8) ? null : reader.GetString(8),
                 Status = reader.GetString(9),
                 ItemsSummary = reader.IsDBNull(10) ? null : reader.GetString(10),
-                HasSignature = !reader.IsDBNull(11) && reader.GetBoolean(11)
+                HasSignature = !reader.IsDBNull(11) && reader.GetBoolean(11),
+                HasUnresolvedDiscrepancy = !reader.IsDBNull(12) && reader.GetBoolean(12),
+                DiscrepancyResolvedAt = reader.IsDBNull(13) ? (DateTime?)null : reader.GetDateTime(13)
             };
         }
     }
