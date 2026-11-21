@@ -156,15 +156,23 @@ function renderDeliveriesTable(root) {
         // Kani nga indicator kay para makita dayon kung naay
         // discrepancy note ang AR (NO branch sa diamond). Compact chip
         // para dili mo-2 lines ug dili bug-at tan-awon.
+        // Kung na-resolve na pinaagi sa re-issue, lahi ang label.
+        const hasOpenDiscrepancy = delivery.HasUnresolvedDiscrepancy === true;
         const discrepancyFlag = delivery.DiscrepancyNotes
-            ? '<button type="button" class="badge badge--error badge-button delivery-discrepancy-chip btn-discrepancy-view" ' +
-              'data-delivery-id="' + delivery.DeliveryID + '" ' +
-              'title="Click to view the discrepancy details.">Discrepancy noted</button>'
+            ? (hasOpenDiscrepancy
+                ? '<button type="button" class="badge badge--error badge-button delivery-discrepancy-chip btn-discrepancy-view" ' +
+                  'data-delivery-id="' + delivery.DeliveryID + '" ' +
+                  'title="Click to view the discrepancy details.">Discrepancy open</button>'
+                : '<button type="button" class="badge badge--neutral badge-button delivery-discrepancy-chip btn-discrepancy-view" ' +
+                  'data-delivery-id="' + delivery.DeliveryID + '" ' +
+                  'title="Click to view the discrepancy details.">Discrepancy resolved</button>')
             : '';
 
         // Kani nga actions kay depende sa status: Generated = mark
-        // issued; Issued = discrepancy + (re-issue kung naay noted
+        // issued; Issued = discrepancy + (re-issue kung naay open
         // discrepancy) + sign; Completed = view signature (kung naa).
+        // Kung open ang discrepancy, ang Sign & complete kay blocked
+        // (Figure 10 NO branch: i-issue pag-usab una).
         let actions = '\u2014';
         if (canManage && delivery.Status === 'Generated') {
             actions = '<button type="button" class="btn btn-action-box btn-mark-issued" data-delivery-id="' +
@@ -173,12 +181,17 @@ function renderDeliveriesTable(root) {
             actions =
                 '<button type="button" class="btn btn-action-box btn-discrepancy" data-delivery-id="' +
                 delivery.DeliveryID + '">Note discrepancy</button>' +
-                (delivery.DiscrepancyNotes
+                (hasOpenDiscrepancy
                     ? '<button type="button" class="btn btn-action-box btn-reissue" data-delivery-id="' +
                       delivery.DeliveryID + '">Re-issue</button>'
                     : '') +
-                '<button type="button" class="btn btn-action-box btn-sign" data-delivery-id="' +
-                delivery.DeliveryID + '">Sign &amp; complete</button>';
+                (hasOpenDiscrepancy
+                    ? '<button type="button" class="btn btn-action-box btn-sign-blocked" data-delivery-id="' +
+                      delivery.DeliveryID + '" ' +
+                      'title="Re-issue the acknowledgement receipt after the item is replaced or the record is corrected.">' +
+                      'Sign &amp; complete</button>'
+                    : '<button type="button" class="btn btn-action-box btn-sign" data-delivery-id="' +
+                      delivery.DeliveryID + '">Sign &amp; complete</button>');
         } else if (delivery.Status === 'Completed' && delivery.HasSignature) {
             actions = '<button type="button" class="btn btn-action-box btn-view-signature" data-delivery-id="' +
                 delivery.DeliveryID + '">View signature</button>';
@@ -226,6 +239,16 @@ function renderDeliveriesTable(root) {
         });
         body.querySelectorAll('.btn-reissue').forEach((button) => {
             button.addEventListener('click', () => openReissueModal(root, button));
+        });
+
+        // Kani nga blocked button kay naa pa'y open discrepancy: magpakita
+        // og validation message imbes nga mo-open sa sign modal.
+        body.querySelectorAll('.btn-sign-blocked').forEach((button) => {
+            button.addEventListener('click', () => {
+                showToast(
+                    'error',
+                    'A discrepancy is still open. Re-issue the acknowledgement receipt after the item is replaced or the record is corrected.');
+            });
         });
     }
 }
