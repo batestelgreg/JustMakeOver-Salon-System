@@ -1,4 +1,4 @@
-<!-- Kani nga receiving page kay para sa pending RepF queue ug receiving history
+<!-- Kani nga receiving page kay para sa checked supplier deliveries ug receiving history
      (flowchart Figure 8.B). Diri ra moagi ang TANANG receiving - walay duplicate
      nga receive modal sa Inventory. -->
 <div class="receiving-page">
@@ -13,10 +13,12 @@
         </div>
     </div>
 
-    <!-- Kani nga card kay para sa checked DR queue: accepted supplier
-         deliveries gikan sa Purchasing nga ready na i-receive sa stock. -->
+    <!-- Kani nga card kay ang UNA RA nga queue sa Receiving: accepted supplier
+         deliveries gikan sa Purchasing nga ready na i-receive sa stock.
+         Wala nay lain nga "Pending to Receive" table kay ang stock gikan sa
+         supplier kinahanglan moagi sa PO -> Delivery Check (Purchasing flowchart). -->
     <div class="card u-mb-6" id="checkedDRCard">
-        <h3 class="u-mb-4" style="font-size: 17px;">Checked Supplier Deliveries</h3>
+        <h3 class="u-mb-4" style="font-size: 17px;">Checked Supplier Deliveries (Pending to Receive)</h3>
         <p class="u-text-muted u-mb-4">These deliveries were checked in Purchasing. Receiving them adds the accepted quantity to stock.</p>
         <div class="data-table">
             <table id="checkedDRTable">
@@ -33,28 +35,6 @@
                 </thead>
                 <tbody id="checkedDRTableBody">
                     <tr><td colspan="7" class="data-table__empty">Loading checked deliveries&hellip;</td></tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- Kani nga card kay para sa pending queue: mga RepF nga gipa-abot pa. -->
-    <div class="card">
-        <h3 class="u-mb-4" style="font-size: 17px;">Pending to Receive</h3>
-        <div class="data-table">
-            <table id="pendingTable">
-                <thead>
-                    <tr>
-                        <th>RepF #</th>
-                        <th>Item</th>
-                        <th>Qty Remaining</th>
-                        <th>Stock Available</th>
-                        <th>Generated</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="pendingTableBody">
-                    <tr><td colspan="6" class="data-table__empty">Loading pending receipts&hellip;</td></tr>
                 </tbody>
             </table>
         </div>

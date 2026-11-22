@@ -1,6 +1,8 @@
 /**
- * Kani nga receiving page module kay para sa pending RepF queue,
- * receiving history ug pag-record sa receipts (flowchart Figure 8.B).
+ * Kani nga receiving page module kay para sa checked supplier deliveries
+ * (gikan sa Purchasing), receiving history ug manual receipts (flowchart
+ * Figure 8.B). Ang RepF dili na direkta i-receive dinhi: ang stock gikan
+ * sa supplier moagi sa PO -> Delivery Check -> Checked Supplier Deliveries.
  * ANG SUBMIT KAY MO-GAMIT SA usa ra nga engine (usp_Inventory_ReceiveStock
  * pinaagi sa ReceivingSubmit) mao nga walay duplication sa receiving flow.
  */
@@ -9,7 +11,6 @@ import { hasPermission } from '../../assets/js/core/state.js';
 import { showToast } from '../../assets/js/components/toast.js';
 import { highlightTargetRow } from '../../assets/js/core/notification-nav.js';
 
-let pendingData = [];
 let historyData = [];
 let itemsData = [];
 let checkedDRsData = [];
@@ -41,25 +42,19 @@ export async function init(root, params = {}) {
     await reloadAll(root);
 
     // Kani nga params handling kay para sa dalan gikan sa Inventory item
-    // Receive button: i-open ang matching nga pending RepF (o manual
-    // receive nga naka-preselect ang item) kung may receiving.manage.
+    // Receive button: kung naay checked DR para sa item, i-highlight kini;
+    // kung wala, i-open ang manual receive nga naka-preselect ang item.
     const itemID = Number(params?.itemID);
     if (itemID > 0 && hasPermission('receiving.manage')) {
-        const matching = pendingData.find((record) => record.ItemID === itemID);
-        if (matching) {
-            openReceiveModal(root, matching);
+        const checkedDR = checkedDRsData.find((record) => record.ItemID === itemID);
+        if (checkedDR) {
+            highlightTargetRow(root, '#checkedDRTableBody [data-drid="' + checkedDR.DRID + '"]');
         } else if (itemsData.some((item) => item.ItemID === itemID)) {
             openReceiveModal(root, null, itemID);
         }
     }
 
-    // Kani nga params handling kay para sa notification redirect
-    // (STOCK_SHORTAGE -> RefP): i-highlight ug i-scroll ang RepF row
-    // sa pending queue.
     const highlightID = Number(params?.highlight?.id);
-    if (params?.highlight?.type === 'repf' && highlightID > 0) {
-        highlightTargetRow(root, '#pendingTableBody [data-repf-id="' + highlightID + '"]', params?.notification);
-    }
 
     // Kani nga highlight kay para sa PURCHASE_DELIVERY notification:
     // checked DR row ang i-scroll ug i-highlight.
@@ -70,27 +65,20 @@ export async function init(root, params = {}) {
 
 /**
  * Kani nga reload kay nagkuha sa TANANG page data sa usa ra ka bridge call
- * (pending queue + history + items).
+ * (checked DRs + history + items).
  */
 async function reloadAll(root) {
     try {
         const overview = await invoke('ReceivingOverview');
 
-        pendingData = overview.pending || [];
         historyData = overview.history || [];
         itemsData = overview.items || [];
         checkedDRsData = overview.checkedDRs || [];
 
         renderCheckedDRTable(root);
-        renderPendingTable(root);
         renderHistoryTable(root);
     } catch (error) {
         showToast('error', error.message);
-        const body = root.querySelector('#pendingTableBody');
-        if (body) {
-            body.innerHTML = '<tr><td colspan="6" class="data-table__empty">' +
-                'The receiving data could not be loaded.</td></tr>';
-        }
         const checkedBody = root.querySelector('#checkedDRTableBody');
         if (checkedBody) {
             checkedBody.innerHTML = '<tr><td colspan="7" class="data-table__empty">' +
@@ -157,66 +145,6 @@ function renderCheckedDRTable(root) {
             receiveButton.className = 'btn btn--sm btn-action--receive';
             receiveButton.textContent = 'Receive';
             receiveButton.addEventListener('click', () => openCheckedDRModal(root, record));
-            actionsCell.appendChild(receiveButton);
-        } else {
-            actionsCell.textContent = '\u2014';
-        }
-        row.appendChild(actionsCell);
-        body.appendChild(row);
-    });
-}
-
-/**
- * Kani nga render kay para sa pending queue table.
- */
-function renderPendingTable(root) {
-    const body = root.querySelector('#pendingTableBody');
-    if (!body) {
-        return;
-    }
-
-    if (pendingData.length === 0) {
-        body.innerHTML = '<tr><td colspan="6" class="data-table__empty">' +
-            'No pending receipts. All replenishment requests have been received.</td></tr>';
-        return;
-    }
-
-    const canManage = hasPermission('receiving.manage');
-
-    body.innerHTML = '';
-    pendingData.forEach((record) => {
-        const row = document.createElement('tr');
-
-        // Kani nga data attribute kay para sa highlight targeting
-        // gikan sa notification redirect (STOCK_SHORTAGE -> RepF row).
-        row.setAttribute('data-repf-id', record.RepFID);
-
-        // Kani nga remaining kay para sa partial receive: ang qty
-        // nga nabilin = QuantityNeeded - QuantityReceived.
-        const remaining = record.QuantityNeeded - (record.QuantityReceived || 0);
-
-        const cells = [
-            'RefP-' + String(record.RepFID).padStart(4, '0'),
-            record.ItemName + ' (' + record.ItemCode + ')',
-            String(remaining) + ' ' + (record.UnitOfMeasure || ''),
-            String(record.QuantityAvailable),
-            formatDate(record.DateGenerated)
-        ];
-        cells.forEach((value) => {
-            const cell = document.createElement('td');
-            cell.textContent = value;
-            row.appendChild(cell);
-        });
-
-        // Kani nga actions cell kay para sa Receive button (navigation
-        // endpoint sa receiving flow - receive modal dinhi ra).
-        const actionsCell = document.createElement('td');
-        if (canManage) {
-            const receiveButton = document.createElement('button');
-            receiveButton.type = 'button';
-            receiveButton.className = 'btn btn--sm btn-action--receive';
-            receiveButton.textContent = 'Receive';
-            receiveButton.addEventListener('click', () => openReceiveModal(root, record));
             actionsCell.appendChild(receiveButton);
         } else {
             actionsCell.textContent = '\u2014';
@@ -372,7 +300,7 @@ function wireCheckedDRForm(root) {
  */
 function wireModalClosers(root) {
     [['#btnCloseReceiveModal', '#receiveModal'], ['#btnCancelReceive', '#receiveModal'],
-     ['#btnCloseCheckedDR', '#checkedDRModal'], ['#btnCancelCheckedDR', '#checkedDRModal']]
+    ['#btnCloseCheckedDR', '#checkedDRModal'], ['#btnCancelCheckedDR', '#checkedDRModal']]
         .forEach(([buttonSelector, modalSelector]) => {
             root.querySelector(buttonSelector)?.addEventListener('click', () => {
                 root.querySelector(modalSelector).classList.add('u-hidden');
