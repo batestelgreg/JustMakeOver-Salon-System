@@ -27,6 +27,9 @@
     <File Path="Database/Migrations/V023_AllocateZeroStockReservations.sql" />
     <File Path="Database/Migrations/V024_AllocateToOriginRequisitionFirst.sql" />
     <File Path="Database/Migrations/V025_SingleReceivingPathForPOs.sql" />
+    <File Path="Database/Migrations/V026_PurchasingWorkflow.sql" />
+    <File Path="Database/Migrations/V027_RequestorRole.sql" />
+    <File Path="Database/Migrations/V028_DeliveryRoleAccess.sql" />
   </Folder>
   <Project Path="JustMakeOverSalonApp.Core/JustMakeOverSalonApp.Core.csproj" Id="8b2c0d5e-4a31-4f7b-9e6c-1d2a5f84b7a9" />
   <Project Path="JustMakeOverSalonApp.Delivery/JustMakeOverSalonApp.Delivery.csproj" Id="a1000000-0000-4000-9000-000000000004" />
