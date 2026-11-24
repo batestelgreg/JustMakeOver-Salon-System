@@ -184,6 +184,24 @@ function canEditQuotations(view, prID) {
     );
 }
 
+// Kani nga helper kay nagpakita sa rason sa pinakabag-o nga rejected PO
+// para mahibaw-an sa Purchasing kung unsa ang usbon sa PR sa wala pa
+// i-revise. Ang DecisionReason kay gikan sa vw_PurchasingWorkspacePO.
+function lastPoResult(rejectedPoByPr, pr) {
+    if (pr.Status !== 'Rejected') {
+        return '\u2014';
+    }
+
+    const rejected = rejectedPoByPr.get(pr.PRID);
+
+    if (!rejected) {
+        return 'Rejected by approver';
+    }
+
+    return rejected.DecisionReason
+        || ('PO #' + rejected.POID + ' rejected');
+}
+
 function createPOBlockReason(view, prID) {
     if (!prID) {
         return 'Please select a Purchase Request first.';
@@ -398,7 +416,7 @@ async function act(view, action, payload = {}) {
         SetBudget: 'Budget saved',
         ApprovePO: 'Purchase Order approved',
         RejectPO: 'Purchase Order rejected',
-        RevisePR: 'Purchase Request reopened',
+        RevisePR: 'Purchase Request returned for revision',
         DispatchPO: 'Purchase Order marked as sent',
         RecordDR: 'Delivery check recorded',
         ReplacementSent: 'Replacement request recorded',
@@ -756,6 +774,22 @@ function render(view) {
     const d = view.data;
     const p = permissions(view);
 
+    // Kani nga map kay one-time lookup sa pinakabag-o nga rejected PO
+    // kada PR, para dili na mag-filter balik-balik sa tanang orders.
+    const rejectedPoByPr = new Map();
+
+    (d.orders || []).forEach((po) => {
+        if (po.Status !== 'Rejected') {
+            return;
+        }
+
+        const current = rejectedPoByPr.get(po.PRID);
+
+        if (!current || po.POID > current.POID) {
+            rejectedPoByPr.set(po.PRID, po);
+        }
+    });
+
     table(
         view,
         '#replenishmentTable',
@@ -780,7 +814,7 @@ function render(view) {
     table(
         view,
         '#requestTable',
-        ['PR', 'RepF', 'Item', 'Quantity', 'Status', 'Action'],
+        ['PR', 'RepF', 'Item', 'Quantity', 'Status', 'Last PO result', 'Action'],
         d.requests,
         (r) => [
             r.PRID,
@@ -788,15 +822,18 @@ function render(view) {
             r.ItemName,
             r.QuantityNeeded,
             r.Status,
+            lastPoResult(rejectedPoByPr, r),
 
             buttons([
                 p.CanManage
                 && r.Status === 'Rejected'
                 && !r.OriginCancelled
                 && [
-                    'Reopen for revision',
+                    'Revise PR',
                     'RevisePR',
-                    r.PRID
+                    r.PRID,
+                    'Return the rejected PR for revision, update the '
+                    + 'quotations, then create a new PO for approval.'
                 ],
 
                 canRemovePR(view, r.PRID)
