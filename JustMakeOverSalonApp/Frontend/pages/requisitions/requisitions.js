@@ -900,17 +900,17 @@ function renderRequisitionHistory(root) {
               archivedValue.toLocaleDateString() + '</span>'
             : '';
 
-        // Kani nga actions kay status-based:
-        // Rejected -> Revise + Reason; Pending/Approved -> Cancel;
+        // Kani nga actions kay status-based sa requisition mismo:
+        // Rejected -> Revise + Reason; Pending -> Cancel;
         // Cancelled/Fulfilled -> Reason (kung naay reason) o '-'.
-        const canCancel =
-            requisition.Status === 'Pending' ||
-            requisition.Status === 'Approved';
+        // Ang rejected PO dili mo-trigger og Revise/Cancel kay ang
+        // requisition wala man ma-reject — Purchasing ra ang mo-revise
+        // sa PR.
+        const canCancel = requisition.Status === 'Pending';
 
         const actionButtons = [];
 
-        if (requisition.Status === 'Rejected' ||
-            requisition.HasRejectedPurchaseOrder === true) {
+        if (requisition.Status === 'Rejected') {
             actionButtons.push(`
                 <button type="button"
                         class="btn btn--primary btn--sm revise-requisition-btn"
