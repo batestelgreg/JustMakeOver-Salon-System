@@ -166,9 +166,7 @@ function renderDeliveriesTable(root) {
 
         // The database determines receipt ownership.
         // The role check also prevents Inventory Staff acknowledgement.
-        const canAcknowledge =
-            delivery.CanAcknowledge === true &&
-            ['Admin', 'Requestor'].includes(getUser()?.role);
+        const canAcknowledge = delivery.CanAcknowledge === true;
 
         let discrepancyFlag = '';
 
