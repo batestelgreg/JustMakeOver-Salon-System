@@ -137,6 +137,9 @@ namespace JustMakeOverSalonApp.Requisition.Models
         // Current status sa requisition.
         public string Status { get; set; }
 
+        // Checks kung na-reject ba ang associated Purchase Order.
+        public bool HasRejectedPurchaseOrder { get; set; }
+
         // Kani nga duha kay para sa Reason button ug archive marker:
         // RejectionReason = rejection/cancellation reason (full text),
         // ArchivedAt = set kung Fulfilled na ang requisition.

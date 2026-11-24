@@ -39,23 +39,30 @@ namespace JustMakeOverSalonApp.Purchasing.Services
                 ?? throw new ArgumentNullException(nameof(repository));
         }
 
+
         public Task<Dictionary<string, object>> LoadAsync(
             CurrentUser actor)
         {
             RequireActor(actor);
 
-            if (!actor.HasPermission("purchasing.view")
+            bool isStaff = string.Equals(
+                actor.RoleName,
+                "Staff",
+                StringComparison.OrdinalIgnoreCase);
+
+            if (!isStaff
+                && !actor.HasPermission("purchasing.view")
                 && !actor.HasPermission("purchasing.manage"))
             {
                 throw new BusinessException(
                     "You do not have permission to view Purchasing.");
             }
 
-            // Kini nga call kay direkta na (walay Task.Run) kay ang Bridge
-            // mo-dispatch na sa background thread. Ang nested Task.Run maoy
-            // naka-lamoy sa SqlException sa THROW sa stored procedure.
+            // Staff can load the restricted workspace.
+            // The SQL procedure will limit their records to their own requests.
             return Task.FromResult(repository.Load(actor.UserID));
         }
+
 
         public Task<Dictionary<string, object>> ExecuteAsync(
             CurrentUser actor,

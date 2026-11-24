@@ -1373,23 +1373,38 @@ BEGIN
     DECLARE @Manage BIT = 0;
     DECLARE @Approve BIT = 0;
     DECLARE @Admin BIT = 0;
+    DECLARE @IsStaff BIT = 0;
 
-    IF NOT EXISTS
-    (
-        SELECT 1
-        FROM dbo.USERS u
-        INNER JOIN dbo.ROLE_PERMISSIONS rp
-            ON rp.RoleID = u.RoleID
-        INNER JOIN dbo.PERMISSIONS p
-            ON p.PermissionID = rp.PermissionID
-        WHERE u.UserID = @ActorUserID
-          AND u.IsActive = 1
-          AND p.PermissionCode IN
-          (
-              'purchasing.view',
-              'purchasing.manage'
-          )
-    )
+    SELECT
+        @IsStaff =
+            CASE
+                WHEN r.RoleName = 'Staff' THEN 1
+                ELSE 0
+            END
+    FROM dbo.USERS u
+    INNER JOIN dbo.ROLES r
+        ON r.RoleID = u.RoleID
+    WHERE u.UserID = @ActorUserID
+      AND u.IsActive = 1
+      AND r.IsActive = 1;
+
+    IF @IsStaff = 0
+       AND NOT EXISTS
+       (
+           SELECT 1
+           FROM dbo.USERS u
+           INNER JOIN dbo.ROLE_PERMISSIONS rp
+               ON rp.RoleID = u.RoleID
+           INNER JOIN dbo.PERMISSIONS p
+               ON p.PermissionID = rp.PermissionID
+           WHERE u.UserID = @ActorUserID
+             AND u.IsActive = 1
+             AND p.PermissionCode IN
+             (
+                 'purchasing.view',
+                 'purchasing.manage'
+             )
+       )
         THROW 50501,
             'You do not have permission to view Purchasing.',
             1;
@@ -1513,6 +1528,17 @@ BEGIN
         ON i.ItemID = rr.ItemID
     WHERE rr.Status = 'Pending'
       AND rr.QuantityNeeded > rr.QuantityReceived
+      AND
+      (
+          @IsStaff = 0
+          OR EXISTS
+          (
+              SELECT 1
+              FROM dbo.REQUISITIONS rq
+              WHERE rq.RequisitionID = rr.OriginRequisitionID
+                AND rq.RequestorUserID = @ActorUserID
+          )
+      )
       AND NOT EXISTS
       (
           SELECT 1
@@ -1567,6 +1593,7 @@ BEGIN
         ON rr.RepFID = pr.RepFID
     INNER JOIN dbo.ITEMS i
         ON i.ItemID = rr.ItemID
+    WHERE @IsStaff = 0
     ORDER BY pr.PRID DESC;
 
     /* Result 4: supplier quotations */
@@ -1582,6 +1609,7 @@ BEGIN
     FROM dbo.SUPPLIER_QUOTATIONS q
     INNER JOIN dbo.SUPPLIERS s
         ON s.SupplierID = q.SupplierID
+    WHERE @IsStaff = 0
     ORDER BY
         q.PRID,
         q.QuotedPrice,
@@ -1595,12 +1623,14 @@ BEGIN
         Email,
         IsActive
     FROM dbo.SUPPLIERS
+    WHERE @IsStaff = 0
     ORDER BY SupplierName;
 
     /* Result 6: purchase orders */
 
     SELECT *
     FROM dbo.vw_PurchasingWorkspacePO
+    WHERE @IsStaff = 0
     ORDER BY POID DESC;
 
     /* Result 7: budgets */
@@ -1625,6 +1655,7 @@ BEGIN
           )
     ) c
     WHERE b.IsActive = 1
+      AND @IsStaff = 0
     ORDER BY b.BudgetYear DESC;
 
     /* Result 8: delivery checks and receiving status */
@@ -1649,6 +1680,7 @@ BEGIN
         ON d.DRID = dr.DRID
     LEFT JOIN dbo.RECEIVING_MEMOS rm
         ON rm.DRID = dr.DRID
+    WHERE @IsStaff = 0
     ORDER BY dr.DRID DESC;
 
     /* Result 9: follow-up drafts */
@@ -1662,9 +1694,11 @@ BEGIN
         ON po.POID = f.POID
     INNER JOIN dbo.SUPPLIERS s
         ON s.SupplierID = po.SupplierID
+    WHERE @IsStaff = 0
     ORDER BY f.FollowupID DESC;
 END;
 GO
+
 
 /* ============================================================
    6. PR AND QUOTATION REMOVAL

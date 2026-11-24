@@ -909,7 +909,8 @@ function renderRequisitionHistory(root) {
 
         const actionButtons = [];
 
-        if (requisition.Status === 'Rejected') {
+        if (requisition.Status === 'Rejected' ||
+            requisition.HasRejectedPurchaseOrder === true) {
             actionButtons.push(`
                 <button type="button"
                         class="btn btn--primary btn--sm revise-requisition-btn"

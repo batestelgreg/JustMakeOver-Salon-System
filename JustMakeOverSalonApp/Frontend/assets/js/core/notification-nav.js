@@ -121,8 +121,7 @@ export function navigateToNotification(notification) {
 
         permission = 'delivery.view';
     } else if (type === 'STOCK_SHORTAGE') {
-        // Existing routing retained pending your colleague's decision.
-        name = 'receiving';
+        name = 'purchasing';
 
         params = {
             highlight: {
@@ -131,7 +130,7 @@ export function navigateToNotification(notification) {
             }
         };
 
-        permission = 'receiving.view';
+        permission = null;
     } else if (type === 'PURCHASE_DELIVERY') {
         name = 'receiving';
 
@@ -266,6 +265,7 @@ export function navigateToNotification(notification) {
  * @param {string} selector
  * @param {object} [notification]
  */
+
 export function highlightTargetRow(
     root,
     selector,
@@ -298,18 +298,9 @@ export function highlightTargetRow(
             block: 'center'
         });
 
-        const clearHighlight = () => {
+        // Keep the yellow highlight visible for 12 seconds.
+        setTimeout(() => {
             target.classList.remove('is-highlighted');
-
-            target.removeEventListener(
-                'animationend',
-                clearHighlight
-            );
-        };
-
-        target.addEventListener(
-            'animationend',
-            clearHighlight
-        );
+        }, 12000);
     });
 }
