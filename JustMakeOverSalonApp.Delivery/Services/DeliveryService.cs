@@ -17,7 +17,6 @@ namespace JustMakeOverSalonApp.Delivery.Services
                 throw new ArgumentNullException(nameof(repository));
         }
 
-        // Load allocated requisitions and acknowledgement receipts.
         public Task<Models.DeliveryOverview> LoadOverviewAsync(
             CurrentUser actor)
         {
@@ -27,18 +26,12 @@ namespace JustMakeOverSalonApp.Delivery.Services
                 repository.LoadOverview(actor.UserID));
         }
 
-        // Load the saved signature when requested.
         public Task<Models.DeliverySignatureRecord> GetSignatureAsync(
             CurrentUser actor,
             int deliveryID)
         {
             RequireDeliveryViewer(actor);
-
-            if (deliveryID <= 0)
-            {
-                throw new BusinessException(
-                    "A valid acknowledgement receipt is required.");
-            }
+            ValidateDeliveryID(deliveryID);
 
             return Task.FromResult(
                 repository.GetSignature(
@@ -46,7 +39,7 @@ namespace JustMakeOverSalonApp.Delivery.Services
                     deliveryID));
         }
 
-        // Inventory Staff or Admin can generate an AR.
+        // Inventory Staff or Admin generates the AR.
         public Task<Tuple<int, string>> GenerateARAsync(
             CurrentUser actor,
             int requisitionID)
@@ -65,18 +58,13 @@ namespace JustMakeOverSalonApp.Delivery.Services
                     requisitionID));
         }
 
-        // Inventory Staff or Admin can issue the items.
+        // Inventory Staff or Admin issues the items.
         public Task MarkIssuedAsync(
             CurrentUser actor,
             int deliveryID)
         {
             RequireDeliveryManager(actor);
-
-            if (deliveryID <= 0)
-            {
-                throw new BusinessException(
-                    "A valid acknowledgement receipt is required.");
-            }
+            ValidateDeliveryID(deliveryID);
 
             repository.MarkIssued(
                 actor.UserID,
@@ -85,20 +73,15 @@ namespace JustMakeOverSalonApp.Delivery.Services
             return Task.CompletedTask;
         }
 
-        // Requestor or Admin can note a discrepancy.
-        // SQL additionally verifies that the Requestor owns the receipt.
+        // Any receipt owner, or Admin, can note a discrepancy.
+        // SQL verifies ownership using the authenticated actor.UserID.
         public Task NoteDiscrepancyAsync(
             CurrentUser actor,
             int deliveryID,
             string notes)
         {
-            RequireAcknowledger(actor);
-
-            if (deliveryID <= 0)
-            {
-                throw new BusinessException(
-                    "A valid acknowledgement receipt is required.");
-            }
+            RequireDeliveryViewer(actor);
+            ValidateDeliveryID(deliveryID);
 
             if (string.IsNullOrWhiteSpace(notes))
             {
@@ -114,19 +97,14 @@ namespace JustMakeOverSalonApp.Delivery.Services
             return Task.CompletedTask;
         }
 
-        // Inventory Staff or Admin records the replacement or correction.
+        // Inventory Staff or Admin records the correction.
         public Task RecordCorrectionAsync(
             CurrentUser actor,
             int deliveryID,
             string notes)
         {
             RequireDeliveryManager(actor);
-
-            if (deliveryID <= 0)
-            {
-                throw new BusinessException(
-                    "A valid acknowledgement receipt is required.");
-            }
+            ValidateDeliveryID(deliveryID);
 
             if (string.IsNullOrWhiteSpace(notes))
             {
@@ -142,21 +120,16 @@ namespace JustMakeOverSalonApp.Delivery.Services
             return Task.CompletedTask;
         }
 
-        // Requestor or Admin can sign and complete the receipt.
-        // SQL verifies ownership, receipt status, discrepancy resolution,
-        // and stock availability before processing completion.
+        // Any receipt owner, or Admin, can sign and complete.
+        // SQL verifies ownership, status, discrepancy resolution,
+        // and stock availability.
         public Task CompleteAsync(
             CurrentUser actor,
             int deliveryID,
             string signature)
         {
-            RequireAcknowledger(actor);
-
-            if (deliveryID <= 0)
-            {
-                throw new BusinessException(
-                    "A valid acknowledgement receipt is required.");
-            }
+            RequireDeliveryViewer(actor);
+            ValidateDeliveryID(deliveryID);
 
             if (string.IsNullOrWhiteSpace(signature))
             {
@@ -186,24 +159,29 @@ namespace JustMakeOverSalonApp.Delivery.Services
             return Task.CompletedTask;
         }
 
-        // Return the corrected receipt to Generated for another issue.
+        // Inventory Staff or Admin returns the corrected AR
+        // to Generated so the items can be issued again.
         public Task ReissueAsync(
             CurrentUser actor,
             int deliveryID)
         {
             RequireDeliveryManager(actor);
-
-            if (deliveryID <= 0)
-            {
-                throw new BusinessException(
-                    "A valid acknowledgement receipt is required.");
-            }
+            ValidateDeliveryID(deliveryID);
 
             repository.Reissue(
                 actor.UserID,
                 deliveryID);
 
             return Task.CompletedTask;
+        }
+
+        private static void ValidateDeliveryID(int deliveryID)
+        {
+            if (deliveryID <= 0)
+            {
+                throw new BusinessException(
+                    "A valid acknowledgement receipt is required.");
+            }
         }
 
         private static void RequireDeliveryViewer(
@@ -237,21 +215,6 @@ namespace JustMakeOverSalonApp.Delivery.Services
                 throw new BusinessException(
                     "Only Inventory Staff or Admin can manage delivery issuance and corrections.");
             }
-        }
-
-        private static void RequireAcknowledger(
-            CurrentUser actor)
-        {
-            RequireDeliveryViewer(actor);
-
-            if (actor.RoleName != "Admin" &&
-                actor.RoleName != "Requestor")
-            {
-                throw new BusinessException(
-                    "Only the Requestor or Admin can acknowledge a delivery.");
-            }
-
-            // V028 checks receipt ownership in SQL.
         }
     }
 }
