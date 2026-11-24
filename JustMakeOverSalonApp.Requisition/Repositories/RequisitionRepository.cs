@@ -284,6 +284,21 @@ namespace JustMakeOverSalonApp.Requisition.Repositories
                     r.Status,
                     r.RejectionReason,
                     r.ArchivedAt,
+                    CASE
+                        WHEN EXISTS
+                        (
+                            SELECT 1
+                            FROM REPLENISHMENT_REQUESTS AS rr
+                            INNER JOIN PURCHASE_REQUESTS AS pr
+                                ON rr.RepFID = pr.RepFID
+                            INNER JOIN PURCHASE_ORDERS AS po
+                                ON pr.PRID = po.PRID
+                            WHERE rr.OriginRequisitionID = r.RequisitionID
+                              AND po.Status = 'Rejected'
+                        )
+                        THEN 1
+                        ELSE 0
+                    END AS HasRejectedPurchaseOrder,
                     rd.RequisitionDetailID,
                     rd.ItemID,
                     i.ItemName,
@@ -340,6 +355,8 @@ namespace JustMakeOverSalonApp.Requisition.Repositories
                                     : reader.GetString(reader.GetOrdinal("Justification")),
                                 Status = reader.GetString(
                                     reader.GetOrdinal("Status")),
+                                HasRejectedPurchaseOrder = reader.GetInt32(
+                                    reader.GetOrdinal("HasRejectedPurchaseOrder")) == 1,
                                 RejectionReason = reader.IsDBNull(
                                     reader.GetOrdinal("RejectionReason"))
                                     ? ""
