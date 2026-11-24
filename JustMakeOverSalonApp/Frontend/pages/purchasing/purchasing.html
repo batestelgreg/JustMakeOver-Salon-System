@@ -4,103 +4,172 @@
     <header class="purchasing-toolbar">
         <div>
             <h2>Purchasing</h2>
-            <p>Requests, quotations, purchase orders, and supplier follow-ups.</p>
+            <p>
+                Requests, quotations, purchase orders,
+                and supplier follow-ups.
+            </p>
         </div>
-        <button type="button" id="purchasingRefresh">Refresh</button>
+
+        <button type="button" id="purchasingRefresh">
+            Refresh
+        </button>
     </header>
 
-    <p id="purchasingMessage" role="status" aria-live="polite"></p>
+    <p id="purchasingMessage"
+       role="status"
+       aria-live="polite"></p>
 
     <section class="purchasing-panel">
         <h3>Pending replenishments</h3>
+
         <div id="replenishmentTable"></div>
 
         <h3>Purchase Requests</h3>
+
         <div id="requestTable"></div>
     </section>
 
     <section class="purchasing-panel">
         <h3>Supplier quotations</h3>
+
         <p>
-            Record one to three supplier quotations, then compare.
-            Editing a quotation clears the previous recommendation.
+            Save one to three supplier quotations.
+            A single active supplier is recommended automatically.
+            With multiple quotations, compare again after editing.
         </p>
 
-        <label for="quotationPR">Purchase Request</label>
+        <label for="quotationPR">
+            Purchase Request
+        </label>
+
         <select id="quotationPR"></select>
 
-        <form id="quotationForm" class="purchasing-form">
+        <form id="quotationForm"
+              class="purchasing-form">
             <label>
                 Supplier
-                <select id="quotationSupplier" required></select>
+
+                <select id="quotationSupplier"
+                        required></select>
             </label>
 
             <label>
                 Unit price (₱)
-                <input name="price" type="number"
-                       min="0" max="99999999.99" step="0.01" required>
+
+                <input name="price"
+                       type="number"
+                       min="0"
+                       max="99999999.99"
+                       step="0.01"
+                       required>
             </label>
 
-            <button type="submit" data-manage>Save quotation</button>
-            <button type="button" id="compareSuppliers" data-manage>
+            <button type="submit" data-manage>
+                Save quotation
+            </button>
+
+            <button type="button"
+                    id="compareSuppliers"
+                    data-manage>
                 Compare &amp; recommend
             </button>
         </form>
 
         <div id="quotationTable"></div>
 
-        <form id="createPOForm" class="purchasing-form">
+        <!-- JavaScript validates supplier quotations before
+             checking the required delivery date. -->
+        <form id="createPOForm"
+              class="purchasing-form"
+              novalidate>
             <label>
                 Expected supplier delivery
-                <input name="expectedDate" type="date" required>
+
+                <input name="expectedDate"
+                       type="date"
+                       required>
             </label>
-            <button type="submit" data-manage>Create PO</button>
+
+            <button type="submit" data-manage>
+                Create PO
+            </button>
         </form>
     </section>
 
     <section class="purchasing-panel">
         <h3>Annual purchasing budget</h3>
+
         <div id="budgetTable"></div>
 
-        <form id="budgetForm" class="purchasing-form" hidden>
+        <form id="budgetForm"
+              class="purchasing-form"
+              hidden>
             <label>
                 Budget year
-                <input name="year" type="number"
-                       min="2000" max="2100" required>
+
+                <input name="year"
+                       type="number"
+                       min="2000"
+                       max="2100"
+                       required>
             </label>
+
             <label>
                 Budget amount (₱)
-                <input name="amount" type="number"
-                       min="0" max="999999999999.99" step="0.01" required>
+
+                <input name="amount"
+                       type="number"
+                       min="0"
+                       max="999999999999.99"
+                       step="0.01"
+                       required>
             </label>
-            <button type="submit">Save budget</button>
+
+            <button type="submit">
+                Save budget
+            </button>
         </form>
     </section>
 
     <section class="purchasing-panel">
         <h3>Purchase Orders</h3>
+
         <p>
-            Approving a PO opens a supplier email draft. The system does not
-            send email automatically: send the draft in your email app, then
-            click “Mark as sent”. Printing is also available.
+            Approving a PO opens a supplier email draft.
+            The system does not send email automatically:
+            send the draft in your email app, then click
+            “Mark as sent”. Printing is also available.
         </p>
+
         <div id="orderTable"></div>
     </section>
 
     <section class="purchasing-panel">
         <h3>Supplier delivery check</h3>
+
         <p>
             Accepted items are handed to Receiving for RM processing.
-            This form does not add stock.
+            Receive accepted items first. When replacements arrive,
+            use the same PO to record another delivery check for
+            the outstanding quantity.
         </p>
 
-        <form id="receiptForm" class="purchasing-form">
+        <p id="receiptOutstanding"
+           role="status"
+           aria-live="polite"></p>
+
+        <form id="receiptForm"
+              class="purchasing-form">
             <label>
                 Purchase Order
-                <select id="receiptPO" required></select>
+
+                <select id="receiptPO"
+                        required></select>
             </label>
+
             <label>
                 Delivery reference
+
                 <input id="deliveryReference"
                        type="text"
                        value="Generated when saved"
@@ -109,56 +178,94 @@
                        autocomplete="off"
                        aria-label="Automatically generated delivery reference">
             </label>
+
             <label>
                 Delivered quantity
-                <input name="delivered" type="number" min="1" step="1" required>
+
+                <input name="delivered"
+                       type="number"
+                       min="1"
+                       step="1"
+                       required>
             </label>
+
             <label>
                 Accepted quantity
-                <input name="accepted" type="number" min="0" step="1" required>
+
+                <input name="accepted"
+                       type="number"
+                       min="0"
+                       step="1"
+                       required>
             </label>
+
             <label>
                 Rejected quantity
-                <input name="rejected" type="number"
-                       min="0" step="1" value="0" required>
+
+                <input name="rejected"
+                       type="number"
+                       min="0"
+                       step="1"
+                       value="0"
+                       required>
             </label>
+
             <label class="purchasing-wide">
                 Discrepancy or inspection notes
-                <textarea name="notes" maxlength="1000" rows="3"></textarea>
+
+                <textarea name="notes"
+                          maxlength="1000"
+                          rows="3"></textarea>
             </label>
-            <button type="submit" data-manage>Record delivery check</button>
+
+            <button type="submit" data-manage>
+                Record delivery check
+            </button>
         </form>
 
-        <div id="receiptTable"></div>   
+        <div id="receiptTable"></div>
     </section>
 
     <section class="purchasing-panel">
         <h3>Outstanding delivery follow-ups</h3>
+
         <p>
-            Refresh creates daily follow-up drafts for due POs with
-            outstanding quantities. The system does not send reminders
-            automatically — open the draft, send it, then mark the follow-up
-            as sent.
+            Refresh creates daily follow-up drafts for due POs
+            with outstanding quantities. The system does not send
+            reminders automatically. Open the draft, send it,
+            then mark the follow-up as sent.
         </p>
+
         <div id="followupTable"></div>
     </section>
 
-    <!-- Native dialog avoids browser prompt/confirm restrictions in WebView2. -->
+    <!-- Native dialog supports PO rejection in WebView2. -->
     <dialog id="purchasingDecision">
         <form id="decisionForm">
             <h3>Reject Purchase Order</h3>
+
             <label>
                 Reason
+
                 <textarea id="decisionReason"
-                          maxlength="1000" rows="4" required></textarea>
+                          maxlength="1000"
+                          rows="4"
+                          required></textarea>
             </label>
+
             <div class="purchasing-toolbar">
-                <button type="button" id="cancelDecision">Cancel</button>
-                <button type="submit">Reject PO</button>
+                <button type="button"
+                        id="cancelDecision">
+                    Cancel
+                </button>
+
+                <button type="submit">
+                    Reject PO
+                </button>
             </div>
         </form>
     </dialog>
 
-    <!-- Printing includes only the selected PO. -->
+    <!-- Printing includes only the selected purchase order. -->
     <article id="purchaseOrderPrint" hidden></article>
 </section>
