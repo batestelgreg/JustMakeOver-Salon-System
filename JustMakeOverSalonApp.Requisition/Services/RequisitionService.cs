@@ -208,7 +208,8 @@ namespace JustMakeOverSalonApp.Requisition.Services
         // The SQL procedure handles inventory reservation.
         public void ApproveRequisition(
             CurrentUser actor,
-            int requisitionID)
+            int requisitionID,
+            string signature)
         {
             if (actor == null)
             {
@@ -225,9 +226,30 @@ namespace JustMakeOverSalonApp.Requisition.Services
                     "Invalid requisition selected.");
             }
 
+            if (string.IsNullOrWhiteSpace(signature))
+            {
+                throw new ArgumentException(
+                    "A signature is required before approving the requisition.");
+            }
+
+            if (!signature.StartsWith(
+                    "data:image/",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ArgumentException(
+                    "The signature image is not valid.");
+            }
+
+            if (signature.Length > 2000000)
+            {
+                throw new ArgumentException(
+                    "The signature image is too large.");
+            }
+
             repository.ApproveRequisition(
                 requisitionID,
-                actor.UserID);
+                actor.UserID,
+                signature);
         }
 
         // FUNCTION 6: RejectRequisition

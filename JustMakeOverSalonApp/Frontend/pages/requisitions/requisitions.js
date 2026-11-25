@@ -2,6 +2,7 @@
 import { invoke } from '../../assets/js/core/bridge.js';
 import { hasPermission } from '../../assets/js/core/state.js';
 import { showToast } from '../../assets/js/components/toast.js';
+import { createSignaturePad } from '../../assets/js/components/signature-pad.js';
 import { highlightTargetRow } from '../../assets/js/core/notification-nav.js';
 
 // Stores the active items received from the C# backend.
@@ -24,6 +25,9 @@ let selectedRejectionRequisitionID = null;
 
 // Stores the Requisition ID currently waiting for approval confirmation.
 let selectedApprovalRequisitionID = null;
+
+// Signature pad sa approval modal (Manager/Department Head).
+let approvalSignaturePad = null;
 
 // Stores the Requisition ID being revised (Rejected -> resubmit).
 let selectedReviseRequisitionID = null;
@@ -163,6 +167,22 @@ export async function init(root, params = {}) {
             confirmRequisitionApproval(root);
         });
     }
+
+    // Kani nga shared signature pad kay required sa approval.
+    approvalSignaturePad = createSignaturePad(
+        root.querySelector('#approvalSignaturePad'),
+        {
+            onChange: function (signed) {
+                if (signed) {
+                    root.querySelector('#errorApprovalSignature').textContent = '';
+                }
+            }
+        }
+    );
+
+    root.querySelector('#btnClearApprovalSignature')?.addEventListener('click', function () {
+        approvalSignaturePad?.clear();
+    });
 
     // Kani nga wiring kay para sa revise modal (Rejected -> resubmit).
     root.querySelector('#closeReviseModal')?.addEventListener('click', function () {
@@ -608,6 +628,10 @@ function approveRequisition(root, requisitionID) {
     root.querySelector('#approvalRequisitionNumber').textContent =
         '#' + requisitionID;
 
+    // Reset the signature pad ug error sa kada bag-ong approval.
+    approvalSignaturePad?.clear();
+    root.querySelector('#errorApprovalSignature').textContent = '';
+
     // Display the custom approval modal.
     root.querySelector('#approvalModal').hidden = false;
 }
@@ -618,6 +642,10 @@ function closeApprovalModal(root) {
 
     // Hide the approval modal.
     root.querySelector('#approvalModal').hidden = true;
+
+    // Clear the signature ug selected requisition.
+    approvalSignaturePad?.clear();
+    root.querySelector('#errorApprovalSignature').textContent = '';
 
     // Clear the selected requisition.
     selectedApprovalRequisitionID = null;
@@ -635,13 +663,23 @@ async function confirmRequisitionApproval(root) {
         return;
     }
 
+    // Required ang Manager signature before approval.
+    if (!approvalSignaturePad?.hasSignature()) {
+        root.querySelector('#errorApprovalSignature').textContent =
+            'Please sign before approving the requisition.';
+        return;
+    }
+
+    const signature = approvalSignaturePad.toDataURL();
+
     try {
         // Disable the button while processing.
         confirmButton.disabled = true;
 
-        // Send the requisition ID to the C# backend.
+        // Send the requisition ID ug signature to the C# backend.
         await invoke('ApproveRequisition', {
-            requisitionID: String(selectedApprovalRequisitionID)
+            requisitionID: String(selectedApprovalRequisitionID),
+            signature: signature
         });
 
         // Store the ID for the success message.

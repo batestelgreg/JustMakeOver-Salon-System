@@ -87,8 +87,9 @@ namespace JustMakeOverSalonApp.Delivery.Repositories
             }
         }
 
-        // Kani nga method nag-mark issued sa AR (issue step sa Figure 10).
-        public void MarkIssued(int actorUserID, int deliveryID)
+        // Kani nga method nag-mark issued sa AR (issue step sa Figure 10)
+        // uban sa Inventory Staff signature.
+        public void MarkIssued(int actorUserID, int deliveryID, string signature)
         {
             using (var connection = connectionFactory.CreateOpenConnection())
             using (var command = new SqlCommand("usp_Delivery_MarkIssued", connection)
@@ -98,6 +99,7 @@ namespace JustMakeOverSalonApp.Delivery.Repositories
             {
                 command.Parameters.Add("@ActorUserID", SqlDbType.Int).Value = actorUserID;
                 command.Parameters.Add("@DeliveryID", SqlDbType.Int).Value = deliveryID;
+                command.Parameters.Add("@Signature", SqlDbType.NVarChar, -1).Value = signature;
 
                 command.ExecuteNonQuery();
             }
@@ -174,39 +176,6 @@ namespace JustMakeOverSalonApp.Delivery.Repositories
             }
         }
 
-        // Kani nga method nagkuha sa on-demand signature sa AR (para sa
-        // "View signature" modal). Dili ni mo-apil sa page load.
-        public DeliverySignatureRecord GetSignature(int actorUserID, int deliveryID)
-        {
-            using (var connection = connectionFactory.CreateOpenConnection())
-            using (var command = new SqlCommand("usp_Delivery_GetSignature", connection)
-            {
-                CommandType = CommandType.StoredProcedure
-            })
-            {
-                command.Parameters.Add("@ActorUserID", SqlDbType.Int).Value = actorUserID;
-                command.Parameters.Add("@DeliveryID", SqlDbType.Int).Value = deliveryID;
-
-                using (var reader = command.ExecuteReader())
-                {
-                    if (!reader.Read())
-                    {
-                        return null;
-                    }
-
-                    return new DeliverySignatureRecord
-                    {
-                        DeliveryID = reader.GetInt32(0),
-                        ARCode = reader.GetString(1),
-                        Status = reader.GetString(2),
-                        SignedDate = reader.IsDBNull(3) ? (DateTime?)null : reader.GetDateTime(3),
-                        SignedByName = reader.IsDBNull(4) ? null : reader.GetString(4),
-                        SignatureData = reader.IsDBNull(5) ? null : reader.GetString(5)
-                    };
-                }
-            }
-        }
-
         // Kani nga method nagkuha sa TANANG data sa real AR print:
         // header + line items. On-demand ni (print ra ang mo-call), so
         // one DB call gihapon ang page load. Usa ra ka proc, duha ka
@@ -250,7 +219,11 @@ namespace JustMakeOverSalonApp.Delivery.Repositories
                         CorrectionNotes = reader.IsDBNull(16) ? null : reader.GetString(16),
                         SignatureData = reader.IsDBNull(17) ? null : reader.GetString(17),
                         SalonName = reader.IsDBNull(18) ? null : reader.GetString(18),
-                        SalonTagline = reader.IsDBNull(19) ? null : reader.GetString(19)
+                        SalonTagline = reader.IsDBNull(19) ? null : reader.GetString(19),
+                        IssuedByName = reader.IsDBNull(20) ? null : reader.GetString(20),
+                        IssuedSignatureData = reader.IsDBNull(21) ? null : reader.GetString(21),
+                        ApprovalDate = reader.IsDBNull(22) ? (DateTime?)null : reader.GetDateTime(22),
+                        ApprovalSignatureData = reader.IsDBNull(23) ? null : reader.GetString(23)
                     };
 
                     if (reader.NextResult())

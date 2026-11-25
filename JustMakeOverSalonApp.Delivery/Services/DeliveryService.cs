@@ -26,19 +26,6 @@ namespace JustMakeOverSalonApp.Delivery.Services
                 repository.LoadOverview(actor.UserID));
         }
 
-        public Task<Models.DeliverySignatureRecord> GetSignatureAsync(
-            CurrentUser actor,
-            int deliveryID)
-        {
-            RequireDeliveryViewer(actor);
-            ValidateDeliveryID(deliveryID);
-
-            return Task.FromResult(
-                repository.GetSignature(
-                    actor.UserID,
-                    deliveryID));
-        }
-
         public Task<Models.DeliveryReceiptRecord> GetReceiptAsync(
             CurrentUser actor,
             int deliveryID)
@@ -78,17 +65,22 @@ namespace JustMakeOverSalonApp.Delivery.Services
                     requisitionID));
         }
 
-        // Inventory Staff or Admin issues the items.
+        // Inventory Staff or Admin issues the items uban sa signature.
         public Task MarkIssuedAsync(
             CurrentUser actor,
-            int deliveryID)
+            int deliveryID,
+            string signature)
         {
             RequireDeliveryManager(actor);
             ValidateDeliveryID(deliveryID);
+            ValidateSignature(
+                signature,
+                "A signature is required before issuing the items.");
 
             repository.MarkIssued(
                 actor.UserID,
-                deliveryID);
+                deliveryID,
+                signature);
 
             return Task.CompletedTask;
         }
@@ -150,26 +142,9 @@ namespace JustMakeOverSalonApp.Delivery.Services
         {
             RequireDeliveryViewer(actor);
             ValidateDeliveryID(deliveryID);
-
-            if (string.IsNullOrWhiteSpace(signature))
-            {
-                throw new BusinessException(
-                    "A signature is required before completing the delivery.");
-            }
-
-            if (!signature.StartsWith(
-                    "data:image/",
-                    StringComparison.OrdinalIgnoreCase))
-            {
-                throw new BusinessException(
-                    "The signature image is not valid.");
-            }
-
-            if (signature.Length > 2000000)
-            {
-                throw new BusinessException(
-                    "The signature image is too large.");
-            }
+            ValidateSignature(
+                signature,
+                "A signature is required before completing the delivery.");
 
             repository.Complete(
                 actor.UserID,
@@ -201,6 +176,32 @@ namespace JustMakeOverSalonApp.Delivery.Services
             {
                 throw new BusinessException(
                     "A valid acknowledgement receipt is required.");
+            }
+        }
+
+        // Kani nga helper kay shared validation sa tanang signature steps
+        // (issue ug complete), para usa ra ang rules sa tibuok module.
+        private static void ValidateSignature(
+            string signature,
+            string missingMessage)
+        {
+            if (string.IsNullOrWhiteSpace(signature))
+            {
+                throw new BusinessException(missingMessage);
+            }
+
+            if (!signature.StartsWith(
+                    "data:image/",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                throw new BusinessException(
+                    "The signature image is not valid.");
+            }
+
+            if (signature.Length > 2000000)
+            {
+                throw new BusinessException(
+                    "The signature image is too large.");
             }
         }
 

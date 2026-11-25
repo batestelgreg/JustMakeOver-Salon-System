@@ -1,13 +1,17 @@
 import { invoke } from '../../assets/js/core/bridge.js';
 import { getUser, hasPermission } from '../../assets/js/core/state.js';
 import { showToast } from '../../assets/js/components/toast.js';
+import { createSignaturePad } from '../../assets/js/components/signature-pad.js';
 import { highlightTargetRow } from '../../assets/js/core/notification-nav.js';
 
 let allocatedData = [];
 let deliveriesData = [];
 let refreshHandler = null;
+let pendingIssueDelivery = null;
 let pendingSignDelivery = null;
 let pendingReissueDelivery = null;
+let issueSignaturePad = null;
+let signSignaturePad = null;
 
 export async function init(root, params = {}) {
     root.querySelectorAll('[data-requires]').forEach((button) => {
@@ -25,9 +29,9 @@ export async function init(root, params = {}) {
     wireDiscrepancyModal(root);
     wireCorrectionModal(root);
     wireDiscrepancyViewModal(root);
+    wireIssueModal(root);
     wireSignModal(root);
     wireReissueModal(root);
-    wireSignatureViewModal(root);
 
     await reloadAll(root);
 
@@ -258,16 +262,6 @@ function renderDeliveriesTable(root) {
                     );
                 }
             }
-        } else if (
-            delivery.Status === 'Completed' &&
-            delivery.HasSignature
-        ) {
-            parts.push(
-                '<button type="button" ' +
-                'class="btn btn-action-box btn-view-signature" ' +
-                'data-delivery-id="' + delivery.DeliveryID + '">' +
-                'View signature</button>'
-            );
         }
 
         parts.push(
@@ -314,13 +308,6 @@ function renderDeliveriesTable(root) {
         );
     });
 
-    body.querySelectorAll('.btn-view-signature').forEach((button) => {
-        button.addEventListener(
-            'click',
-            () => openSignatureViewModal(root, button)
-        );
-    });
-
     // Kani nga wiring kay para sa real AR print (per row).
     body.querySelectorAll('.btn-print-ar').forEach((button) => {
         button.addEventListener(
@@ -349,7 +336,7 @@ function renderDeliveriesTable(root) {
         body.querySelectorAll('.btn-mark-issued').forEach((button) => {
             button.addEventListener(
                 'click',
-                () => handleMarkIssued(root, button)
+                () => openIssueModal(root, button)
             );
         });
 
@@ -393,24 +380,108 @@ async function handleGenerate(root, button) {
     }
 }
 
-async function handleMarkIssued(root, button) {
-    const deliveryID = button.dataset.deliveryId;
+function openIssueModal(root, button) {
+    const delivery = deliveriesData.find((record) =>
+        String(record.DeliveryID) === button.dataset.deliveryId
+    );
 
-    button.disabled = true;
-
-    try {
-        await invoke('DeliveryMarkIssued', { deliveryID });
-
-        showToast(
-            'success',
-            'The items were issued to the requesting department.'
-        );
-
-        await reloadAll(root);
-    } catch (error) {
-        showToast('error', error.message);
-        button.disabled = false;
+    if (!delivery) {
+        return;
     }
+
+    pendingIssueDelivery = delivery;
+
+    root.querySelector('#deliveryIssueModalMessage').textContent =
+        'Sign to confirm the release of ' +
+        (delivery.ItemsSummary || 'the requested items') +
+        ' for acknowledgement receipt ' + delivery.ARCode + '.';
+
+    root.querySelector('#btnConfirmDeliveryIssue').disabled = false;
+
+    issueSignaturePad?.clear();
+
+    root.querySelector('#deliveryIssueModal')
+        .classList.remove('u-hidden');
+}
+
+function wireIssueModal(root) {
+    issueSignaturePad = createSignaturePad(
+        root.querySelector('#deliveryIssueSignaturePad'),
+        {
+            onChange: (signed) => {
+                if (signed) {
+                    root.querySelector('#errorDeliveryIssueSignature')
+                        .textContent = '';
+                }
+            }
+        }
+    );
+
+    const closeModal = () => {
+        pendingIssueDelivery = null;
+
+        root.querySelector('#deliveryIssueModal')
+            .classList.add('u-hidden');
+    };
+
+    root.querySelector('#btnCloseDeliveryIssueModal')
+        ?.addEventListener('click', closeModal);
+
+    root.querySelector('#btnCancelDeliveryIssue')
+        ?.addEventListener('click', closeModal);
+
+    root.querySelector('#btnClearIssueSignature')
+        ?.addEventListener('click', () => issueSignaturePad?.clear());
+
+    root.querySelector('#deliveryIssueModal')
+        ?.addEventListener('click', (event) => {
+            if (event.target === root.querySelector('#deliveryIssueModal')) {
+                closeModal();
+            }
+        });
+
+    root.querySelector('#btnConfirmDeliveryIssue')
+        ?.addEventListener('click', async () => {
+            if (!pendingIssueDelivery) {
+                return;
+            }
+
+            if (!issueSignaturePad?.hasSignature()) {
+                root.querySelector('#errorDeliveryIssueSignature').textContent =
+                    'Please sign before issuing the items.';
+                return;
+            }
+
+            const deliveryID = String(pendingIssueDelivery.DeliveryID);
+            const confirmButton =
+                root.querySelector('#btnConfirmDeliveryIssue');
+
+            if (confirmButton.disabled) {
+                return;
+            }
+
+            const signature = issueSignaturePad.toDataURL();
+
+            confirmButton.disabled = true;
+
+            try {
+                await invoke(
+                    'DeliveryMarkIssued',
+                    { deliveryID, signature }
+                );
+
+                showToast(
+                    'success',
+                    'The items were issued to the requesting department.'
+                );
+
+                closeModal();
+                await reloadAll(root);
+            } catch (error) {
+                showToast('error', error.message);
+                confirmButton.disabled = false;
+            }
+        });
 }
 
 function openDiscrepancyModal(root, button) {
@@ -673,103 +744,26 @@ function openSignModal(root, button) {
 
     root.querySelector('#btnConfirmDeliverySign').disabled = false;
 
-    clearSignaturePad(root);
+    signSignaturePad?.clear();
 
     root.querySelector('#deliverySignModal')
         .classList.remove('u-hidden');
 }
 
-function clearSignaturePad(root) {
-    const canvas = root.querySelector('#deliverySignaturePad');
-
-    if (!canvas) {
-        return;
-    }
-
-    const context = canvas.getContext('2d');
-
-    context.fillStyle = '#ffffff';
-    context.fillRect(0, 0, canvas.width, canvas.height);
-    context.strokeStyle = '#1a1a1a';
-    context.lineWidth = 2.2;
-    context.lineCap = 'round';
-    context.lineJoin = 'round';
-
-    canvas.dataset.signed = '0';
-
-    const error = root.querySelector('#errorDeliverySignature');
-
-    if (error) {
-        error.textContent = '';
-    }
-}
-
 function wireSignModal(root) {
-    const canvas = root.querySelector('#deliverySignaturePad');
-    let drawing = false;
-
-    const point = (event) => {
-        const rect = canvas.getBoundingClientRect();
-
-        return {
-            x: (event.clientX - rect.left) *
-                (canvas.width / rect.width),
-            y: (event.clientY - rect.top) *
-                (canvas.height / rect.height)
-        };
-    };
-
-    if (canvas) {
-        canvas.addEventListener('pointerdown', (event) => {
-            const context = canvas.getContext('2d');
-            const p = point(event);
-
-            drawing = true;
-            canvas.dataset.signed = '1';
-            canvas.setPointerCapture(event.pointerId);
-
-            const error = root.querySelector('#errorDeliverySignature');
-
-            if (error) {
-                error.textContent = '';
+    signSignaturePad = createSignaturePad(
+        root.querySelector('#deliverySignaturePad'),
+        {
+            onChange: (signed) => {
+                if (signed) {
+                    root.querySelector('#errorDeliverySignature')
+                        .textContent = '';
+                }
             }
-
-            context.beginPath();
-            context.moveTo(p.x, p.y);
-            context.lineTo(p.x + 0.1, p.y + 0.1);
-            context.stroke();
-            context.beginPath();
-            context.moveTo(p.x, p.y);
-
-            event.preventDefault();
-        });
-
-        canvas.addEventListener('pointermove', (event) => {
-            if (!drawing) {
-                return;
-            }
-
-            const context = canvas.getContext('2d');
-            const p = point(event);
-
-            context.lineTo(p.x, p.y);
-            context.stroke();
-            context.beginPath();
-            context.moveTo(p.x, p.y);
-
-            event.preventDefault();
-        });
-
-        const stopDrawing = () => {
-            drawing = false;
-        };
-
-        canvas.addEventListener('pointerup', stopDrawing);
-        canvas.addEventListener('pointercancel', stopDrawing);
-    }
+        }
+    );
 
     const closeModal = () => {
-        drawing = false;
         pendingSignDelivery = null;
 
         root.querySelector('#deliverySignModal')
@@ -783,10 +777,7 @@ function wireSignModal(root) {
         ?.addEventListener('click', closeModal);
 
     root.querySelector('#btnClearSignature')
-        ?.addEventListener('click', () => {
-            drawing = false;
-            clearSignaturePad(root);
-        });
+        ?.addEventListener('click', () => signSignaturePad?.clear());
 
     root.querySelector('#deliverySignModal')
         ?.addEventListener('click', (event) => {
@@ -801,7 +792,7 @@ function wireSignModal(root) {
                 return;
             }
 
-            if (!canvas || canvas.dataset.signed !== '1') {
+            if (!signSignaturePad?.hasSignature()) {
                 root.querySelector('#errorDeliverySignature').textContent =
                     'Please sign before completing the delivery.';
                 return;
@@ -815,7 +806,7 @@ function wireSignModal(root) {
                 return;
             }
 
-            const signature = canvas.toDataURL('image/png');
+            const signature = signSignaturePad.toDataURL();
 
             confirmButton.disabled = true;
 
@@ -920,89 +911,6 @@ function wireReissueModal(root) {
                 confirmButton.disabled = false;
             }
         });
-}
-
-function openSignatureViewModal(root, button) {
-    const delivery = deliveriesData.find((record) =>
-        String(record.DeliveryID) === button.dataset.deliveryId
-    );
-
-    if (!delivery) {
-        return;
-    }
-
-    const modal = root.querySelector('#signatureViewModal');
-    const info = root.querySelector('#signatureViewInfo');
-    const image = root.querySelector('#signatureViewImage');
-    const empty = root.querySelector('#signatureViewEmpty');
-
-    info.textContent =
-        delivery.ARCode + ' \u00b7 loading signature\u2026';
-
-    image.hidden = true;
-    image.removeAttribute('src');
-
-    empty.textContent =
-        'No signature image is stored for this acknowledgement receipt.';
-
-    empty.classList.add('u-hidden');
-    modal.classList.remove('u-hidden');
-
-    invoke(
-        'DeliverySignature',
-        { deliveryID: String(delivery.DeliveryID) }
-    )
-        .then((result) => {
-            const signature = result?.signature;
-            const data = signature?.SignatureData;
-
-            if (!signature || !data || !data.startsWith('data:image/')) {
-                info.textContent =
-                    delivery.ARCode +
-                    ' (requisition #' + delivery.RequisitionID + ')';
-
-                empty.classList.remove('u-hidden');
-                return;
-            }
-
-            info.textContent =
-                signature.ARCode + ' \u00b7 signed by ' +
-                (signature.SignedByName || 'unknown user') +
-                ' on ' + formatDate(signature.SignedDate, true);
-
-            image.src = data;
-            image.hidden = false;
-        })
-        .catch((error) => {
-            info.textContent =
-                delivery.ARCode +
-                ' (requisition #' + delivery.RequisitionID + ')';
-
-            empty.textContent = error.message;
-            empty.classList.remove('u-hidden');
-        });
-}
-
-function wireSignatureViewModal(root) {
-    const modal = root.querySelector('#signatureViewModal');
-    const image = root.querySelector('#signatureViewImage');
-
-    const closeModal = () => {
-        modal.classList.add('u-hidden');
-        image.removeAttribute('src');
-    };
-
-    root.querySelector('#btnCloseSignatureView')
-        ?.addEventListener('click', closeModal);
-
-    root.querySelector('#btnCloseSignatureViewFooter')
-        ?.addEventListener('click', closeModal);
-
-    modal?.addEventListener('click', (event) => {
-        if (event.target === modal) {
-            closeModal();
-        }
-    });
 }
 
 // Kani nga handler kay nag-fetch sa receipt data ug nag-print sa real AR.
@@ -1273,16 +1181,16 @@ function buildReceiptSignatures(receipt) {
 
     signatures.appendChild(buildReceiptSignature(
         'Issued by',
-        receipt.GeneratedByName,
-        receipt.IssuedDate || receipt.GeneratedDate,
-        null
+        receipt.IssuedByName,
+        receipt.IssuedDate,
+        receipt.IssuedSignatureData
     ));
 
     signatures.appendChild(buildReceiptSignature(
         'Approved by',
         receipt.DepartmentHeadName,
-        null,
-        null
+        receipt.ApprovalDate,
+        receipt.ApprovalSignatureData
     ));
 
     return signatures;
@@ -1406,8 +1314,11 @@ export function destroy() {
     refreshHandler = null;
     allocatedData = [];
     deliveriesData = [];
+    pendingIssueDelivery = null;
     pendingSignDelivery = null;
     pendingReissueDelivery = null;
+    issueSignaturePad = null;
+    signSignaturePad = null;
 
     // Kani nga cleanup kay para dili mo-pilit ang print mode kung
     // mobalhin ang user sa laing page samtang nag-print.

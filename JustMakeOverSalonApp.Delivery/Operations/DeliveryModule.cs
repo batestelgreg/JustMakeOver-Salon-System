@@ -27,7 +27,6 @@ namespace JustMakeOverSalonApp.Delivery.Operations
             registry.Register("DeliveryRecordCorrection", HandleDeliveryRecordCorrectionAsync);
             registry.Register("DeliveryComplete", HandleDeliveryCompleteAsync);
             registry.Register("DeliveryReissue", HandleDeliveryReissueAsync);
-            registry.Register("DeliverySignature", HandleDeliverySignatureAsync);
             registry.Register("DeliveryReceipt", HandleDeliveryReceiptAsync);
         }
 
@@ -62,13 +61,15 @@ namespace JustMakeOverSalonApp.Delivery.Operations
             }, null);
         }
 
-        // Kani nga handler nag-mark issued sa AR (issue to department).
+        // Kani nga handler nag-mark issued sa AR (issue to department)
+        // uban sa Inventory Staff signature.
         private async Task HandleDeliveryMarkIssuedAsync(Dictionary<string, object> payload, string requestID)
         {
             var actor = context.RequireUser();
             var deliveryID = ParseID(context.GetValueAsString(payload, "deliveryID"));
+            var signature = context.GetValueAsString(payload, "signature");
 
-            await service.MarkIssuedAsync(actor, deliveryID);
+            await service.MarkIssuedAsync(actor, deliveryID, signature);
             context.SendResponse(requestID, true, null, null);
         }
 
@@ -116,22 +117,6 @@ namespace JustMakeOverSalonApp.Delivery.Operations
 
             await service.ReissueAsync(actor, deliveryID);
             context.SendResponse(requestID, true, null, null);
-        }
-
-        // Kani nga handler nagkuha sa signature image sa AR (on-demand,
-        // para sa "View signature" modal).
-        private async Task HandleDeliverySignatureAsync(Dictionary<string, object> payload, string requestID)
-        {
-            var actor = context.RequireUser();
-            var deliveryID = ParseID(context.GetValueAsString(payload, "deliveryID"));
-
-            var signature = await service.GetSignatureAsync(actor, deliveryID);
-
-            // Kani nga wrap kay para lowercase ang JSON keys.
-            context.SendResponse(requestID, true, new
-            {
-                signature
-            }, null);
         }
 
         // Kani nga handler nagkuha sa TANANG data sa real AR print
