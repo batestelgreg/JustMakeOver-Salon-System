@@ -207,6 +207,72 @@ namespace JustMakeOverSalonApp.Delivery.Repositories
             }
         }
 
+        // Kani nga method nagkuha sa TANANG data sa real AR print:
+        // header + line items. On-demand ni (print ra ang mo-call), so
+        // one DB call gihapon ang page load. Usa ra ka proc, duha ka
+        // result set, aron dili mag-duplicate og query sa UI.
+        public DeliveryReceiptRecord GetReceipt(int actorUserID, int deliveryID)
+        {
+            using (var connection = connectionFactory.CreateOpenConnection())
+            using (var command = new SqlCommand("usp_Delivery_GetReceipt", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            })
+            {
+                command.Parameters.Add("@ActorUserID", SqlDbType.Int).Value = actorUserID;
+                command.Parameters.Add("@DeliveryID", SqlDbType.Int).Value = deliveryID;
+
+                using (var reader = command.ExecuteReader())
+                {
+                    if (!reader.Read())
+                    {
+                        return null;
+                    }
+
+                    var receipt = new DeliveryReceiptRecord
+                    {
+                        DeliveryID = reader.GetInt32(0),
+                        ARCode = reader.GetString(1),
+                        RequisitionID = reader.GetInt32(2),
+                        RequestorName = reader.GetString(3),
+                        DepartmentHeadName = reader.IsDBNull(4) ? null : reader.GetString(4),
+                        GeneratedByName = reader.GetString(5),
+                        SignedByName = reader.IsDBNull(6) ? null : reader.GetString(6),
+                        CorrectedByName = reader.IsDBNull(7) ? null : reader.GetString(7),
+                        RequestDate = reader.GetDateTime(8),
+                        RequiredDate = reader.GetDateTime(9),
+                        Justification = reader.IsDBNull(10) ? null : reader.GetString(10),
+                        GeneratedDate = reader.GetDateTime(11),
+                        IssuedDate = reader.IsDBNull(12) ? (DateTime?)null : reader.GetDateTime(12),
+                        SignedDate = reader.IsDBNull(13) ? (DateTime?)null : reader.GetDateTime(13),
+                        Status = reader.GetString(14),
+                        DiscrepancyNotes = reader.IsDBNull(15) ? null : reader.GetString(15),
+                        CorrectionNotes = reader.IsDBNull(16) ? null : reader.GetString(16),
+                        SignatureData = reader.IsDBNull(17) ? null : reader.GetString(17),
+                        SalonName = reader.IsDBNull(18) ? null : reader.GetString(18),
+                        SalonTagline = reader.IsDBNull(19) ? null : reader.GetString(19)
+                    };
+
+                    if (reader.NextResult())
+                    {
+                        while (reader.Read())
+                        {
+                            receipt.Items.Add(new DeliveryReceiptItem
+                            {
+                                DeliveryItemID = reader.GetInt32(0),
+                                ItemCode = reader.GetString(1),
+                                ItemName = reader.GetString(2),
+                                UnitOfMeasure = reader.GetString(3),
+                                Quantity = reader.GetInt32(4)
+                            });
+                        }
+                    }
+
+                    return receipt;
+                }
+            }
+        }
+
         // Kani nga mapper nag-convert sa row ngadto sa AllocatedRequisitionRecord.
         private static AllocatedRequisitionRecord MapAllocated(SqlDataReader reader)
         {
