@@ -28,6 +28,7 @@ namespace JustMakeOverSalonApp.Delivery.Operations
             registry.Register("DeliveryComplete", HandleDeliveryCompleteAsync);
             registry.Register("DeliveryReissue", HandleDeliveryReissueAsync);
             registry.Register("DeliverySignature", HandleDeliverySignatureAsync);
+            registry.Register("DeliveryReceipt", HandleDeliveryReceiptAsync);
         }
 
         // Kani nga handler nagdala sa TANANG page data sa usa ra ka response
@@ -130,6 +131,22 @@ namespace JustMakeOverSalonApp.Delivery.Operations
             context.SendResponse(requestID, true, new
             {
                 signature
+            }, null);
+        }
+
+        // Kani nga handler nagkuha sa TANANG data sa real AR print
+        // (header + line items) on-demand, para usa ra ka DB call ang
+        // page load ug usa ra ka call ang print.
+        private async Task HandleDeliveryReceiptAsync(Dictionary<string, object> payload, string requestID)
+        {
+            var actor = context.RequireUser();
+            var deliveryID = ParseID(context.GetValueAsString(payload, "deliveryID"));
+
+            var receipt = await service.GetReceiptAsync(actor, deliveryID);
+
+            context.SendResponse(requestID, true, new
+            {
+                receipt
             }, null);
         }
 

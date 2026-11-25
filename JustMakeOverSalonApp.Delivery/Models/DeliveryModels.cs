@@ -69,6 +69,49 @@ namespace JustMakeOverSalonApp.Delivery.Models
         public string SignatureData { get; set; }
     }
 
+    // Kani nga model kay para sa usa ka line item sa AR print.
+    public sealed class DeliveryReceiptItem
+    {
+        public int DeliveryItemID { get; set; }
+        public string ItemCode { get; set; }
+        public string ItemName { get; set; }
+        public string UnitOfMeasure { get; set; }
+        public int Quantity { get; set; }
+    }
+
+    // Kani nga model kay nagdala sa TANANG data sa real AR print
+    // (header + line items) sa usa ka on-demand nga call.
+    public sealed class DeliveryReceiptRecord
+    {
+        public int DeliveryID { get; set; }
+        public string ARCode { get; set; }
+        public int RequisitionID { get; set; }
+        public string RequestorName { get; set; }
+        public string DepartmentHeadName { get; set; }
+        public string GeneratedByName { get; set; }
+        public string SignedByName { get; set; }
+        public string CorrectedByName { get; set; }
+        public DateTime RequestDate { get; set; }
+        public DateTime RequiredDate { get; set; }
+        public string Justification { get; set; }
+        public DateTime GeneratedDate { get; set; }
+        public DateTime? IssuedDate { get; set; }
+        public DateTime? SignedDate { get; set; }
+        public string Status { get; set; }
+        public string DiscrepancyNotes { get; set; }
+        public string CorrectionNotes { get; set; }
+
+        // PNG data URL sa e-signature (null kung wala pa ma-sign).
+        public string SignatureData { get; set; }
+
+        // Salon branding gikan sa SYSTEM_SETTINGS.
+        public string SalonName { get; set; }
+        public string SalonTagline { get; set; }
+
+        public IList<DeliveryReceiptItem> Items { get; set; }
+            = new List<DeliveryReceiptItem>();
+    }
+
     // Kani nga model kay nagdala sa TANANG page data sa usa ka
     // database call (allocated queue + AR records) aron usa ra ka
     // connection ang gamiton sa Delivery page load.

@@ -197,18 +197,20 @@ function renderDeliveriesTable(root) {
                 discrepancyLabel + '</button>';
         }
 
-        let actions = '\u2014';
+        // Kani nga parts kay status-based actions + Print AR. Ang Print AR
+        // kay available sa tanang receipt row (draft, issued, completed)
+        // para makakuha dayon og kopya ang requesting department.
+        const parts = [];
 
         if (canManage && delivery.Status === 'Generated') {
-            actions =
+            parts.push(
                 '<button type="button" ' +
                 'class="btn btn-action-box btn-mark-issued" ' +
                 'data-delivery-id="' + delivery.DeliveryID + '" ' +
                 'title="Issue the items to the requesting department.">' +
-                'Issue items</button>';
+                'Issue items</button>'
+            );
         } else if (delivery.Status === 'Issued') {
-            const parts = [];
-
             if (canAcknowledge) {
                 parts.push(
                     '<button type="button" ' +
@@ -256,20 +258,29 @@ function renderDeliveriesTable(root) {
                     );
                 }
             }
-
-            if (parts.length > 0) {
-                actions = parts.join('');
-            }
         } else if (
             delivery.Status === 'Completed' &&
             delivery.HasSignature
         ) {
-            actions =
+            parts.push(
                 '<button type="button" ' +
                 'class="btn btn-action-box btn-view-signature" ' +
                 'data-delivery-id="' + delivery.DeliveryID + '">' +
-                'View signature</button>';
+                'View signature</button>'
+            );
         }
+
+        parts.push(
+            '<button type="button" ' +
+            'class="btn btn-action-box btn-print-ar" ' +
+            'data-delivery-id="' + delivery.DeliveryID + '" ' +
+            'title="Print this acknowledgement receipt.">' +
+            'Print AR</button>'
+        );
+
+        const actions = parts.length > 0
+            ? parts.join('')
+            : '\u2014';
 
         return '<tr data-delivery-id="' + delivery.DeliveryID + '">' +
             '<td>' + escapeHtml(delivery.ARCode) + '</td>' +
@@ -307,6 +318,14 @@ function renderDeliveriesTable(root) {
         button.addEventListener(
             'click',
             () => openSignatureViewModal(root, button)
+        );
+    });
+
+    // Kani nga wiring kay para sa real AR print (per row).
+    body.querySelectorAll('.btn-print-ar').forEach((button) => {
+        button.addEventListener(
+            'click',
+            () => handlePrintAR(root, button)
         );
     });
 
@@ -986,6 +1005,355 @@ function wireSignatureViewModal(root) {
     });
 }
 
+// Kani nga handler kay nag-fetch sa receipt data ug nag-print sa real AR.
+async function handlePrintAR(root, button) {
+    const deliveryID = button.dataset.deliveryId;
+
+    button.disabled = true;
+
+    try {
+        const result = await invoke('DeliveryReceipt', { deliveryID });
+        const receipt = result?.receipt;
+
+        if (!receipt) {
+            throw new Error(
+                'The acknowledgement receipt could not be loaded.'
+            );
+        }
+
+        await printDeliveryReceipt(root, receipt);
+    } catch (error) {
+        showToast('error', error.message);
+    } finally {
+        button.disabled = false;
+    }
+}
+
+// Kani nga function kay nag-build sa receipt ug nag-print. Ang print CSS
+// ra ang mo-display sa article, so walay flicker sa screen.
+async function printDeliveryReceipt(root, receipt) {
+    const article = root.querySelector('#deliveryReceiptPrint');
+
+    if (!article) {
+        return;
+    }
+
+    article.replaceChildren(buildReceiptSheet(receipt));
+    article.hidden = false;
+
+    // Huwaton ang logo/signature image before printing para dili blank.
+    await waitForReceiptImages(article);
+
+    document.body.classList.add('delivery-print');
+
+    try {
+        window.print();
+    } finally {
+        document.body.classList.remove('delivery-print');
+        article.hidden = true;
+    }
+}
+
+function waitForReceiptImages(article) {
+    const pending = Array.from(article.querySelectorAll('img'))
+        .filter((image) => !image.complete)
+        .map((image) => new Promise((resolve) => {
+            image.addEventListener('load', resolve, { once: true });
+            image.addEventListener('error', resolve, { once: true });
+        }));
+
+    if (pending.length === 0) {
+        return Promise.resolve();
+    }
+
+    // Fallback: dili ta mag-huwat hangtod forever kung naay missing image.
+    return Promise.race([
+        Promise.all(pending),
+        new Promise((resolve) => window.setTimeout(resolve, 1500))
+    ]);
+}
+
+function buildReceiptSheet(receipt) {
+    const sheet = receiptNode('article', 'receipt-sheet');
+
+    sheet.appendChild(buildReceiptHeader(receipt));
+    sheet.appendChild(buildReceiptMeta(receipt));
+
+    if (receipt.Justification) {
+        const purpose = receiptNode('section', 'receipt-purpose');
+
+        purpose.appendChild(receiptNode('h3', null, 'Purpose'));
+        purpose.appendChild(receiptNode('p', null, receipt.Justification));
+
+        sheet.appendChild(purpose);
+    }
+
+    sheet.appendChild(buildReceiptItems(receipt.Items || []));
+
+    const notes = [];
+
+    if (receipt.DiscrepancyNotes) {
+        notes.push('Discrepancy: ' + receipt.DiscrepancyNotes);
+    }
+
+    if (receipt.CorrectionNotes) {
+        notes.push('Correction: ' + receipt.CorrectionNotes);
+    }
+
+    if (notes.length > 0) {
+        const noteBox = receiptNode('section', 'receipt-notes');
+
+        noteBox.appendChild(receiptNode('h3', null, 'Notes'));
+
+        notes.forEach((note) => {
+            noteBox.appendChild(receiptNode('p', null, note));
+        });
+
+        sheet.appendChild(noteBox);
+    }
+
+    sheet.appendChild(buildReceiptSignatures(receipt));
+    sheet.appendChild(buildReceiptFooter(receipt));
+
+    return sheet;
+}
+
+function buildReceiptHeader(receipt) {
+    const header = receiptNode('header', 'receipt-header');
+    const brand = receiptNode('div', 'receipt-brand');
+    const logo = document.createElement('img');
+
+    logo.className = 'receipt-logo';
+    logo.src = '/images/logo.png';
+    logo.alt = '';
+    brand.appendChild(logo);
+
+    const brandText = receiptNode('div', 'receipt-brand-text');
+
+    brandText.appendChild(receiptNode(
+        'h1',
+        'receipt-salon',
+        receipt.SalonName || 'Just Make Over'
+    ));
+
+    if (receipt.SalonTagline) {
+        brandText.appendChild(receiptNode(
+            'p',
+            'receipt-tagline',
+            receipt.SalonTagline
+        ));
+    }
+
+    brand.appendChild(brandText);
+
+    const title = receiptNode('div', 'receipt-title');
+
+    title.appendChild(receiptNode(
+        'h2',
+        null,
+        'ACKNOWLEDGEMENT RECEIPT'
+    ));
+
+    title.appendChild(receiptNode(
+        'p',
+        'receipt-code',
+        'AR No. ' + (receipt.ARCode || '\u2014')
+    ));
+
+    header.append(brand, title);
+
+    return header;
+}
+
+function buildReceiptMeta(receipt) {
+    const meta = receiptNode('div', 'receipt-meta');
+
+    receiptMeta(meta, 'Requisition No.', '#' + receipt.RequisitionID);
+    receiptMeta(meta, 'Status', receipt.Status);
+    receiptMeta(meta, 'Requested by', receipt.RequestorName);
+    receiptMeta(meta, 'Department head', receipt.DepartmentHeadName);
+    receiptMeta(
+        meta,
+        'Date requested',
+        formatDate(receipt.RequestDate, false)
+    );
+    receiptMeta(
+        meta,
+        'Date required',
+        formatDate(receipt.RequiredDate, false)
+    );
+    receiptMeta(
+        meta,
+        'Date generated',
+        formatDate(receipt.GeneratedDate, true)
+    );
+    receiptMeta(
+        meta,
+        'Date issued',
+        formatDate(receipt.IssuedDate, true)
+    );
+
+    return meta;
+}
+
+function receiptMeta(container, label, value) {
+    const item = receiptNode('div', 'receipt-meta-item');
+
+    item.appendChild(receiptNode('span', 'receipt-meta-label', label));
+    item.appendChild(receiptNode(
+        'span',
+        'receipt-meta-value',
+        value || '\u2014'
+    ));
+
+    container.appendChild(item);
+}
+
+function buildReceiptItems(items) {
+    const table = receiptNode('table', 'receipt-items');
+    const head = table.createTHead().insertRow();
+
+    ['#', 'Item code', 'Description', 'Unit', 'Quantity'].forEach(
+        (label, index) => {
+            const cell = document.createElement('th');
+
+            cell.textContent = label;
+
+            if (index === 4) {
+                cell.className = 'receipt-qty';
+            }
+
+            head.appendChild(cell);
+        }
+    );
+
+    const body = table.createTBody();
+    let total = 0;
+
+    items.forEach((item, index) => {
+        const quantity = Number(item.Quantity) || 0;
+        const row = body.insertRow();
+
+        total += quantity;
+
+        row.insertCell().textContent = String(index + 1);
+        row.insertCell().textContent = item.ItemCode || '';
+        row.insertCell().textContent = item.ItemName || '';
+        row.insertCell().textContent = item.UnitOfMeasure || '';
+
+        const quantityCell = row.insertCell();
+
+        quantityCell.className = 'receipt-qty';
+        quantityCell.textContent = String(quantity);
+    });
+
+    const foot = table.createTFoot().insertRow();
+    const labelCell = foot.insertCell();
+
+    labelCell.colSpan = 4;
+    labelCell.textContent = 'Total quantity';
+
+    const totalCell = foot.insertCell();
+
+    totalCell.className = 'receipt-qty';
+    totalCell.textContent = String(total);
+
+    return table;
+}
+
+function buildReceiptSignatures(receipt) {
+    const signatures = receiptNode('section', 'receipt-signatures');
+
+    signatures.appendChild(buildReceiptSignature(
+        'Received by',
+        receipt.SignedByName || receipt.RequestorName,
+        receipt.SignedDate,
+        receipt.SignatureData
+    ));
+
+    signatures.appendChild(buildReceiptSignature(
+        'Issued by',
+        receipt.GeneratedByName,
+        receipt.IssuedDate || receipt.GeneratedDate,
+        null
+    ));
+
+    signatures.appendChild(buildReceiptSignature(
+        'Approved by',
+        receipt.DepartmentHeadName,
+        null,
+        null
+    ));
+
+    return signatures;
+}
+
+function buildReceiptSignature(label, name, dateValue, signatureData) {
+    const block = receiptNode('div', 'receipt-signature');
+    const space = receiptNode('div', 'receipt-signature-space');
+
+    if (signatureData && signatureData.startsWith('data:image/')) {
+        const image = document.createElement('img');
+
+        image.className = 'receipt-signature-image';
+        image.src = signatureData;
+        image.alt = 'Signature';
+        space.appendChild(image);
+    }
+
+    block.appendChild(receiptNode('p', 'receipt-signature-label', label));
+    block.appendChild(space);
+    block.appendChild(receiptNode(
+        'p',
+        'receipt-signature-name',
+        name || ' '
+    ));
+    block.appendChild(receiptNode(
+        'p',
+        'receipt-signature-date',
+        dateValue
+            ? formatDate(dateValue, true)
+            : 'Date: ______________'
+    ));
+
+    return block;
+}
+
+function buildReceiptFooter(receipt) {
+    const footer = receiptNode('footer', 'receipt-footer');
+
+    footer.appendChild(receiptNode(
+        'p',
+        null,
+        'System-generated acknowledgement receipt. '
+        + 'Keep this copy for your records.'
+    ));
+
+    if (receipt.CorrectedByName) {
+        footer.appendChild(receiptNode(
+            'p',
+            null,
+            'Last corrected by ' + receipt.CorrectedByName + '.'
+        ));
+    }
+
+    return footer;
+}
+
+function receiptNode(tag, className, text) {
+    const element = document.createElement(tag);
+
+    if (className) {
+        element.className = className;
+    }
+
+    if (text !== undefined && text !== null) {
+        element.textContent = String(text);
+    }
+
+    return element;
+}
+
 function formatDate(value, withTime) {
     if (!value) {
         return '\u2014';
@@ -1040,4 +1408,8 @@ export function destroy() {
     deliveriesData = [];
     pendingSignDelivery = null;
     pendingReissueDelivery = null;
+
+    // Kani nga cleanup kay para dili mo-pilit ang print mode kung
+    // mobalhin ang user sa laing page samtang nag-print.
+    document.body.classList.remove('delivery-print');
 }

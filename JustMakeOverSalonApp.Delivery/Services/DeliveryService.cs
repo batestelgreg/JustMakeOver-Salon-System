@@ -39,6 +39,26 @@ namespace JustMakeOverSalonApp.Delivery.Services
                     deliveryID));
         }
 
+        public Task<Models.DeliveryReceiptRecord> GetReceiptAsync(
+            CurrentUser actor,
+            int deliveryID)
+        {
+            RequireDeliveryViewer(actor);
+            ValidateDeliveryID(deliveryID);
+
+            var receipt = repository.GetReceipt(
+                actor.UserID,
+                deliveryID);
+
+            if (receipt == null)
+            {
+                throw new BusinessException(
+                    "The acknowledgement receipt could not be found.");
+            }
+
+            return Task.FromResult(receipt);
+        }
+
         // Inventory Staff or Admin generates the AR.
         public Task<Tuple<int, string>> GenerateARAsync(
             CurrentUser actor,

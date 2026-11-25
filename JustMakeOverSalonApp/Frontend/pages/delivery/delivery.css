@@ -173,3 +173,229 @@
     cursor: crosshair;
     touch-action: none;
 }
+
+/* ============================================================
+   Real Acknowledgement Receipt print
+   ============================================================ */
+
+/* Kani nga article kay hidden sa screen; print CSS ra ang mo-display. */
+.delivery-receipt-print {
+    display: none;
+}
+
+@media print {
+    @page {
+        size: A4;
+        margin: 12mm;
+    }
+
+    body.delivery-print > * {
+        visibility: hidden;
+    }
+
+    body.delivery-print #deliveryReceiptPrint,
+    body.delivery-print #deliveryReceiptPrint * {
+        visibility: visible;
+    }
+
+    body.delivery-print #deliveryReceiptPrint {
+        display: block !important;
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        padding: 0;
+        background: #ffffff;
+        color: #000000;
+        font-family: "Segoe UI", Arial, sans-serif;
+        font-size: 11pt;
+        line-height: 1.4;
+    }
+
+    .delivery-receipt-print .receipt-sheet {
+        width: 100%;
+    }
+
+    .delivery-receipt-print .receipt-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 24px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid #000000;
+    }
+
+    .delivery-receipt-print .receipt-brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .delivery-receipt-print .receipt-logo {
+        width: 54px;
+        height: 54px;
+        object-fit: contain;
+    }
+
+    .delivery-receipt-print .receipt-salon {
+        margin: 0;
+        font-size: 18pt;
+        letter-spacing: 0.5px;
+    }
+
+    .delivery-receipt-print .receipt-tagline {
+        margin: 2px 0 0;
+        font-size: 10pt;
+        color: #333333;
+    }
+
+    .delivery-receipt-print .receipt-title {
+        text-align: right;
+    }
+
+    .delivery-receipt-print .receipt-title h2 {
+        margin: 0;
+        font-size: 15pt;
+        letter-spacing: 1px;
+    }
+
+    .delivery-receipt-print .receipt-code {
+        margin: 4px 0 0;
+        font-size: 11pt;
+        font-weight: 600;
+    }
+
+    .delivery-receipt-print .receipt-meta {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 4px 24px;
+        margin: 14px 0;
+    }
+
+    .delivery-receipt-print .receipt-meta-item {
+        display: flex;
+        gap: 8px;
+        padding-bottom: 2px;
+        border-bottom: 1px dotted #999999;
+    }
+
+    .delivery-receipt-print .receipt-meta-label {
+        min-width: 110px;
+        font-weight: 600;
+    }
+
+    .delivery-receipt-print .receipt-meta-value {
+        flex: 1;
+    }
+
+    .delivery-receipt-print .receipt-purpose {
+        margin: 10px 0;
+    }
+
+    .delivery-receipt-print .receipt-purpose h3,
+    .delivery-receipt-print .receipt-notes h3 {
+        margin: 0 0 4px;
+        font-size: 11pt;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .delivery-receipt-print .receipt-purpose p,
+    .delivery-receipt-print .receipt-notes p {
+        margin: 0;
+    }
+
+    .delivery-receipt-print .receipt-items {
+        width: 100%;
+        margin: 10px 0;
+        border-collapse: collapse;
+    }
+
+    .delivery-receipt-print .receipt-items th,
+    .delivery-receipt-print .receipt-items td {
+        padding: 5px 7px;
+        text-align: left;
+        vertical-align: top;
+        border: 1px solid #000000;
+    }
+
+    .delivery-receipt-print .receipt-items th {
+        background: #eeeeee;
+        font-size: 10pt;
+        text-transform: uppercase;
+    }
+
+    .delivery-receipt-print .receipt-items tfoot td {
+        background: #f7f7f7;
+        font-weight: 700;
+    }
+
+    .delivery-receipt-print .receipt-qty {
+        text-align: right;
+        white-space: nowrap;
+    }
+
+    .delivery-receipt-print .receipt-notes {
+        margin: 10px 0;
+        padding: 8px 10px;
+        border: 1px solid #999999;
+    }
+
+    .delivery-receipt-print .receipt-signatures {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 28px;
+        margin-top: 36px;
+    }
+
+    .delivery-receipt-print .receipt-signature {
+        text-align: center;
+    }
+
+    .delivery-receipt-print .receipt-signature-label {
+        margin: 0 0 4px;
+        font-size: 10pt;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .delivery-receipt-print .receipt-signature-space {
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        height: 48px;
+        border-bottom: 1px solid #000000;
+    }
+
+    .delivery-receipt-print .receipt-signature-image {
+        display: block;
+        max-width: 100%;
+        max-height: 46px;
+        object-fit: contain;
+    }
+
+    .delivery-receipt-print .receipt-signature-name {
+        margin: 4px 0 0;
+        font-size: 10pt;
+        font-weight: 600;
+    }
+
+    .delivery-receipt-print .receipt-signature-date {
+        margin: 2px 0 0;
+        font-size: 9pt;
+        color: #333333;
+    }
+
+    .delivery-receipt-print .receipt-footer {
+        margin-top: 24px;
+        padding-top: 8px;
+        border-top: 1px solid #999999;
+        font-size: 8.5pt;
+        color: #555555;
+        text-align: center;
+    }
+
+    .delivery-receipt-print .receipt-footer p {
+        margin: 0;
+    }
+}
