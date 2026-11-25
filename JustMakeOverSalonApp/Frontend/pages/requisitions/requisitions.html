@@ -316,6 +316,22 @@
                 </p>
             </div>
 
+            <div class="modal-body">
+                <div class="signature-pad">
+                    <div class="signature-pad__header">
+                        <span class="signature-pad__label">Manager / Department Head signature</span>
+                        <button type="button" class="btn btn--ghost btn--sm" id="btnClearApprovalSignature">Clear</button>
+                    </div>
+                    <canvas id="approvalSignaturePad" class="signature-pad__canvas"
+                            width="600" height="200" aria-label="Approval signature pad"></canvas>
+                    <span class="form-field__error" id="errorApprovalSignature"></span>
+                </div>
+                <p class="u-text-muted u-mt-4" style="font-size: 12px; margin-bottom: 0;">
+                    Draw your signature above to approve this requisition. Your name and the
+                    approval date and time will appear in the APPROVED BY section of the AR.
+                </p>
+            </div>
+
             <div class="modal-actions">
                 <button type="button"
                         id="closeApprovalModal"

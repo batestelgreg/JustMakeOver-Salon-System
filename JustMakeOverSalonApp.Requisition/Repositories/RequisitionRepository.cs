@@ -711,7 +711,8 @@ namespace JustMakeOverSalonApp.Requisition.Repositories
         // ug ma-reserve ang requested items sa inventory.
         public void ApproveRequisition(
             int requisitionID,
-            int approverUserID)
+            int approverUserID,
+            string signature)
         {
             using (var connection = connectionFactory.CreateOpenConnection())
             using (var command = new SqlCommand(
@@ -724,6 +725,9 @@ namespace JustMakeOverSalonApp.Requisition.Repositories
 
                 command.Parameters.Add("@ApproverUserID", SqlDbType.Int)
                     .Value = approverUserID;
+
+                command.Parameters.Add("@Signature", SqlDbType.NVarChar, -1)
+                    .Value = signature;
 
                 command.ExecuteNonQuery();
             }

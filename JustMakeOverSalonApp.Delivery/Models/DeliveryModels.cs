@@ -33,8 +33,8 @@ namespace JustMakeOverSalonApp.Delivery.Models
         public string Status { get; set; }
         public string ItemsSummary { get; set; }
 
-        // Kani nga flag kay gikan sa proc (ESignatureData IS NULL) para
-        // mahibalo ang UI kung naay "View signature" nga maipakita.
+        // Kani nga flag kay gikan sa proc (ESignatureData IS NULL) ug
+        // nagpabilin isip indicator nga naa nay stored requestor signature.
         public bool HasSignature { get; set; }
 
         // Kani nga flag kay gikan sa proc: naay discrepancy note nga wala
@@ -54,19 +54,6 @@ namespace JustMakeOverSalonApp.Delivery.Models
         public DateTime? CorrectedAt { get; set; }
         public string CorrectionNotes { get; set; }
         public string CorrectedByName { get; set; }
-    }
-
-    // Kani nga model kay para sa on-demand signature view sa usa ka AR.
-    public sealed class DeliverySignatureRecord
-    {
-        public int DeliveryID { get; set; }
-        public string ARCode { get; set; }
-        public string Status { get; set; }
-        public DateTime? SignedDate { get; set; }
-        public string SignedByName { get; set; }
-
-        // Kani nga string kay PNG data URL (data:image/png;base64,...).
-        public string SignatureData { get; set; }
     }
 
     // Kani nga model kay para sa usa ka line item sa AR print.
@@ -101,8 +88,16 @@ namespace JustMakeOverSalonApp.Delivery.Models
         public string DiscrepancyNotes { get; set; }
         public string CorrectionNotes { get; set; }
 
-        // PNG data URL sa e-signature (null kung wala pa ma-sign).
+        // PNG data URL sa Requestor e-signature (null kung wala pa).
         public string SignatureData { get; set; }
+
+        // Inventory Staff nga nag-issue ug ang iyang signature/date.
+        public string IssuedByName { get; set; }
+        public string IssuedSignatureData { get; set; }
+
+        // Manager/Department Head nga nag-approve sa RF.
+        public DateTime? ApprovalDate { get; set; }
+        public string ApprovalSignatureData { get; set; }
 
         // Salon branding gikan sa SYSTEM_SETTINGS.
         public string SalonName { get; set; }

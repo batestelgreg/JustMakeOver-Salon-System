@@ -350,6 +350,9 @@ namespace JustMakeOverSalonApp.Requisition.Operations
                 string requisitionIDText =
                     context.GetValueAsString(payload, "requisitionID");
 
+                string signature =
+                    context.GetValueAsString(payload, "signature");
+
                 int requisitionID;
 
                 if (!int.TryParse(requisitionIDText, out requisitionID))
@@ -360,7 +363,8 @@ namespace JustMakeOverSalonApp.Requisition.Operations
 
                 service.ApproveRequisition(
                     actor,
-                    requisitionID);
+                    requisitionID,
+                    signature);
 
                 context.SendResponse(
                     requestID,

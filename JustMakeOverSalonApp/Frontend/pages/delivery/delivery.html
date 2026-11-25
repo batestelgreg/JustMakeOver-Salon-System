@@ -152,7 +152,7 @@
                 <p id="deliverySignModalMessage" style="margin: 0;"></p>
                 <div class="signature-pad">
                     <div class="signature-pad__header">
-                        <span class="signature-pad__label">Staff signature</span>
+                        <span class="signature-pad__label">Requestor signature</span>
                         <button type="button" class="btn btn--ghost btn--sm" id="btnClearSignature">Clear</button>
                     </div>
                     <canvas id="deliverySignaturePad" class="signature-pad__canvas"
@@ -193,26 +193,33 @@
         </div>
     </div>
 
-    <!-- Kani nga modal kay para sa "View signature" sa completed AR.
-         On-demand ang fetch (DeliverySignature) para dili mo-bug-at
-         ang page load. -->
-    <div id="signatureViewModal" class="modal-overlay u-hidden">
+    <!-- Kani nga modal kay para sa pag-issue sa items: required ang
+         signature sa Inventory Staff nga naka-login. -->
+    <div id="deliveryIssueModal" class="modal-overlay u-hidden">
         <div class="modal">
             <div class="modal__header">
-                <h3 class="modal__title">Acknowledgement Receipt Signature</h3>
-                <button type="button" class="modal__close" id="btnCloseSignatureView" aria-label="Close">&times;</button>
+                <h3 class="modal__title">Issue Items</h3>
+                <button type="button" class="modal__close" id="btnCloseDeliveryIssueModal" aria-label="Close">&times;</button>
             </div>
             <div class="modal__body">
-                <p class="u-text-muted u-mb-4" id="signatureViewInfo"></p>
-                <div class="signature-view">
-                    <img id="signatureViewImage" class="signature-view__image" alt="Signature" hidden>
-                    <p id="signatureViewEmpty" class="u-text-muted u-hidden" style="margin: 0;">
-                        No signature image is stored for this acknowledgement receipt.
-                    </p>
+                <p id="deliveryIssueModalMessage" style="margin: 0;"></p>
+                <div class="signature-pad">
+                    <div class="signature-pad__header">
+                        <span class="signature-pad__label">Inventory Staff signature</span>
+                        <button type="button" class="btn btn--ghost btn--sm" id="btnClearIssueSignature">Clear</button>
+                    </div>
+                    <canvas id="deliveryIssueSignaturePad" class="signature-pad__canvas"
+                            width="600" height="200" aria-label="Inventory Staff signature pad"></canvas>
+                    <span class="form-field__error" id="errorDeliveryIssueSignature"></span>
                 </div>
+                <p class="u-text-muted u-mt-4" style="font-size: 12px; margin-bottom: 0;">
+                    Draw your signature above to confirm the actual release of the items. Your name
+                    and the issuance date and time will appear in the ISSUED BY section of the AR.
+                </p>
             </div>
             <div class="modal__footer">
-                <button type="button" class="btn btn--ghost" id="btnCloseSignatureViewFooter">Close</button>
+                <button type="button" class="btn btn--ghost" id="btnCancelDeliveryIssue">Cancel</button>
+                <button type="button" class="btn btn--primary" id="btnConfirmDeliveryIssue">Issue Items</button>
             </div>
         </div>
     </div>
