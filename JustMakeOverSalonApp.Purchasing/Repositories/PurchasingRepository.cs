@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
-using System.Globalization;
 using JustMakeOverSalonApp.Core.Data;
 
 namespace JustMakeOverSalonApp.Purchasing.Repositories
@@ -114,38 +113,86 @@ namespace JustMakeOverSalonApp.Purchasing.Repositories
             }
         }
 
-        // Converts SQL values into JSON-friendly records.
+        // Kani nga method nagkuha sa TANANG data sa real PO print.
+        // On-demand ni (print ra ang mo-call), so one DB call gihapon
+        // ang page load. Usa ra ka proc ug usa ra ka result set.
+        public Dictionary<string, object> GetPurchaseOrderPrint(
+            int actorUserID,
+            int poID)
+        {
+            using (var connection =
+                connectionFactory.CreateOpenConnection())
+            using (var command = new SqlCommand(
+                "dbo.usp_Purchasing_GetPurchaseOrderPrint",
+                connection))
+            {
+                command.CommandType = CommandType.StoredProcedure;
+
+                command.Parameters.Add(
+                    "@ActorUserID",
+                    SqlDbType.Int).Value = actorUserID;
+
+                command.Parameters.Add(
+                    "@POID",
+                    SqlDbType.Int).Value = poID;
+
+                using (var reader = command.ExecuteReader())
+                {
+                    return SqlResultReader.ReadRow(reader);
+                }
+            }
+        }
+
+        // Kani nga method nagkuha sa TANANG data sa Return Slip:
+        // header + delivered/accepted/rejected line items.
+        public Dictionary<string, object> GetReturnSlipPrint(
+            int actorUserID,
+            int drID)
+        {
+            using (var connection =
+                connectionFactory.CreateOpenConnection())
+            using (var command = new SqlCommand(
+                "dbo.usp_Purchasing_GetReturnSlip",
+                connection))
+            {
+                command.CommandType = CommandType.StoredProcedure;
+
+                command.Parameters.Add(
+                    "@ActorUserID",
+                    SqlDbType.Int).Value = actorUserID;
+
+                command.Parameters.Add(
+                    "@DRID",
+                    SqlDbType.Int).Value = drID;
+
+                using (var reader = command.ExecuteReader())
+                {
+                    var header = SqlResultReader.ReadRow(reader);
+
+                    if (header == null)
+                    {
+                        return null;
+                    }
+
+                    var items = reader.NextResult()
+                        ? SqlResultReader.ReadRows(reader)
+                        : new List<Dictionary<string, object>>();
+
+                    return new Dictionary<string, object>
+                    {
+                        ["header"] = header,
+                        ["items"] = items
+                    };
+                }
+            }
+        }
+
+        // Kani nga helper kay nag-delegate sa shared mapper aron usa ra
+        // ang date/JSON conversion rules sa tibuok app.
         private static List<Dictionary<string, object>> ReadRows(
             SqlDataReader reader)
         {
-            var rows = new List<Dictionary<string, object>>();
-
-            while (reader.Read())
-            {
-                var row = new Dictionary<string, object>();
-
-                for (int index = 0;
-                    index < reader.FieldCount;
-                    index++)
-                {
-                    object value = reader.IsDBNull(index)
-                        ? null
-                        : reader.GetValue(index);
-
-                    if (value is DateTime)
-                    {
-                        value = ((DateTime)value).ToString(
-                            "yyyy-MM-ddTHH:mm:ss",
-                            CultureInfo.InvariantCulture);
-                    }
-
-                    row[reader.GetName(index)] = value;
-                }
-
-                rows.Add(row);
-            }
-
-            return rows;
+            return SqlResultReader.ReadRows(reader);
         }
     }
 }

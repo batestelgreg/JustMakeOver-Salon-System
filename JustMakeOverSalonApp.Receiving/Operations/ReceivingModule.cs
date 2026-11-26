@@ -23,6 +23,10 @@ namespace JustMakeOverSalonApp.Receiving.Operations
             registry.Register("ReceivingOverview", HandleReceivingOverviewAsync);
             registry.Register("ReceivingSubmit", HandleReceivingSubmitAsync);
             registry.Register("ReceivingCheckedDR", HandleReceivingCheckedDRAsync);
+
+            // Kani nga operation kay ON-DEMAND print call ra. Wala ni
+            // ma-apil sa page load.
+            registry.Register("ReceivingPrint", HandleReceivingPrintAsync);
         }
 
         // Kani nga handler nagdala sa TANANG page data sa usa ra ka response
@@ -66,6 +70,23 @@ namespace JustMakeOverSalonApp.Receiving.Operations
                 context.GetValueAsInt(payload, "drid"));
 
             context.SendResponse(requestID, true, null, null);
+        }
+
+        // Kani nga handler nagkuha sa real Receiving Report print data
+        // (header + supplier/RepF context) on-demand.
+        private async Task HandleReceivingPrintAsync(Dictionary<string, object> payload, string requestID)
+        {
+            var actor = context.RequireUser();
+
+            long.TryParse(
+                context.GetValueAsString(payload, "inventoryLogID"),
+                out long inventoryLogID);
+
+            var receipt = await service.GetPrintAsync(
+                actor,
+                inventoryLogID);
+
+            context.SendResponse(requestID, true, new { receipt }, null);
         }
 
         // Kani nga helper kay mo-convert sa repFID string ngadto sa nullable int

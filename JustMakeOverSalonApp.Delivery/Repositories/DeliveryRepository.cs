@@ -246,6 +246,52 @@ namespace JustMakeOverSalonApp.Delivery.Repositories
             }
         }
 
+        // Kani nga method nagkuha sa TANANG data sa Correction Report print:
+        // header + AR line items + preserved signature history. On-demand
+        // ni (print ra ang mo-call), so one DB call gihapon ang page load.
+        public Dictionary<string, object> GetCorrectionReport(
+            int actorUserID,
+            int deliveryID)
+        {
+            using (var connection = connectionFactory.CreateOpenConnection())
+            using (var command = new SqlCommand(
+                "dbo.usp_Delivery_GetCorrectionReport", connection))
+            {
+                command.CommandType = CommandType.StoredProcedure;
+
+                command.Parameters.Add("@ActorUserID", SqlDbType.Int)
+                    .Value = actorUserID;
+
+                command.Parameters.Add("@DeliveryID", SqlDbType.Int)
+                    .Value = deliveryID;
+
+                using (var reader = command.ExecuteReader())
+                {
+                    var header = SqlResultReader.ReadRow(reader);
+
+                    if (header == null)
+                    {
+                        return null;
+                    }
+
+                    var items = reader.NextResult()
+                        ? SqlResultReader.ReadRows(reader)
+                        : new List<Dictionary<string, object>>();
+
+                    var signatures = reader.NextResult()
+                        ? SqlResultReader.ReadRows(reader)
+                        : new List<Dictionary<string, object>>();
+
+                    return new Dictionary<string, object>
+                    {
+                        ["header"] = header,
+                        ["items"] = items,
+                        ["signatures"] = signatures
+                    };
+                }
+            }
+        }
+
         // Kani nga mapper nag-convert sa row ngadto sa AllocatedRequisitionRecord.
         private static AllocatedRequisitionRecord MapAllocated(SqlDataReader reader)
         {

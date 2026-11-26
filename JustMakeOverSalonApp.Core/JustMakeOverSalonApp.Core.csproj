@@ -38,6 +38,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Data\SqlConnectionFactory.cs" />
+    <Compile Include="Data\SqlResultReader.cs" />
     <Compile Include="Data\StoredProcedureNames.cs" />
     <Compile Include="Bridge\IModuleOperations.cs" />
     <Compile Include="Bridge\IOperationContext.cs" />

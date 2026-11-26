@@ -238,6 +238,59 @@ namespace JustMakeOverSalonApp.Inventory.Services
             return Task.FromResult(repository.LoadPanel(actor.UserID));
         }
 
+        // Kani nga method nagkuha sa real Stock Card print data
+        // (item header + movements) on-demand. Dili ni mo-apil sa page load.
+        public Task<Dictionary<string, object>> GetStockCardAsync(
+            CurrentUser actor,
+            int itemID)
+        {
+            actor.RequirePermission(PermissionCodes.InventoryView);
+
+            if (itemID <= 0)
+            {
+                throw new BusinessException("A valid item is required.");
+            }
+
+            var card = repository.GetStockCard(
+                actor.UserID,
+                itemID);
+
+            if (card == null)
+            {
+                throw new BusinessException(
+                    "The item could not be found.");
+            }
+
+            return Task.FromResult(card);
+        }
+
+        // Kani nga method nagkuha sa real Replenishment Request print data
+        // on-demand.
+        public Task<Dictionary<string, object>> GetReplenishmentPrintAsync(
+            CurrentUser actor,
+            int repFID)
+        {
+            actor.RequirePermission(PermissionCodes.InventoryView);
+
+            if (repFID <= 0)
+            {
+                throw new BusinessException(
+                    "A valid replenishment request is required.");
+            }
+
+            var request = repository.GetReplenishmentPrint(
+                actor.UserID,
+                repFID);
+
+            if (request == null)
+            {
+                throw new BusinessException(
+                    "The replenishment request could not be found.");
+            }
+
+            return Task.FromResult(request);
+        }
+
         // Kani nga validator kay para sa item form details nga may item code.
         private static void ValidateItemDetails(
             string itemCode, string itemName, string unitOfMeasure)

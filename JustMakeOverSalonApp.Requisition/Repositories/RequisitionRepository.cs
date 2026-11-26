@@ -930,5 +930,47 @@ namespace JustMakeOverSalonApp.Requisition.Repositories
             }
         }
 
+        // FUNCTION 9: GetPrint
+        // Kani nga method nagkuha sa TANANG data sa Requisition Form
+        // print: header + line items. On-demand ni (print ra ang mo-call),
+        // so one DB call gihapon ang page load.
+        public Dictionary<string, object> GetPrint(
+            int actorUserID,
+            int requisitionID)
+        {
+            using (var connection = connectionFactory.CreateOpenConnection())
+            using (var command = new SqlCommand(
+                "dbo.usp_Requisition_GetPrint", connection))
+            {
+                command.CommandType = CommandType.StoredProcedure;
+
+                command.Parameters.Add("@ActorUserID", SqlDbType.Int)
+                    .Value = actorUserID;
+
+                command.Parameters.Add("@RequisitionID", SqlDbType.Int)
+                    .Value = requisitionID;
+
+                using (var reader = command.ExecuteReader())
+                {
+                    var header = SqlResultReader.ReadRow(reader);
+
+                    if (header == null)
+                    {
+                        return null;
+                    }
+
+                    var items = reader.NextResult()
+                        ? SqlResultReader.ReadRows(reader)
+                        : new List<Dictionary<string, object>>();
+
+                    return new Dictionary<string, object>
+                    {
+                        ["header"] = header,
+                        ["items"] = items
+                    };
+                }
+            }
+        }
+
     }
 }

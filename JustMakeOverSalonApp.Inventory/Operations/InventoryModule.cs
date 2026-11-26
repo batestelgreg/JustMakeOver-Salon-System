@@ -34,6 +34,11 @@ namespace JustMakeOverSalonApp.Inventory.Operations
             registry.Register("InventoryReservations", HandleInventoryReservationsAsync);
             registry.Register("InventoryRepFs", HandleInventoryRepFsAsync);
             registry.Register("InventoryPanel", HandleInventoryPanelAsync);
+
+            // Kani nga operations kay ON-DEMAND print calls ra. Wala ni
+            // ma-apil sa page load.
+            registry.Register("InventoryStockCardPrint", HandleInventoryStockCardPrintAsync);
+            registry.Register("InventoryReplenishmentPrint", HandleInventoryReplenishmentPrintAsync);
         }
 
         // Kani nga handler nagdala sa TANANG page data sa usa ra ka response.
@@ -179,6 +184,27 @@ namespace JustMakeOverSalonApp.Inventory.Operations
             var actor = context.RequireUser();
             var panel = await service.LoadPanelAsync(actor);
             context.SendResponse(requestID, true, panel, null);
+        }
+
+        // Kani nga handler nagkuha sa real Stock Card print data on-demand.
+        private async Task HandleInventoryStockCardPrintAsync(Dictionary<string, object> payload, string requestID)
+        {
+            var actor = context.RequireUser();
+            var card = await service.GetStockCardAsync(
+                actor,
+                context.GetValueAsInt(payload, "itemID"));
+            context.SendResponse(requestID, true, new { card }, null);
+        }
+
+        // Kani nga handler nagkuha sa real Replenishment Request print
+        // data on-demand.
+        private async Task HandleInventoryReplenishmentPrintAsync(Dictionary<string, object> payload, string requestID)
+        {
+            var actor = context.RequireUser();
+            var request = await service.GetReplenishmentPrintAsync(
+                actor,
+                context.GetValueAsInt(payload, "repFID"));
+            context.SendResponse(requestID, true, new { request }, null);
         }
 
         // Kani nga parser nag-convert sa price string ngadto sa decimal.

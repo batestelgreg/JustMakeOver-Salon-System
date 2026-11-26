@@ -10,6 +10,13 @@ import { invoke } from '../../assets/js/core/bridge.js';
 import { hasPermission } from '../../assets/js/core/state.js';
 import { showToast } from '../../assets/js/components/toast.js';
 import { highlightTargetRow } from '../../assets/js/core/notification-nav.js';
+import {
+    printDocument,
+    formatPrintDate
+} from '../../assets/js/components/print-document.js';
+
+// Kani nga helper kay para sa document numbers (RR-0001, etc.).
+const pad = (value) => String(value || 0).padStart(4, '0');
 
 let historyData = [];
 let itemsData = [];
@@ -164,7 +171,7 @@ function renderHistoryTable(root) {
     }
 
     if (historyData.length === 0) {
-        body.innerHTML = '<tr><td colspan="8" class="data-table__empty">No receipts recorded yet.</td></tr>';
+        body.innerHTML = '<tr><td colspan="9" class="data-table__empty">No receipts recorded yet.</td></tr>';
         return;
     }
 
@@ -187,8 +194,244 @@ function renderHistoryTable(root) {
             cell.textContent = value;
             row.appendChild(cell);
         });
+
+        // Kani nga Print RR kay on-demand ra; ang LogID ang stable
+        // reference sa Stock In record.
+        const actionCell = document.createElement('td');
+        const printButton = document.createElement('button');
+
+        printButton.type = 'button';
+        printButton.className = 'btn btn--secondary btn--sm';
+        printButton.textContent = 'Print RR';
+        printButton.addEventListener('click', () => {
+            printReceivingReport(root, record.LogID);
+        });
+
+        actionCell.appendChild(printButton);
+        row.appendChild(actionCell);
+
         body.appendChild(row);
     });
+}
+
+// Kani nga function kay nag-print sa real Receiving Report on-demand.
+// Usa ra ka DB call, ug ang shared print engine ang nag-layout.
+async function printReceivingReport(root, inventoryLogID) {
+    try {
+        const result = await invoke(
+            'ReceivingPrint',
+            { inventoryLogID }
+        );
+
+        const receipt = result?.receipt;
+
+        if (!receipt) {
+            throw new Error(
+                'The receiving record could not be found.'
+            );
+        }
+
+        await printDocument(buildReceivingReport(receipt));
+    } catch (error) {
+        showToast(
+            'error',
+            error.message || 'Unable to print the receiving report.'
+        );
+    }
+}
+
+function buildReceivingReport(receipt) {
+    const supplierLines = receipt.SupplierName
+        ? [
+            receipt.SupplierName,
+            receipt.SupplierDRNumber
+                ? 'Supplier DR: ' + receipt.SupplierDRNumber
+                : '',
+            receipt.POID
+                ? 'Purchase order: PO-' + pad(receipt.POID)
+                : '',
+            receipt.POStatus
+                ? 'PO status: ' + receipt.POStatus
+                : ''
+        ]
+        : [];
+
+    return {
+        title: 'RECEIVING REPORT',
+        code: receipt.ReferenceDisplay
+            || 'RR-' + pad(receipt.InventoryLogID),
+        codeLabel: 'Report No.',
+        status: receipt.RepFStatus
+            || receipt.POStatus
+            || 'Recorded',
+        salonName: receipt.SalonName,
+        salonTagline: receipt.SalonTagline,
+
+        meta: [
+            {
+                label: 'Received date',
+                value: formatPrintDate(receipt.TransactionDate, true)
+            },
+            {
+                label: 'Item',
+                value: receipt.ItemCode + ' \u2014 ' + receipt.ItemName
+            },
+            {
+                label: 'Category',
+                value: receipt.CategoryName
+            },
+            {
+                label: 'Received by',
+                value: receipt.ReceivedByName
+            },
+            {
+                label: 'Reference',
+                value: receipt.ReferenceDisplay
+            },
+            {
+                label: 'Source',
+                value: receipt.SourceDisplay
+            }
+        ],
+
+        parties: [
+            supplierLines.length > 0
+                ? {
+                    title: 'Received from',
+                    lines: supplierLines
+                }
+                : null,
+            {
+                title: 'Stock effect',
+                lines: [
+                    'Previous quantity: ' + receipt.PreviousQuantity,
+                    'Quantity received: +' + receipt.QuantityChange,
+                    'New quantity: ' + receipt.NewQuantity,
+                    'On hand now: ' + receipt.QuantityOnHand
+                ]
+            }
+        ],
+
+        sections: [
+            {
+                type: 'table',
+                title: 'Received item',
+                columns: [
+                    { label: '#', align: 'center' },
+                    { label: 'Item code' },
+                    { label: 'Description' },
+                    { label: 'Unit' },
+                    {
+                        label: 'Qty in',
+                        align: 'right'
+                    },
+                    {
+                        label: 'Previous',
+                        align: 'right'
+                    },
+                    {
+                        label: 'New balance',
+                        align: 'right'
+                    }
+                ],
+                rows: [[
+                    1,
+                    receipt.ItemCode,
+                    receipt.ItemName,
+                    receipt.UnitOfMeasure,
+                    receipt.QuantityChange,
+                    receipt.PreviousQuantity,
+                    receipt.NewQuantity
+                ]],
+                foot: [[
+                    {
+                        text: 'Total received',
+                        colSpan: 4,
+                        align: 'right'
+                    },
+                    {
+                        text: receipt.QuantityChange,
+                        align: 'right'
+                    },
+                    {
+                        text: receipt.PreviousQuantity,
+                        align: 'right'
+                    },
+                    {
+                        text: receipt.NewQuantity,
+                        align: 'right'
+                    }
+                ]]
+            },
+            {
+                type: 'kv',
+                title: 'Replenishment context',
+                items: [
+                    {
+                        label: 'RepF',
+                        value: receipt.RepFID
+                            ? 'RepF-' + pad(receipt.RepFID)
+                            : null
+                    },
+                    {
+                        label: 'RepF status',
+                        value: receipt.RepFStatus
+                    },
+                    {
+                        label: 'Needed',
+                        value: receipt.QuantityNeeded
+                    },
+                    {
+                        label: 'Received so far',
+                        value: receipt.QuantityReceived
+                    },
+                    {
+                        label: 'Origin requisition',
+                        value: receipt.OriginRequisitionID
+                            ? 'RF-' + pad(receipt.OriginRequisitionID)
+                            : null
+                    },
+                    {
+                        label: 'Available now',
+                        value: receipt.QuantityAvailable
+                    }
+                ]
+            }
+        ],
+
+        notes: [
+            receipt.Remarks
+                ? {
+                    label: 'Receiving remarks:',
+                    value: receipt.Remarks
+                }
+                : null,
+            receipt.DeliveryNotes
+                ? {
+                    label: 'Delivery notes:',
+                    value: receipt.DeliveryNotes
+                }
+                : null
+        ].filter(Boolean),
+
+        signatures: [
+            {
+                name: receipt.ReceivedByName,
+                label: 'Received by'
+            },
+            {
+                name: ' ',
+                label: 'Checked by'
+            },
+            {
+                name: ' ',
+                label: 'Approved by'
+            }
+        ],
+
+        footer: 'This receiving report reflects the stock-in entry '
+            + 'recorded in the salon inventory system.'
+    };
 }
 
 /**

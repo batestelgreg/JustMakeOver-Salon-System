@@ -4,6 +4,13 @@ import { hasPermission } from '../../assets/js/core/state.js';
 import { showToast } from '../../assets/js/components/toast.js';
 import { createSignaturePad } from '../../assets/js/components/signature-pad.js';
 import { highlightTargetRow } from '../../assets/js/core/notification-nav.js';
+import {
+    printDocument,
+    formatPrintDate
+} from '../../assets/js/components/print-document.js';
+
+// Kani nga helper kay para sa document numbers (RF-0001, etc.).
+const pad = (value) => String(value || 0).padStart(4, '0');
 
 // Stores the active items received from the C# backend.
 let itemsData = [];
@@ -978,6 +985,18 @@ function renderRequisitionHistory(root) {
             `);
         }
 
+        // Kani nga Print RF kay para sa approved o fulfilled nga
+        // requisition, parehas sa AR print nga on-demand ra.
+        if (['Approved', 'Fulfilled'].includes(requisition.Status)) {
+            actionButtons.push(`
+                <button type="button"
+                        class="btn btn--secondary btn--sm print-requisition-btn"
+                        data-requisition-id="${requisition.RequisitionID}">
+                    Print RF
+                </button>
+            `);
+        }
+
         const actionButton = actionButtons.length > 0
             ? actionButtons.join(' ')
             : '-';
@@ -1024,6 +1043,13 @@ function renderRequisitionHistory(root) {
     tableBody.querySelectorAll('.reason-requisition-btn').forEach(button => {
         button.addEventListener('click', function () {
             openReasonModal(root, Number(button.dataset.requisitionId));
+        });
+    });
+
+    // Kani nga wiring kay para sa Print RF button (on-demand fetch).
+    tableBody.querySelectorAll('.print-requisition-btn').forEach(button => {
+        button.addEventListener('click', function () {
+            printRequisitionForm(root, Number(button.dataset.requisitionId));
         });
     });
 
@@ -1215,7 +1241,7 @@ async function openAllRequisitionHistoryModal(root) {
     // Display a loading message while retrieving the records.
     tableBody.innerHTML = `
         <tr>
-            <td colspan="9">Loading all requisition history...</td>
+            <td colspan="10">Loading all requisition history...</td>
         </tr>
     `;
 
@@ -1231,7 +1257,7 @@ async function openAllRequisitionHistoryModal(root) {
         // Display a message if the records cannot be loaded.
         tableBody.innerHTML = `
             <tr>
-                <td colspan="9">Unable to load all requisition history.</td>
+                <td colspan="10">Unable to load all requisition history.</td>
             </tr>
         `;
 
@@ -1257,7 +1283,7 @@ function renderAllRequisitionHistory(root, requisitions) {
     if (requisitions.length === 0) {
         tableBody.innerHTML = `
             <tr>
-                <td colspan="9">No approved or rejected requisitions found.</td>
+                <td colspan="10">No approved or rejected requisitions found.</td>
             </tr>
         `;
         return;
@@ -1295,6 +1321,16 @@ function renderAllRequisitionHistory(root, requisitions) {
         // Display the rejection reason only when available.
         const rejectionReason = requisition.RejectionReason || '-';
 
+        // Kani nga Print RF kay available kung approved o fulfilled na.
+        const printButton = ['Approved', 'Fulfilled']
+            .includes(requisition.Status)
+            ? `<button type="button"
+                       class="btn btn--secondary btn--sm print-requisition-btn"
+                       data-requisition-id="${requisition.RequisitionID}">
+                   Print RF
+               </button>`
+            : '-';
+
         // Return the completed history row.
         return `
             <tr>
@@ -1307,9 +1343,206 @@ function renderAllRequisitionHistory(root, requisitions) {
                 <td>${requisition.Justification || '-'}</td>
                 <td>${items || 'No items'}</td>
                 <td>${rejectionReason}</td>
+                <td>${printButton}</td>
             </tr>
         `;
     }).join('');
+
+    // Kani nga wiring kay para sa Print RF sa all-history modal.
+    tableBody.querySelectorAll('.print-requisition-btn').forEach(button => {
+        button.addEventListener('click', function () {
+            printRequisitionForm(root, Number(button.dataset.requisitionId));
+        });
+    });
+}
+
+
+
+// FUNCTION: printRequisitionForm
+// Kani nga function kay nag-print sa real Requisition Form on-demand.
+// Usa ra ka DB call, ug ang shared print engine ang nag-layout.
+async function printRequisitionForm(root, requisitionID) {
+    try {
+        const result = await invoke(
+            'RequisitionPrint',
+            { requisitionID }
+        );
+
+        const form = result?.form;
+
+        if (!form || !form.header) {
+            throw new Error(
+                'The requisition could not be found.'
+            );
+        }
+
+        await printDocument(
+            buildRequisitionFormDocument(
+                form.header,
+                form.items || []
+            )
+        );
+    } catch (error) {
+        showToast(
+            'error',
+            error.message || 'Unable to print the requisition form.'
+        );
+    }
+}
+
+function buildRequisitionFormDocument(header, items) {
+    const totals = items.reduce(
+        (sum, item) => ({
+            requested: sum.requested
+                + Number(item.QuantityRequested || 0),
+            approved: sum.approved
+                + Number(item.QuantityApproved || 0)
+        }),
+        { requested: 0, approved: 0 }
+    );
+
+    const signature = String(header.ApprovalSignatureData || '');
+
+    return {
+        title: 'REQUISITION FORM',
+        code: 'RF-' + pad(header.RequisitionID),
+        codeLabel: 'RF No.',
+        status: header.Status,
+        salonName: header.SalonName,
+        salonTagline: header.SalonTagline,
+
+        meta: [
+            {
+                label: 'Request date',
+                value: formatPrintDate(header.RequestDate)
+            },
+            {
+                label: 'Required date',
+                value: formatPrintDate(header.RequiredDate)
+            },
+            {
+                label: 'Approved date',
+                value: formatPrintDate(header.ApprovedDate)
+            },
+            {
+                label: 'Requestor',
+                value: header.RequestorName
+            },
+            {
+                label: 'Department head',
+                value: header.DepartmentHeadName
+            },
+            {
+                label: 'Archived',
+                value: formatPrintDate(header.ArchivedAt)
+            }
+        ],
+
+        parties: [
+            {
+                title: 'Requested by',
+                lines: [
+                    header.RequestorName,
+                    header.RequestorEmail
+                ]
+            },
+            {
+                title: 'Department approval',
+                lines: [
+                    header.DepartmentHeadName
+                        || 'No department head assigned',
+                    header.ApprovedDate
+                        ? 'Approved on '
+                        + formatPrintDate(header.ApprovedDate)
+                        : 'Not yet approved'
+                ]
+            }
+        ],
+
+        sections: [
+            {
+                type: 'table',
+                title: 'Requested items',
+                columns: [
+                    { label: '#', align: 'center' },
+                    { label: 'Item code' },
+                    { label: 'Description' },
+                    { label: 'Unit' },
+                    {
+                        label: 'Requested',
+                        align: 'right'
+                    },
+                    {
+                        label: 'Approved',
+                        align: 'right'
+                    },
+                    { label: 'Status' }
+                ],
+                rows: items.map((item, index) => [
+                    index + 1,
+                    item.ItemCode,
+                    item.ItemName,
+                    item.UnitOfMeasure,
+                    item.QuantityRequested,
+                    item.QuantityApproved,
+                    item.DetailStatus
+                ]),
+                foot: [[
+                    {
+                        text: 'Total',
+                        colSpan: 4,
+                        align: 'right'
+                    },
+                    {
+                        text: totals.requested,
+                        align: 'right'
+                    },
+                    {
+                        text: totals.approved,
+                        align: 'right'
+                    },
+                    { text: '' }
+                ]]
+            }
+        ],
+
+        notes: [
+            header.Justification
+                ? {
+                    label: 'Justification:',
+                    value: header.Justification
+                }
+                : null,
+            header.RejectionReason
+                ? {
+                    label: 'Rejection reason:',
+                    value: header.RejectionReason
+                }
+                : null
+        ].filter(Boolean),
+
+        signatures: [
+            {
+                name: header.RequestorName,
+                label: 'Requested by'
+            },
+            {
+                name: header.DepartmentHeadName || ' ',
+                label: 'Department head',
+                image: signature.startsWith('data:image/')
+                    ? signature
+                    : null,
+                date: header.ApprovedDate
+            },
+            {
+                name: ' ',
+                label: 'Received by'
+            }
+        ],
+
+        footer: 'This requisition form is generated by the salon '
+            + 'inventory system and reflects the recorded approval.'
+    };
 }
 
 

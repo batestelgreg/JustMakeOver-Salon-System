@@ -40,6 +40,10 @@ namespace JustMakeOverSalonApp.Requisition.Operations
             registry.Register("ApproveRequisition", HandleApproveRequisition);
             registry.Register("RejectRequisition", HandleRejectRequisition);
             registry.Register("ReviseRequisition", HandleReviseRequisition);
+
+            // Kani nga operation kay ON-DEMAND print call ra. Wala ni
+            // ma-apil sa page load.
+            registry.Register("RequisitionPrint", HandleRequisitionPrint);
         }
 
         /* Kani nga block kay example ra sa handler pattern:
@@ -510,6 +514,47 @@ namespace JustMakeOverSalonApp.Requisition.Operations
                     requestID,
                     true,
                     new { requisitionID },
+                    null);
+            }
+            catch (Exception ex)
+            {
+                context.SendResponse(
+                    requestID,
+                    false,
+                    null,
+                    ex.Message);
+            }
+
+            return Task.CompletedTask;
+        }
+
+        // FUNCTION 9: HandleRequisitionPrint
+        // Kani nga handler nagkuha sa real Requisition Form print data
+        // (header + items) on-demand para usa ra ka DB call ang print.
+        private Task HandleRequisitionPrint(
+            Dictionary<string, object> payload,
+            string requestID)
+        {
+            try
+            {
+                var actor = context.RequireUser();
+
+                int requisitionID;
+
+                if (!int.TryParse(
+                    context.GetValueAsString(payload, "requisitionID"),
+                    out requisitionID))
+                {
+                    throw new ArgumentException(
+                        "Invalid requisition selected.");
+                }
+
+                var form = service.GetPrint(actor, requisitionID);
+
+                context.SendResponse(
+                    requestID,
+                    true,
+                    new { form },
                     null);
             }
             catch (Exception ex)

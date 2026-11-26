@@ -219,5 +219,32 @@ namespace JustMakeOverSalonApp.Receiving.Repositories
                 Notes = reader.IsDBNull(9) ? null : reader.GetString(9)
             };
         }
+
+        // Kani nga method nagkuha sa TANANG data sa Receiving Report print.
+        // On-demand ni (print ra ang mo-call), so one DB call gihapon ang
+        // page load. Ang InventoryLogID ang stable nga reference kay ang
+        // Stock In log mismo ang giprinta.
+        public Dictionary<string, object> GetPrint(
+            int actorUserID,
+            long inventoryLogID)
+        {
+            using (var connection = connectionFactory.CreateOpenConnection())
+            using (var command = new SqlCommand(
+                "dbo.usp_Receiving_GetPrint", connection))
+            {
+                command.CommandType = CommandType.StoredProcedure;
+
+                command.Parameters.Add("@ActorUserID", SqlDbType.Int)
+                    .Value = actorUserID;
+
+                command.Parameters.Add("@InventoryLogID", SqlDbType.BigInt)
+                    .Value = inventoryLogID;
+
+                using (var reader = command.ExecuteReader())
+                {
+                    return SqlResultReader.ReadRow(reader);
+                }
+            }
+        }
     }
 }
