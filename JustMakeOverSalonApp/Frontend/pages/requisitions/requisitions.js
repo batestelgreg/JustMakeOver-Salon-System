@@ -832,7 +832,7 @@ async function loadRequisitionHistory(root) {
         // Display a message inside the table if history cannot be loaded.
         tableBody.innerHTML = `
             <tr>
-                <td colspan="6">Unable to load requisition history.</td>
+                <td colspan="7">Unable to load requisition history.</td>
             </tr>
         `;
 
