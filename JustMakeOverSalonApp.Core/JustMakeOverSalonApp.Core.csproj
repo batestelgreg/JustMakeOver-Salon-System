@@ -37,6 +37,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Data\DocumentSignatureRepository.cs" />
     <Compile Include="Data\SqlConnectionFactory.cs" />
     <Compile Include="Data\SqlResultReader.cs" />
     <Compile Include="Data\StoredProcedureNames.cs" />
@@ -44,6 +45,7 @@
     <Compile Include="Bridge\IOperationContext.cs" />
     <Compile Include="Bridge\OperationRegistry.cs" />
     <Compile Include="Models\CurrentUser.cs" />
+    <Compile Include="Models\DocumentSignatureModule.cs" />
     <Compile Include="Models\LoginResult.cs" />
     <Compile Include="Models\PermissionRecord.cs" />
     <Compile Include="Models\RoleRecord.cs" />
@@ -59,13 +61,12 @@
     <Compile Include="Security\SessionContext.cs" />
     <Compile Include="Services\AuthService.cs" />
     <Compile Include="Services\DashboardService.cs" />
+    <Compile Include="Services\DocumentSignatureService.cs" />
     <Compile Include="Services\UserManagementService.cs" />
     <Compile Include="Validation\BusinessException.cs" />
     <Compile Include="Validation\ValidationHelper.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="bin\Debug\JustMakeOverSalonApp.Core.dll" />
-    <Content Include="bin\Debug\JustMakeOverSalonApp.Core.pdb" />
     <Content Include="obj\Debug\JustMakeOverSalonApp.Core.csproj.FileListAbsolute.txt" />
     <Content Include="obj\Debug\JustMakeOverSalonApp.Core.dll" />
     <Content Include="obj\Debug\JustMakeOverSalonApp.Core.pdb" />
@@ -75,6 +76,8 @@
     <None Include="obj\Debug\JustMakeOverSalonApp.Core.csproj.CoreCompileInputs.cache" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="bin\Debug\" />
+    <Folder Include="bin\Release\" />
     <Folder Include="obj\Debug\TempPE\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

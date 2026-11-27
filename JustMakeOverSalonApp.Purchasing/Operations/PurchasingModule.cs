@@ -53,13 +53,85 @@ namespace JustMakeOverSalonApp.Purchasing.Operations
             string requestID)
         {
             string action = context.GetValueAsString(payload, "action");
+            var actor = context.RequireUser();
+
+            if (string.Equals(action, "ApprovePO", System.StringComparison.Ordinal))
+            {
+                int poID = ParseID(context.GetValueAsString(payload, "poID"));
+                string signature = context.GetValueAsString(payload, "signature");
+                bool confirmed = ParseBool(context.GetValueAsString(payload, "confirmed"));
+
+                var approvalResult = await service.ApprovePOWithSignatureAsync(
+                    actor,
+                    poID,
+                    signature,
+                    confirmed);
+
+                context.SendResponse(requestID, true, approvalResult, null);
+                return;
+            }
+
+            // By-process signing for CreatePR (signs RepF Approved) and RecordDR (signs Delivery Check Checked).
+            bool requiresInlineSign =
+                string.Equals(action, "CreatePR", System.StringComparison.Ordinal)
+                || string.Equals(action, "RecordDR", System.StringComparison.Ordinal);
+
+            string inlineSig = null;
+            if (requiresInlineSign)
+            {
+                inlineSig = context.GetValueAsString(payload, "signature");
+                bool inlineConfirmed = ParseBool(context.GetValueAsString(payload, "confirmed"));
+                if (!inlineConfirmed)
+                {
+                    throw new JustMakeOverSalonApp.Core.Validation.BusinessException(
+                        "Please confirm your signature before proceeding.");
+                }
+                JustMakeOverSalonApp.Core.Services.DocumentSignatureService.ValidateSignatureImage(
+                    inlineSig,
+                    "A digital signature is required to complete this step.");
+            }
+
+            // Strip signature payload before sending JSON to Purchasing workspace proc.
+            var actionPayload = new Dictionary<string, object>(payload);
+            actionPayload.Remove("signature");
+            actionPayload.Remove("confirmed");
 
             // Serialize input values, never interpolate them into SQL.
             var serializer = new JavaScriptSerializer();
-            string json = serializer.Serialize(payload);
+            string json = serializer.Serialize(actionPayload);
 
             var result = await service.ExecuteAsync(
-                context.RequireUser(), action, json);
+                actor, action, json);
+
+            if (requiresInlineSign && !string.IsNullOrWhiteSpace(inlineSig))
+            {
+                var sigRepo = new DocumentSignatureRepository(new SqlConnectionFactory());
+                if (string.Equals(action, "CreatePR", System.StringComparison.Ordinal))
+                {
+                    int repFID = ParseID(context.GetValueAsString(payload, "repFID"));
+                    if (repFID > 0)
+                    {
+                        try
+                        {
+                            sigRepo.Sign(actor.UserID, "REPLENISHMENT_REQUEST", repFID, "Approved", inlineSig, true);
+                        }
+                        catch
+                        {
+                            // Ignore if this RepF already has an active Approved signature (e.g. re-opened PR).
+                        }
+                    }
+                }
+                else if (string.Equals(action, "RecordDR", System.StringComparison.Ordinal))
+                {
+                    int drID = result != null && result.ContainsKey("ID") && result["ID"] != null
+                        ? ParseID(result["ID"].ToString())
+                        : 0;
+                    if (drID > 0)
+                    {
+                        sigRepo.Sign(actor.UserID, "DELIVERY_CHECK", drID, "Checked", inlineSig, true);
+                    }
+                }
+            }
 
             context.SendResponse(requestID, true, result, null);
         }
@@ -94,6 +166,12 @@ namespace JustMakeOverSalonApp.Purchasing.Operations
         {
             int.TryParse(text, out int id);
             return id;
+        }
+
+        private static bool ParseBool(string text)
+        {
+            return string.Equals(text, "true", System.StringComparison.OrdinalIgnoreCase)
+                || text == "1";
         }
     }
 }

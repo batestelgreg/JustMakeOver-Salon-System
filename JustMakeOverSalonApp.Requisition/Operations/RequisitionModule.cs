@@ -149,12 +149,23 @@ namespace JustMakeOverSalonApp.Requisition.Operations
                     });
                 }
 
-                // Send the requisition details to the service for validation and saving.
+                string signature =
+                    context.GetValueAsString(payload, "signature");
+
+                string confirmedText =
+                    context.GetValueAsString(payload, "confirmed");
+                bool confirmed = string.Equals(
+                    confirmedText, "true", StringComparison.OrdinalIgnoreCase)
+                    || confirmedText == "1";
+
+                // Send the requisition details + requestor signature to the service.
                 int requisitionID = service.CreateRequisition(
                     actor,
                     requiredDate,
                     justification,
-                    items);
+                    items,
+                    signature,
+                    confirmed);
 
                 // Send a successful response with the new Requisition ID.
                 context.SendResponse(
@@ -357,6 +368,12 @@ namespace JustMakeOverSalonApp.Requisition.Operations
                 string signature =
                     context.GetValueAsString(payload, "signature");
 
+                string confirmedText =
+                    context.GetValueAsString(payload, "confirmed");
+                bool confirmed = string.Equals(
+                    confirmedText, "true", StringComparison.OrdinalIgnoreCase)
+                    || confirmedText == "1";
+
                 int requisitionID;
 
                 if (!int.TryParse(requisitionIDText, out requisitionID))
@@ -368,7 +385,8 @@ namespace JustMakeOverSalonApp.Requisition.Operations
                 service.ApproveRequisition(
                     actor,
                     requisitionID,
-                    signature);
+                    signature,
+                    confirmed);
 
                 context.SendResponse(
                     requestID,

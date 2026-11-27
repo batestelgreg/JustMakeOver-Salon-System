@@ -9,6 +9,10 @@ import { publish, AppEvents } from '../../assets/js/core/events.js';
 import { showToast } from '../../assets/js/components/toast.js';
 import { highlightTargetRow } from '../../assets/js/core/notification-nav.js';
 import {
+    findStageSignature,
+    toPrintSignatureBlock
+} from '../../assets/js/components/signature-modal.js';
+import {
     printDocument,
     formatPrintDate,
     formatPrintMoney
@@ -54,10 +58,12 @@ export async function init(root, params = {}) {
     ]);
 
     // Kani nga params handling kay para sa notification redirect
-    // (LOW_STOCK): i-highlight ug i-scroll ang specific nga item row.
+    // (LOW_STOCK -> item row; STOCK_SHORTAGE -> RepF row).
     const highlightID = Number(params?.highlight?.id);
     if (params?.highlight?.type === 'item' && highlightID > 0) {
         highlightTargetRow(root, '#itemsTableBody [data-item-id="' + highlightID + '"]', params?.notification);
+    } else if (params?.highlight?.type === 'repf' && highlightID > 0) {
+        highlightTargetRow(root, '#repfsTableBody [data-repf-id="' + highlightID + '"]', params?.notification);
     }
 }
 
@@ -230,7 +236,7 @@ function renderItemsTable(root) {
             actions.appendChild(buildAction('Edit', () => openItemModal(root, item), 'btn-action--edit'));
         }
 
-        // Kani nga Stock Card kay on-demand ra; usa ka DB call sa print.
+        // Kani nga Stock Card kay on-demand print ra (walay manual sign popup).
         actions.appendChild(buildAction('Stock Card', () => printStockCard(root, item.ItemID)));
 
         actionsCell.appendChild(actions);
@@ -297,6 +303,7 @@ function renderRepFsTable(root) {
     body.innerHTML = '';
     repFsData.forEach((f) => {
         const row = document.createElement('tr');
+        row.dataset.repfId = f.RepFID;
         const cells = [
             'REP-' + f.RepFID,
             // Kani nga cell kay para sa trace: ang requisition nga
@@ -325,11 +332,13 @@ function renderRepFsTable(root) {
         statusCell.appendChild(badge);
 
         // Kani nga Print Request kay on-demand ra para sa RepF record.
+        // Ang digital signatures kay by-process na (auto-captured inig Create PR).
         const actionCell = document.createElement('td');
         actionCell.appendChild(buildAction(
             'Print Request',
             () => printReplenishmentRequest(root, f.RepFID)
         ));
+
         row.appendChild(actionCell);
 
         body.appendChild(row);
@@ -352,7 +361,7 @@ async function printStockCard(root, itemID) {
         }
 
         await printDocument(
-            buildStockCard(card.header, card.movements || [])
+            buildStockCard(card.header, card.movements || [], card.signatures || [])
         );
     } catch (error) {
         showToast(
@@ -362,7 +371,7 @@ async function printStockCard(root, itemID) {
     }
 }
 
-function buildStockCard(header, movements) {
+function buildStockCard(header, movements, signatures = []) {
     const totals = movements.reduce(
         (sum, movement) => {
             const change = Number(movement.QuantityChange || 0);
@@ -480,22 +489,21 @@ function buildStockCard(header, movements) {
         ],
 
         signatures: [
-            {
-                name: ' ',
-                label: 'Prepared by'
-            },
-            {
-                name: ' ',
-                label: 'Inventory custodian'
-            },
+            toPrintSignatureBlock(
+                findStageSignature(signatures, 'Prepared'),
+                'Prepared by',
+                ' '
+            ),
+            toPrintSignatureBlock(
+                findStageSignature(signatures, 'Custodian'),
+                'Inventory custodian',
+                ' '
+            ),
             {
                 name: ' ',
                 label: 'Approved by'
             }
-        ],
-
-        footer: 'This stock card is generated from the recorded '
-            + 'inventory movements of the salon system.'
+        ]
     };
 }
 
@@ -639,22 +647,21 @@ function buildReplenishmentRequest(request) {
         ],
 
         signatures: [
-            {
-                name: request.OriginRequestorName,
-                label: 'Requested by'
-            },
+            toPrintSignatureBlock(
+                findStageSignature(request.Signatures, 'Requested'),
+                'Requested by',
+                request.OriginRequestorName
+            ),
             {
                 name: ' ',
                 label: 'Inventory staff'
             },
-            {
-                name: ' ',
-                label: 'Approved by'
-            }
-        ],
-
-        footer: 'This replenishment request is generated from the '
-            + 'salon stock position and purchase records.'
+            toPrintSignatureBlock(
+                findStageSignature(request.Signatures, 'Approved'),
+                'Approved by',
+                ' '
+            )
+        ]
     };
 }
 

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using JustMakeOverSalonApp.Core.Contracts;
 using JustMakeOverSalonApp.Core.Models;
+using JustMakeOverSalonApp.Core.Services;
 using JustMakeOverSalonApp.Core.Validation;
 using JustMakeOverSalonApp.Receiving.Repositories;
 
@@ -33,7 +34,13 @@ namespace JustMakeOverSalonApp.Receiving.Services
         // nga reservations. Ang tinuod nga transaction kay sa shared engine
         // (usp_Inventory_ReceiveStock) mao nga usa ra ang receiving flow.
         public Task SubmitAsync(
-            CurrentUser actor, int itemID, int quantityReceived, int? repFID, string remarks)
+            CurrentUser actor,
+            int itemID,
+            int quantityReceived,
+            int? repFID,
+            string remarks,
+            string signatureImage,
+            bool confirmed)
         {
             actor.RequirePermission(PermissionCodes.ReceivingManage);
 
@@ -48,18 +55,34 @@ namespace JustMakeOverSalonApp.Receiving.Services
                     "The received quantity must be greater than zero.");
             }
 
+            if (!confirmed)
+            {
+                throw new BusinessException(
+                    "Please confirm your signature before recording the receipt.");
+            }
+
+            DocumentSignatureService.ValidateSignatureImage(
+                signatureImage,
+                "A signature is required to record the receiving report.");
+
             repository.SubmitReceive(
                 actor.UserID,
                 itemID,
                 quantityReceived,
                 repFID.HasValue && repFID.Value > 0 ? repFID : null,
-                remarks);
+                remarks,
+                signatureImage,
+                true);
 
             return Task.CompletedTask;
         }
 
         // Kani nga method nag-receive sa checked DR gikan sa Purchasing.
-        public Task ReceiveCheckedDRAsync(CurrentUser actor, int drID)
+        public Task ReceiveCheckedDRAsync(
+            CurrentUser actor,
+            int drID,
+            string signatureImage,
+            bool confirmed)
         {
             actor.RequirePermission(PermissionCodes.ReceivingManage);
 
@@ -68,7 +91,17 @@ namespace JustMakeOverSalonApp.Receiving.Services
                 throw new BusinessException("A valid delivery receipt is required.");
             }
 
-            repository.ReceiveCheckedDR(actor.UserID, drID);
+            if (!confirmed)
+            {
+                throw new BusinessException(
+                    "Please confirm your signature before receiving the checked delivery.");
+            }
+
+            DocumentSignatureService.ValidateSignatureImage(
+                signatureImage,
+                "A signature is required to receive a checked delivery.");
+
+            repository.ReceiveCheckedDR(actor.UserID, drID, signatureImage, true);
 
             return Task.CompletedTask;
         }

@@ -1,15 +1,17 @@
 /**
  * Kani nga module kay ang USA RA ka shared print engine para sa tanang
  * business documents (PO, RF, RR, Stock Card, Return Slip, Correction
- * Report, Replenishment Request).
+ * Report, Replenishment Request) ug Report Module prints.
  *
  * Ang matag page kay mohatag lang ug descriptor (title, meta, tables,
  * signatures), ug kining module ra ang nag-build sa sheet ug nag-print.
- * Wala nay per-page hidden articles, so walay duplicate layout code.
  *
- * Ang data kay on-demand gikan sa backend, so one DB call gihapon ang
- * matag page load.
+ * Ang print-page-frame (table with repeating 12mm thead/tfoot spacers) +
+ * @page { margin: 0 } nagsiguro nga walay browser URL link sa ubos sa
+ * printed page ug limpyo ang margins sa tanang pages.
  */
+
+import { invoke } from '../core/bridge.js';
 
 const LOGO_SRC = '/images/logo.png';
 const EM_DASH = '\u2014';
@@ -69,8 +71,7 @@ export function formatPrintMoney(value) {
 
 /**
  * Kani nga helper kay para sa safe HTML text kung mag-build ang page
- * ug HTML string. Ang engine mismo kay DOM-based, pero useful ni sa
- * mga caller nga mag-prepare ug combined labels.
+ * ug HTML string.
  */
 export function escapePrintHtml(value) {
     return String(value == null ? '' : value)
@@ -82,13 +83,11 @@ export function escapePrintHtml(value) {
 }
 
 /**
- * Kani nga function kay nag-print sa usa ka business document.
+ * Kani nga function kay nag-print sa usa ka business document o report.
  * On-demand ni: ang caller ra ang mo-fetch sa data ug mohatag sa
  * descriptor, dayon kining function ang mo-build sa transient host.
  */
 export async function printDocument(options) {
-    // Kani nga cleanup kay para walay natagbaw nga host kung naay
-    // previous print nga wala pa na-remove.
     document.querySelectorAll('.print-document-host').forEach((host) => {
         host.remove();
     });
@@ -97,7 +96,7 @@ export async function printDocument(options) {
 
     const host = document.createElement('div');
     host.className = 'print-document-host';
-    host.appendChild(buildSheet(options));
+    host.appendChild(buildPageFrame(options));
 
     document.body.appendChild(host);
     document.body.classList.add('print-document');
@@ -120,13 +119,53 @@ export async function printDocument(options) {
 
     window.addEventListener('afterprint', cleanup);
 
+    // Kani nga non-blocking audit log kay nag-record sa matag business
+    // document print para makita sa Document Print/Signature Audit report.
+    if (options.auditSkip !== true) {
+        const docLabel = options.auditCode
+            || ((options.title || 'DOCUMENT') + (options.code ? ' ' + options.code : ''));
+        invoke('ReportLogAction', {
+            reportCode: String(docLabel).slice(0, 60),
+            actionType: 'DOC_PRINT',
+            filterSummary: options.code ? ('Document ' + options.code) : '',
+            rowCount: '1'
+        }).catch(() => {});
+    }
+
     try {
         window.print();
     } finally {
-        // Kani nga fallback kay para ma-clean up gihapon kung ang
-        // browser wala mo-fire sa afterprint event.
         window.setTimeout(cleanup, 1500);
     }
+}
+
+function buildPageFrame(options) {
+    const frame = node('table', 'print-page-frame');
+
+    const thead = frame.createTHead();
+    const topRow = thead.insertRow();
+    const topCell = topRow.insertCell();
+    topCell.className = 'print-page-spacer-top';
+
+    const tbody = frame.createTBody();
+    const bodyRow = tbody.insertRow();
+    const bodyCell = bodyRow.insertCell();
+    bodyCell.className = 'print-page-body';
+    bodyCell.appendChild(buildSheet(options));
+
+    const tfoot = frame.createTFoot();
+    const bottomRow = tfoot.insertRow();
+    const bottomCell = bottomRow.insertCell();
+    bottomCell.className = 'print-page-spacer-bottom';
+
+    if (options.runningFooterLeft || options.runningFooterRight) {
+        const bar = node('div', 'print-running-footer');
+        bar.appendChild(node('span', null, options.runningFooterLeft || ''));
+        bar.appendChild(node('span', null, options.runningFooterRight || ''));
+        bottomCell.appendChild(bar);
+    }
+
+    return frame;
 }
 
 function buildSheet(options) {
@@ -276,7 +315,10 @@ function buildTable(section) {
         wrapper.appendChild(node('h3', 'print-section-title', section.title));
     }
 
-    const table = node('table', 'print-table');
+    const table = node(
+        'table',
+        section.compact ? 'print-table print-table--compact' : 'print-table'
+    );
     const head = table.createTHead().insertRow();
 
     (section.columns || []).forEach((column) => {
@@ -291,6 +333,31 @@ function buildTable(section) {
 
     (section.rows || []).forEach((row) => {
         const tr = body.insertRow();
+
+        if (row && !Array.isArray(row) && row.type === 'group') {
+            tr.className = 'print-group-row';
+            const cell = tr.insertCell();
+            cell.colSpan = Math.max(1, (section.columns || []).length);
+            cell.textContent = displayValue(row.label);
+            return;
+        }
+
+        if (row && !Array.isArray(row) && row.type === 'subtotal') {
+            tr.className = 'print-subtotal-row';
+            (row.cells || []).forEach((cellDescriptor, index) => {
+                const descriptor = typeof cellDescriptor === 'object'
+                    && cellDescriptor !== null
+                    ? cellDescriptor
+                    : { text: cellDescriptor };
+                const cell = tr.insertCell();
+                cell.textContent = displayValue(descriptor.text);
+                if (descriptor.colSpan) {
+                    cell.colSpan = descriptor.colSpan;
+                }
+                applyAlign(cell, descriptor.align || section.columns?.[index]?.align);
+            });
+            return;
+        }
 
         (row || []).forEach((value, index) => {
             const cell = tr.insertCell();
@@ -425,34 +492,43 @@ function buildSignatures(signatures) {
         const block = node('div', 'print-signature');
         const space = node('div', 'print-signature-space');
 
-        if (signature.image
-            && String(signature.image).startsWith('data:image/')) {
+        const hasDigitalImage = Boolean(
+            signature.image
+            && String(signature.image).startsWith('data:image/')
+        );
+
+        if (hasDigitalImage) {
             const image = document.createElement('img');
 
             image.className = 'print-signature-image';
             image.src = signature.image;
-            image.alt = 'Signature';
+            image.alt = 'Digital signature';
             space.appendChild(image);
         }
 
+        // Format: Role/Stage label ON TOP -> signature image sitting directly
+        // on top of the line -> Signatory Name -> Date & Time (only when dated).
+        block.appendChild(node(
+            'p',
+            'print-signature-label',
+            signature.label || 'Signature'
+        ));
         block.appendChild(space);
         block.appendChild(node(
             'p',
             'print-signature-name',
             signature.name || ' '
         ));
-        block.appendChild(node(
-            'p',
-            'print-signature-label',
-            signature.label || 'Signature'
-        ));
 
         if (signature.date) {
-            block.appendChild(node(
-                'p',
-                'print-signature-date',
-                formatPrintDate(signature.date, true)
-            ));
+            const formatted = formatPrintDate(signature.date, true);
+            if (formatted && formatted !== EM_DASH) {
+                block.appendChild(node(
+                    'p',
+                    'print-signature-date',
+                    formatted
+                ));
+            }
         }
 
         wrapper.appendChild(block);

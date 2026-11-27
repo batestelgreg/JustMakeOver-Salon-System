@@ -113,13 +113,59 @@ namespace JustMakeOverSalonApp.Purchasing.Repositories
             }
         }
 
-        // Kani nga method nagkuha sa TANANG data sa real PO print.
-        // On-demand ni (print ra ang mo-call), so one DB call gihapon
-        // ang page load. Usa ra ka proc ug usa ra ka result set.
+        // Kani nga method nag-approve sa PO uban sa digital signature ug
+        // SHA-256 snapshot binding sulod sa usa ka transaction.
+        public Dictionary<string, object> ApprovePOWithSignature(
+            int actorUserID,
+            int poID,
+            string signatureImage,
+            bool confirmed)
+        {
+            using (var connection =
+                connectionFactory.CreateOpenConnection())
+            using (var command = new SqlCommand(
+                "dbo.usp_Purchasing_ApprovePOWithSignature",
+                connection))
+            {
+                command.CommandType = CommandType.StoredProcedure;
+
+                command.Parameters.Add(
+                    "@POID",
+                    SqlDbType.Int).Value = poID;
+
+                command.Parameters.Add(
+                    "@ApproverUserID",
+                    SqlDbType.Int).Value = actorUserID;
+
+                command.Parameters.Add(
+                    "@SignatureImage",
+                    SqlDbType.NVarChar,
+                    -1).Value = signatureImage;
+
+                command.Parameters.Add(
+                    "@Confirmed",
+                    SqlDbType.Bit).Value = confirmed;
+
+                using (var reader = command.ExecuteReader())
+                {
+                    var row = SqlResultReader.ReadRow(reader);
+                    return row ?? new Dictionary<string, object>
+                    {
+                        ["ID"] = poID,
+                        ["Message"] = "PO approved."
+                    };
+                }
+            }
+        }
+
+        // Kani nga method nagkuha sa TANANG data sa real PO print
+        // lakip ang active digital approval signature (on-demand).
         public Dictionary<string, object> GetPurchaseOrderPrint(
             int actorUserID,
             int poID)
         {
+            Dictionary<string, object> order;
+
             using (var connection =
                 connectionFactory.CreateOpenConnection())
             using (var command = new SqlCommand(
@@ -138,9 +184,18 @@ namespace JustMakeOverSalonApp.Purchasing.Repositories
 
                 using (var reader = command.ExecuteReader())
                 {
-                    return SqlResultReader.ReadRow(reader);
+                    order = SqlResultReader.ReadRow(reader);
                 }
             }
+
+            if (order != null)
+            {
+                var sigRepo = new DocumentSignatureRepository(connectionFactory);
+                var sigResult = sigRepo.Get(actorUserID, "PURCHASE_ORDER", poID);
+                order["Signatures"] = sigResult["signatures"];
+            }
+
+            return order;
         }
 
         // Kani nga method nagkuha sa TANANG data sa Return Slip:

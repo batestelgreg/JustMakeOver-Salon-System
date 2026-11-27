@@ -88,14 +88,16 @@ namespace JustMakeOverSalonApp.Delivery.Services
                     requisitionID));
         }
 
-        // Inventory Staff or Admin issues the items uban sa signature.
+        // Inventory Staff or Admin issues the items uban sa confirmed signature.
         public Task MarkIssuedAsync(
             CurrentUser actor,
             int deliveryID,
-            string signature)
+            string signature,
+            bool confirmed)
         {
             RequireDeliveryManager(actor);
             ValidateDeliveryID(deliveryID);
+            RequireSignatureConfirmed(confirmed, "Please confirm your signature before issuing the items.");
             ValidateSignature(
                 signature,
                 "A signature is required before issuing the items.");
@@ -103,7 +105,8 @@ namespace JustMakeOverSalonApp.Delivery.Services
             repository.MarkIssued(
                 actor.UserID,
                 deliveryID,
-                signature);
+                signature,
+                true);
 
             return Task.CompletedTask;
         }
@@ -132,11 +135,13 @@ namespace JustMakeOverSalonApp.Delivery.Services
             return Task.CompletedTask;
         }
 
-        // Inventory Staff or Admin records the correction.
+        // Inventory Staff or Admin records the correction uban sa confirmed digital signature.
         public Task RecordCorrectionAsync(
             CurrentUser actor,
             int deliveryID,
-            string notes)
+            string notes,
+            string signature,
+            bool confirmed)
         {
             RequireDeliveryManager(actor);
             ValidateDeliveryID(deliveryID);
@@ -147,10 +152,17 @@ namespace JustMakeOverSalonApp.Delivery.Services
                     "The correction details are required.");
             }
 
+            RequireSignatureConfirmed(confirmed, "Please confirm your signature before saving the correction.");
+            ValidateSignature(
+                signature,
+                "A signature is required to record a correction.");
+
             repository.RecordCorrection(
                 actor.UserID,
                 deliveryID,
-                notes.Trim());
+                notes.Trim(),
+                signature,
+                true);
 
             return Task.CompletedTask;
         }
@@ -161,10 +173,12 @@ namespace JustMakeOverSalonApp.Delivery.Services
         public Task CompleteAsync(
             CurrentUser actor,
             int deliveryID,
-            string signature)
+            string signature,
+            bool confirmed)
         {
             RequireDeliveryViewer(actor);
             ValidateDeliveryID(deliveryID);
+            RequireSignatureConfirmed(confirmed, "Please confirm your signature before completing the delivery.");
             ValidateSignature(
                 signature,
                 "A signature is required before completing the delivery.");
@@ -172,7 +186,8 @@ namespace JustMakeOverSalonApp.Delivery.Services
             repository.Complete(
                 actor.UserID,
                 deliveryID,
-                signature);
+                signature,
+                true);
 
             return Task.CompletedTask;
         }
@@ -199,6 +214,16 @@ namespace JustMakeOverSalonApp.Delivery.Services
             {
                 throw new BusinessException(
                     "A valid acknowledgement receipt is required.");
+            }
+        }
+
+        private static void RequireSignatureConfirmed(
+            bool confirmed,
+            string message)
+        {
+            if (!confirmed)
+            {
+                throw new BusinessException(message);
             }
         }
 

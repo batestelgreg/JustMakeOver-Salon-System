@@ -39,11 +39,10 @@ import '../routes/delivery-route.js';
 import '../routes/notifications-route.js';
 import '../routes/settings-route.js';
 import '../routes/suppliers-route.js';
+import '../routes/reports-route.js';
 
 // Kani mga placeholder routes kay para sa modules nga i-build sa sunod phases.
-const upcomingModules = [
-    'reports'
-];
+const upcomingModules = [];
 
 upcomingModules.forEach((name) => {
     registerRoute(name, {

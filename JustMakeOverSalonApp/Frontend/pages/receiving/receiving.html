@@ -76,10 +76,23 @@
             <div class="modal__body">
                 <p class="u-text-muted u-mb-4" id="checkedDRInfo"></p>
                 <p class="u-text-muted u-mb-4" id="checkedDRNotes"></p>
+                <div class="signature-pad">
+                    <div class="signature-pad__header">
+                        <span class="signature-pad__label">Received by (Digital signature)</span>
+                        <button type="button" class="btn btn--ghost btn--sm" id="btnClearCheckedDRSignature">Clear</button>
+                    </div>
+                    <canvas id="checkedDRSignaturePad" class="signature-pad__canvas"
+                            width="600" height="180" aria-label="Receiving signature pad"></canvas>
+                    <span class="form-field__error" id="errorCheckedDRSignature"></span>
+                </div>
+                <label class="signature-confirm-check">
+                    <input type="checkbox" id="chkConfirmCheckedDRSignature">
+                    <span>I confirm this signature and understand that this receiving report will be locked after saving.</span>
+                </label>
             </div>
             <div class="modal__footer">
                 <button type="button" class="btn btn--ghost" id="btnCancelCheckedDR">Cancel</button>
-                <button type="button" class="btn btn--primary" id="btnConfirmCheckedDR">Receive to Stock</button>
+                <button type="button" class="btn btn--primary" id="btnConfirmCheckedDR" disabled>Sign &amp; Receive to Stock</button>
             </div>
         </div>
     </div>
@@ -111,10 +124,23 @@
                         <label class="form-field__label" for="txtReceiveRemarks">Remarks</label>
                         <input type="text" id="txtReceiveRemarks" class="form-field__input" maxlength="1000" autocomplete="off">
                     </div>
+                    <div class="signature-pad">
+                        <div class="signature-pad__header">
+                            <span class="signature-pad__label">Received by (Digital signature)</span>
+                            <button type="button" class="btn btn--ghost btn--sm" id="btnClearReceiveSignature">Clear</button>
+                        </div>
+                        <canvas id="receiveSignaturePad" class="signature-pad__canvas"
+                                width="600" height="180" aria-label="Manual receipt signature pad"></canvas>
+                        <span class="form-field__error" id="errorReceiveSignature"></span>
+                    </div>
+                    <label class="signature-confirm-check">
+                        <input type="checkbox" id="chkConfirmReceiveSignature">
+                        <span>I confirm this signature and understand that this receiving report will be locked after saving.</span>
+                    </label>
                 </div>
                 <div class="modal__footer">
                     <button type="button" class="btn btn--ghost" id="btnCancelReceive">Cancel</button>
-                    <button type="submit" class="btn btn--primary">Record Receipt</button>
+                    <button type="submit" class="btn btn--primary" id="btnSubmitReceive" disabled>Sign &amp; Record Receipt</button>
                 </div>
             </form>
         </div>

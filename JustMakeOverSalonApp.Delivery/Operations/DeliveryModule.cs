@@ -66,14 +66,15 @@ namespace JustMakeOverSalonApp.Delivery.Operations
         }
 
         // Kani nga handler nag-mark issued sa AR (issue to department)
-        // uban sa Inventory Staff signature.
+        // uban sa Inventory Staff signature ug confirmation.
         private async Task HandleDeliveryMarkIssuedAsync(Dictionary<string, object> payload, string requestID)
         {
             var actor = context.RequireUser();
             var deliveryID = ParseID(context.GetValueAsString(payload, "deliveryID"));
             var signature = context.GetValueAsString(payload, "signature");
+            var confirmed = ParseBool(context.GetValueAsString(payload, "confirmed"));
 
-            await service.MarkIssuedAsync(actor, deliveryID, signature);
+            await service.MarkIssuedAsync(actor, deliveryID, signature, confirmed);
             context.SendResponse(requestID, true, null, null);
         }
 
@@ -89,14 +90,16 @@ namespace JustMakeOverSalonApp.Delivery.Operations
         }
 
         // Kani nga handler nag-record sa item replacement/record
-        // correction (ang box tali sa NO ug "Issue items" sa Figure 10).
+        // correction uban sa digital signature ug confirmation.
         private async Task HandleDeliveryRecordCorrectionAsync(Dictionary<string, object> payload, string requestID)
         {
             var actor = context.RequireUser();
             var deliveryID = ParseID(context.GetValueAsString(payload, "deliveryID"));
             var notes = context.GetValueAsString(payload, "notes");
+            var signature = context.GetValueAsString(payload, "signature");
+            var confirmed = ParseBool(context.GetValueAsString(payload, "confirmed"));
 
-            await service.RecordCorrectionAsync(actor, deliveryID, notes);
+            await service.RecordCorrectionAsync(actor, deliveryID, notes, signature, confirmed);
             context.SendResponse(requestID, true, null, null);
         }
 
@@ -107,8 +110,9 @@ namespace JustMakeOverSalonApp.Delivery.Operations
             var actor = context.RequireUser();
             var deliveryID = ParseID(context.GetValueAsString(payload, "deliveryID"));
             var signature = context.GetValueAsString(payload, "signature");
+            var confirmed = ParseBool(context.GetValueAsString(payload, "confirmed"));
 
-            await service.CompleteAsync(actor, deliveryID, signature);
+            await service.CompleteAsync(actor, deliveryID, signature, confirmed);
             context.SendResponse(requestID, true, null, null);
         }
 
@@ -159,6 +163,12 @@ namespace JustMakeOverSalonApp.Delivery.Operations
         {
             int.TryParse(text, out int id);
             return id;
+        }
+
+        private static bool ParseBool(string text)
+        {
+            return string.Equals(text, "true", System.StringComparison.OrdinalIgnoreCase)
+                || text == "1";
         }
     }
 }

@@ -1,8 +1,13 @@
 /* ============================================================
-   Shared business document print engine
-   Kani nga stylesheet kay para sa tanang printed documents:
+   Shared business document & report print engine
+   Kani nga stylesheet kay para sa tanang printed documents ug reports:
    PO, RF, RR, Stock Card, Return Slip, Correction Report,
-   Replenishment Request. Usa ra ka layout, walay duplication.
+   Replenishment Request, ug Report Module prints.
+
+   IMPORTANTE: @page { margin: 0 } nag-suppress sa default browser
+   header/footer (lakip ang https://salon.local/index.html nga link
+   sa ubos sa document). Ang 12mm nga margin sa matag page kay
+   gi-provide sa .print-page-frame thead/tfoot spacers ug side padding.
    ============================================================ */
 
 /* Kani nga host kay hidden sa screen; print ra ang mo-display. */
@@ -13,13 +18,19 @@
 @media print {
     @page {
         size: A4;
-        margin: 12mm;
+        margin: 0;
     }
 
     /* Kani nga rule kay nag-hide sa tibuok app samtang nag-print,
        ug ang print host ra ang makita. */
     body.print-document > *:not(.print-document-host) {
         display: none !important;
+    }
+
+    body.print-document {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #ffffff !important;
     }
 
     body.print-document .print-document-host {
@@ -31,6 +42,52 @@
         font-family: "Segoe UI", Arial, sans-serif;
         font-size: 10pt;
         line-height: 1.35;
+    }
+
+    /* Repeating page-margin frame para limpyo ang 12mm margins sa
+       tanang pages bisan @page { margin: 0 } (walay URL link sa ubos). */
+    .print-document-host .print-page-frame {
+        width: 100%;
+        border-collapse: collapse;
+        border: none;
+    }
+
+    .print-document-host .print-page-frame > thead {
+        display: table-header-group;
+    }
+
+    .print-document-host .print-page-frame > tfoot {
+        display: table-footer-group;
+    }
+
+    .print-document-host .print-page-spacer-top {
+        height: 12mm;
+        padding: 0;
+        border: none;
+    }
+
+    .print-document-host .print-page-spacer-bottom {
+        height: 12mm;
+        padding: 2mm 12mm 4mm;
+        border: none;
+        vertical-align: bottom;
+    }
+
+    .print-document-host .print-running-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        border-top: 1px solid #cccccc;
+        padding-top: 3px;
+        font-size: 7.5pt;
+        color: #555555;
+    }
+
+    .print-document-host .print-page-body {
+        padding: 0 12mm;
+        border: none;
+        vertical-align: top;
     }
 
     .print-document-host .print-sheet {
@@ -174,17 +231,26 @@
     .print-document-host .print-table th,
     .print-document-host .print-table td {
         border: 1px solid #000000;
-        padding: 5px 7px;
-        font-size: 9.5pt;
+        padding: 4px 6px;
+        font-size: 9pt;
         vertical-align: top;
-        overflow-wrap: anywhere;
+        overflow-wrap: break-word;
+        word-break: normal;
+    }
+
+    .print-document-host .print-table--compact th,
+    .print-document-host .print-table--compact td {
+        padding: 3px 5px;
+        font-size: 8pt;
     }
 
     .print-document-host .print-table th {
         background: #eeeeee;
         text-transform: uppercase;
-        font-size: 8.5pt;
-        letter-spacing: 0.4px;
+        font-size: 8pt;
+        letter-spacing: 0.3px;
+        white-space: nowrap;
+        overflow-wrap: normal;
     }
 
     .print-document-host .print-table tfoot td {
@@ -194,6 +260,18 @@
 
     .print-document-host .print-table tr {
         page-break-inside: avoid;
+    }
+
+    .print-document-host .print-table tr.print-group-row td {
+        background: #f0f0f0;
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 8.5pt;
+    }
+
+    .print-document-host .print-table tr.print-subtotal-row td {
+        background: #fafafa;
+        font-weight: 700;
     }
 
     .print-document-host .print-table thead {
@@ -285,7 +363,8 @@
         overflow-wrap: anywhere;
     }
 
-    /* Signature blocks: 3 columns, underlined space above the name. */
+    /* Signature blocks: 3 columns, label on top, digital signature directly
+       above the line, followed by Signatory Name and Date & Time. */
     .print-document-host .print-signatures {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
@@ -296,6 +375,15 @@
 
     .print-document-host .print-signature {
         text-align: center;
+    }
+
+    .print-document-host .print-signature-label {
+        margin: 0 0 4px;
+        font-size: 9pt;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        color: #000000;
     }
 
     .print-document-host .print-signature-space {
@@ -317,25 +405,19 @@
         margin: 5px 0 0;
         font-size: 9.5pt;
         font-weight: 700;
-    }
-
-    .print-document-host .print-signature-label {
-        margin: 2px 0 0;
-        font-size: 8.5pt;
-        text-transform: uppercase;
-        letter-spacing: 0.4px;
-        color: #333333;
+        min-height: 1.2em;
     }
 
     .print-document-host .print-signature-date {
         margin: 2px 0 0;
-        font-size: 8.5pt;
-        color: #444444;
+        font-size: 8pt;
+        color: #333333;
+        line-height: 1.3;
     }
 
     /* Footer note. */
     .print-document-host .print-footer {
-        margin-top: 18px;
+        margin-top: 16px;
         border-top: 1px solid #000000;
         padding-top: 6px;
     }

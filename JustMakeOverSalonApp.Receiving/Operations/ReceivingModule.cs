@@ -47,27 +47,39 @@ namespace JustMakeOverSalonApp.Receiving.Operations
             }, null);
         }
 
-        // Kani nga handler nag-submit sa usa ka receipt.
+        // Kani nga handler nag-submit sa usa ka receipt uban sa digital signature.
         private async Task HandleReceivingSubmitAsync(Dictionary<string, object> payload, string requestID)
         {
             var actor = context.RequireUser();
+            string confirmedText = context.GetValueAsString(payload, "confirmed");
+            bool confirmed = string.Equals(confirmedText, "true", System.StringComparison.OrdinalIgnoreCase)
+                || confirmedText == "1";
+
             await service.SubmitAsync(
                 actor,
                 context.GetValueAsInt(payload, "itemID"),
                 context.GetValueAsInt(payload, "quantityReceived"),
                 ParseOptionalID(context.GetValueAsString(payload, "repFID")),
-                context.GetValueAsString(payload, "remarks"));
+                context.GetValueAsString(payload, "remarks"),
+                context.GetValueAsString(payload, "signature"),
+                confirmed);
 
             context.SendResponse(requestID, true, null, null);
         }
 
-        // Kani nga handler nag-receive sa checked DR gikan sa Purchasing.
+        // Kani nga handler nag-receive sa checked DR gikan sa Purchasing uban sa signature.
         private async Task HandleReceivingCheckedDRAsync(Dictionary<string, object> payload, string requestID)
         {
             var actor = context.RequireUser();
+            string confirmedText = context.GetValueAsString(payload, "confirmed");
+            bool confirmed = string.Equals(confirmedText, "true", System.StringComparison.OrdinalIgnoreCase)
+                || confirmedText == "1";
+
             await service.ReceiveCheckedDRAsync(
                 actor,
-                context.GetValueAsInt(payload, "drid"));
+                context.GetValueAsInt(payload, "drid"),
+                context.GetValueAsString(payload, "signature"),
+                confirmed);
 
             context.SendResponse(requestID, true, null, null);
         }

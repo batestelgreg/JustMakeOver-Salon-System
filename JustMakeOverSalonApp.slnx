@@ -35,6 +35,9 @@
     <File Path="Database/Migrations/V031_DeliveryReceiptPrint.sql" />
     <File Path="Database/Migrations/V032_ArDigitalSignatures.sql" />
     <File Path="Database/Migrations/V033_BusinessDocumentPrints.sql" />
+    <File Path="Database/Migrations/V034_DigitalSignatures.sql" />
+    <File Path="Database/Migrations/V035_ReportsModule.sql" />
+    <File Path="Database/Migrations/V036_DeliveryScopingAndNotifications.sql" />
   </Folder>
   <Project Path="JustMakeOverSalonApp.Core/JustMakeOverSalonApp.Core.csproj" Id="8b2c0d5e-4a31-4f7b-9e6c-1d2a5f84b7a9" />
   <Project Path="JustMakeOverSalonApp.Delivery/JustMakeOverSalonApp.Delivery.csproj" Id="a1000000-0000-4000-9000-000000000004" />
@@ -42,6 +45,7 @@
   <Project Path="JustMakeOverSalonApp.Notifications/JustMakeOverSalonApp.Notifications.csproj" Id="a1000000-0000-4000-9000-000000000006" />
   <Project Path="JustMakeOverSalonApp.Purchasing/JustMakeOverSalonApp.Purchasing.csproj" Id="a1000000-0000-4000-9000-000000000003" />
   <Project Path="JustMakeOverSalonApp.Receiving/JustMakeOverSalonApp.Receiving.csproj" Id="a1000000-0000-4000-9000-000000000005" />
+  <Project Path="JustMakeOverSalonApp.Reports/JustMakeOverSalonApp.Reports.csproj" Id="a1000000-0000-4000-9000-000000000009" />
   <Project Path="JustMakeOverSalonApp.Requisition/JustMakeOverSalonApp.Requisition.csproj" Id="a1000000-0000-4000-9000-000000000001" />
   <Project Path="JustMakeOverSalonApp.Settings/JustMakeOverSalonApp.Settings.csproj" Id="a1000000-0000-4000-9000-000000000007" />
   <Project Path="JustMakeOverSalonApp.Suppliers/JustMakeOverSalonApp.Suppliers.csproj" Id="a1000000-0000-4000-9000-000000000008" />

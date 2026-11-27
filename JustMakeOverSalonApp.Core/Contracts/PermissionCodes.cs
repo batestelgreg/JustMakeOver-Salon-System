@@ -38,5 +38,7 @@
         public const string DeliveryManage = "delivery.manage";
 
         public const string ReportsView = "reports.view";
+        public const string ReportsExport = "reports.export";
+        public const string ReportsAudit = "reports.audit";
     }
 }

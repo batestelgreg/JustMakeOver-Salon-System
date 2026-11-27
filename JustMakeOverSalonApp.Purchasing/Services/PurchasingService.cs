@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Threading.Tasks;
 using JustMakeOverSalonApp.Core.Models;
+using JustMakeOverSalonApp.Core.Services;
 using JustMakeOverSalonApp.Core.Validation;
 using JustMakeOverSalonApp.Purchasing.Repositories;
 
@@ -77,6 +78,12 @@ namespace JustMakeOverSalonApp.Purchasing.Services
                     "Unknown purchasing action.");
             }
 
+            if (string.Equals(action, "ApprovePO", StringComparison.Ordinal))
+            {
+                throw new BusinessException(
+                    "PO approval requires a confirmed digital signature.");
+            }
+
             // SQL rechecks live permissions and record status.
             // Use the authenticated user, not a browser-supplied ID.
             try
@@ -92,6 +99,53 @@ namespace JustMakeOverSalonApp.Purchasing.Services
                 // Ang THROW sa stored procedure kay validation man, dili
                 // crash. I-convert kini ngadto sa BusinessException aron
                 // mensahe lang ang makita sa UI.
+                throw new BusinessException(sqlError.Message);
+            }
+        }
+
+        // Kani nga method nag-approve sa PO uban sa confirmed digital signature.
+        public Task<Dictionary<string, object>> ApprovePOWithSignatureAsync(
+            CurrentUser actor,
+            int poID,
+            string signatureImage,
+            bool confirmed)
+        {
+            RequireActor(actor);
+
+            if (!string.Equals(actor.RoleName, "Admin", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(actor.RoleName, "Manager", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new BusinessException(
+                    "Only an Admin or Manager can approve a purchase order.");
+            }
+
+            if (poID <= 0)
+            {
+                throw new BusinessException(
+                    "A valid purchase order is required.");
+            }
+
+            if (!confirmed)
+            {
+                throw new BusinessException(
+                    "Please confirm your signature before approving the purchase order.");
+            }
+
+            DocumentSignatureService.ValidateSignatureImage(
+                signatureImage,
+                "A digital signature is required to approve a purchase order.");
+
+            try
+            {
+                return Task.FromResult(
+                    repository.ApprovePOWithSignature(
+                        actor.UserID,
+                        poID,
+                        signatureImage,
+                        true));
+            }
+            catch (SqlException sqlError) when (sqlError.Number >= 50000)
+            {
                 throw new BusinessException(sqlError.Message);
             }
         }

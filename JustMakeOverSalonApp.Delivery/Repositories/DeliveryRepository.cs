@@ -88,18 +88,19 @@ namespace JustMakeOverSalonApp.Delivery.Repositories
         }
 
         // Kani nga method nag-mark issued sa AR (issue step sa Figure 10)
-        // uban sa Inventory Staff signature.
-        public void MarkIssued(int actorUserID, int deliveryID, string signature)
+        // uban sa Inventory Staff digital signature ug snapshot binding.
+        public void MarkIssued(int actorUserID, int deliveryID, string signature, bool confirmed)
         {
             using (var connection = connectionFactory.CreateOpenConnection())
-            using (var command = new SqlCommand("usp_Delivery_MarkIssued", connection)
+            using (var command = new SqlCommand("dbo.usp_Delivery_MarkIssuedWithSignature", connection)
             {
                 CommandType = CommandType.StoredProcedure
             })
             {
                 command.Parameters.Add("@ActorUserID", SqlDbType.Int).Value = actorUserID;
                 command.Parameters.Add("@DeliveryID", SqlDbType.Int).Value = deliveryID;
-                command.Parameters.Add("@Signature", SqlDbType.NVarChar, -1).Value = signature;
+                command.Parameters.Add("@SignatureImage", SqlDbType.NVarChar, -1).Value = signature;
+                command.Parameters.Add("@Confirmed", SqlDbType.Bit).Value = confirmed;
 
                 command.ExecuteNonQuery();
             }
@@ -123,11 +124,11 @@ namespace JustMakeOverSalonApp.Delivery.Repositories
         }
 
         // Kani nga method nag-record sa "item replaced or record corrected"
-        // step sa Figure 10. Kini ang required sa dili pa ma-reissue.
-        public void RecordCorrection(int actorUserID, int deliveryID, string notes)
+        // step sa Figure 10 uban sa confirmed digital signature.
+        public void RecordCorrection(int actorUserID, int deliveryID, string notes, string signature, bool confirmed)
         {
             using (var connection = connectionFactory.CreateOpenConnection())
-            using (var command = new SqlCommand("usp_Delivery_RecordCorrection", connection)
+            using (var command = new SqlCommand("dbo.usp_Delivery_RecordCorrectionWithSignature", connection)
             {
                 CommandType = CommandType.StoredProcedure
             })
@@ -135,25 +136,27 @@ namespace JustMakeOverSalonApp.Delivery.Repositories
                 command.Parameters.Add("@ActorUserID", SqlDbType.Int).Value = actorUserID;
                 command.Parameters.Add("@DeliveryID", SqlDbType.Int).Value = deliveryID;
                 command.Parameters.Add("@Notes", SqlDbType.NVarChar, 500).Value = notes;
+                command.Parameters.Add("@SignatureImage", SqlDbType.NVarChar, -1).Value = signature;
+                command.Parameters.Add("@Confirmed", SqlDbType.Bit).Value = confirmed;
 
                 command.ExecuteNonQuery();
             }
         }
 
         // Kani nga method nag-complete sa AR: e-sign + stock deduction +
-        // requisition Fulfilled + requester notification (usa ka call).
-        // Ang signature kay PNG data URL nga gikan sa signature pad.
-        public void Complete(int actorUserID, int deliveryID, string signature)
+        // requisition Fulfilled + requester notification + DOCUMENT_SIGNATURES sync.
+        public void Complete(int actorUserID, int deliveryID, string signature, bool confirmed)
         {
             using (var connection = connectionFactory.CreateOpenConnection())
-            using (var command = new SqlCommand("usp_Delivery_Complete", connection)
+            using (var command = new SqlCommand("dbo.usp_Delivery_CompleteWithSignature", connection)
             {
                 CommandType = CommandType.StoredProcedure
             })
             {
                 command.Parameters.Add("@ActorUserID", SqlDbType.Int).Value = actorUserID;
                 command.Parameters.Add("@DeliveryID", SqlDbType.Int).Value = deliveryID;
-                command.Parameters.Add("@Signature", SqlDbType.NVarChar, -1).Value = signature;
+                command.Parameters.Add("@SignatureImage", SqlDbType.NVarChar, -1).Value = signature;
+                command.Parameters.Add("@Confirmed", SqlDbType.Bit).Value = confirmed;
 
                 command.ExecuteNonQuery();
             }
@@ -282,11 +285,15 @@ namespace JustMakeOverSalonApp.Delivery.Repositories
                         ? SqlResultReader.ReadRows(reader)
                         : new List<Dictionary<string, object>>();
 
+                    var sigRepo = new DocumentSignatureRepository(connectionFactory);
+                    var docSigs = sigRepo.Get(actorUserID, "CORRECTION_REPORT", deliveryID);
+
                     return new Dictionary<string, object>
                     {
                         ["header"] = header,
                         ["items"] = items,
-                        ["signatures"] = signatures
+                        ["signatures"] = signatures,
+                        ["documentSignatures"] = docSigs["signatures"]
                     };
                 }
             }

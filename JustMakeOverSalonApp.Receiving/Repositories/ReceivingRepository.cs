@@ -110,13 +110,18 @@ namespace JustMakeOverSalonApp.Receiving.Repositories
             return overview;
         }
 
-        // Kani nga method nag-submit sa receiving: direct call sa shared
-        // usp_Inventory_ReceiveStock (increase stock + Stock In log + RepF
-        // Processed + allocation sa waiting reservations - tanan sa engine).
-        public void SubmitReceive(int actorUserID, int itemID, int quantityReceived, int? repFID, string remarks)
+        // Kani nga method nag-submit sa receiving uban sa confirmed digital signature.
+        public void SubmitReceive(
+            int actorUserID,
+            int itemID,
+            int quantityReceived,
+            int? repFID,
+            string remarks,
+            string signatureImage,
+            bool confirmed)
         {
             using (var connection = connectionFactory.CreateOpenConnection())
-            using (var command = new SqlCommand("usp_Inventory_ReceiveStock", connection)
+            using (var command = new SqlCommand("dbo.usp_Receiving_ReceiveWithSignature", connection)
             {
                 CommandType = CommandType.StoredProcedure
             })
@@ -128,24 +133,30 @@ namespace JustMakeOverSalonApp.Receiving.Repositories
                     repFID.HasValue ? (object)repFID.Value : DBNull.Value;
                 command.Parameters.Add("@Remarks", SqlDbType.NVarChar, 1000).Value =
                     string.IsNullOrWhiteSpace(remarks) ? (object)DBNull.Value : remarks;
+                command.Parameters.Add("@SignatureImage", SqlDbType.NVarChar, -1).Value = signatureImage;
+                command.Parameters.Add("@Confirmed", SqlDbType.Bit).Value = confirmed;
 
                 command.ExecuteNonQuery();
             }
         }
 
-        // Kani nga method nag-receive sa checked DR gikan sa Purchasing.
-        // Ang stored procedure (shared engine) ang nag-update sa stock,
-        // reservations ug RM record - walay duplicate nga logic dinhi.
-        public void ReceiveCheckedDR(int actorUserID, int drID)
+        // Kani nga method nag-receive sa checked DR gikan sa Purchasing uban sa signature.
+        public void ReceiveCheckedDR(
+            int actorUserID,
+            int drID,
+            string signatureImage,
+            bool confirmed)
         {
             using (var connection = connectionFactory.CreateOpenConnection())
-            using (var command = new SqlCommand("usp_Purchasing_ReceiveCheckedDR", connection)
+            using (var command = new SqlCommand("dbo.usp_Receiving_ReceiveCheckedDRWithSignature", connection)
             {
                 CommandType = CommandType.StoredProcedure
             })
             {
                 command.Parameters.Add("@ActorUserID", SqlDbType.Int).Value = actorUserID;
                 command.Parameters.Add("@DRID", SqlDbType.Int).Value = drID;
+                command.Parameters.Add("@SignatureImage", SqlDbType.NVarChar, -1).Value = signatureImage;
+                command.Parameters.Add("@Confirmed", SqlDbType.Bit).Value = confirmed;
 
                 command.ExecuteNonQuery();
             }
@@ -228,6 +239,8 @@ namespace JustMakeOverSalonApp.Receiving.Repositories
             int actorUserID,
             long inventoryLogID)
         {
+            Dictionary<string, object> receipt;
+
             using (var connection = connectionFactory.CreateOpenConnection())
             using (var command = new SqlCommand(
                 "dbo.usp_Receiving_GetPrint", connection))
@@ -242,9 +255,18 @@ namespace JustMakeOverSalonApp.Receiving.Repositories
 
                 using (var reader = command.ExecuteReader())
                 {
-                    return SqlResultReader.ReadRow(reader);
+                    receipt = SqlResultReader.ReadRow(reader);
                 }
             }
+
+            if (receipt != null)
+            {
+                var sigRepo = new DocumentSignatureRepository(connectionFactory);
+                var sigResult = sigRepo.Get(actorUserID, "RECEIVING_REPORT", (int)inventoryLogID);
+                receipt["Signatures"] = sigResult["signatures"];
+            }
+
+            return receipt;
         }
     }
 }

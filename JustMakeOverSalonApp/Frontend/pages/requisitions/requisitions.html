@@ -327,9 +327,13 @@
                             width="600" height="200" aria-label="Approval signature pad"></canvas>
                     <span class="form-field__error" id="errorApprovalSignature"></span>
                 </div>
+                <label class="signature-confirm-check">
+                    <input type="checkbox" id="chkConfirmApprovalSignature">
+                    <span>I confirm this signature and understand that approving this requisition locks the approval record.</span>
+                </label>
                 <p class="u-text-muted u-mt-4" style="font-size: 12px; margin-bottom: 0;">
                     Draw your signature above to approve this requisition. Your name and the
-                    approval date and time will appear in the APPROVED BY section of the AR.
+                    approval date and time will appear in the APPROVED BY section of the RF and AR.
                 </p>
             </div>
 
@@ -342,7 +346,8 @@
 
                 <button type="button"
                         id="confirmApproval"
-                        class="btn btn--primary">
+                        class="btn btn--primary"
+                        disabled>
                     Yes, Approve
                 </button>
             </div>
