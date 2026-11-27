@@ -10,6 +10,11 @@ import { invoke } from '../../assets/js/core/bridge.js';
 import { hasPermission } from '../../assets/js/core/state.js';
 import { showToast } from '../../assets/js/components/toast.js';
 import { highlightTargetRow } from '../../assets/js/core/notification-nav.js';
+import { createSignaturePad } from '../../assets/js/components/signature-pad.js';
+import {
+    findStageSignature,
+    toPrintSignatureBlock
+} from '../../assets/js/components/signature-modal.js';
 import {
     printDocument,
     formatPrintDate
@@ -24,6 +29,8 @@ let checkedDRsData = [];
 let refreshHandler = null;
 let modalRepF = null;
 let selectedDRID = null;
+let receiveSignaturePad = null;
+let checkedDRSignaturePad = null;
 
 /**
  * Kani nga init kay nag-wire sa mga buttons ug nag-load sa page data.
@@ -64,9 +71,16 @@ export async function init(root, params = {}) {
     const highlightID = Number(params?.highlight?.id);
 
     // Kani nga highlight kay para sa PURCHASE_DELIVERY notification:
-    // checked DR row ang i-scroll ug i-highlight.
+    // checked DR row una, unya history fallback kung na-receive na.
     if (params?.highlight?.type === 'checkeddr' && highlightID > 0) {
-        highlightTargetRow(root, '#checkedDRTableBody [data-drid="' + highlightID + '"]', params?.notification);
+        highlightTargetRow(
+            root,
+            [
+                '#checkedDRTableBody [data-drid="' + highlightID + '"]',
+                '#historyTableBody [data-reference="DR-' + pad(highlightID) + '"]'
+            ],
+            params?.notification
+        );
     }
 }
 
@@ -178,6 +192,9 @@ function renderHistoryTable(root) {
     body.innerHTML = '';
     historyData.forEach((record) => {
         const row = document.createElement('tr');
+        if (record.Reference) {
+            row.dataset.reference = record.Reference;
+        }
         const balanceText = record.PreviousQuantity + ' \u2192 ' + record.NewQuantity;
         const cells = [
             formatDate(record.TransactionDate, true),
@@ -195,19 +212,18 @@ function renderHistoryTable(root) {
             row.appendChild(cell);
         });
 
-        // Kani nga Print RR kay on-demand ra; ang LogID ang stable
-        // reference sa Stock In record.
+        // Kani nga Print RR kay on-demand ra; ang Received ug Checked
+        // signatures kay by-process na nga gi-capture sa Receiving ug Purchasing.
         const actionCell = document.createElement('td');
         const printButton = document.createElement('button');
-
         printButton.type = 'button';
         printButton.className = 'btn btn--secondary btn--sm';
         printButton.textContent = 'Print RR';
         printButton.addEventListener('click', () => {
             printReceivingReport(root, record.LogID);
         });
-
         actionCell.appendChild(printButton);
+
         row.appendChild(actionCell);
 
         body.appendChild(row);
@@ -415,22 +431,21 @@ function buildReceivingReport(receipt) {
         ].filter(Boolean),
 
         signatures: [
-            {
-                name: receipt.ReceivedByName,
-                label: 'Received by'
-            },
-            {
-                name: ' ',
-                label: 'Checked by'
-            },
+            toPrintSignatureBlock(
+                findStageSignature(receipt.Signatures, 'Received'),
+                'Received by',
+                receipt.ReceivedByName
+            ),
+            toPrintSignatureBlock(
+                findStageSignature(receipt.Signatures, 'Checked'),
+                'Checked by',
+                ' '
+            ),
             {
                 name: ' ',
                 label: 'Approved by'
             }
-        ],
-
-        footer: 'This receiving report reflects the stock-in entry '
-            + 'recorded in the salon inventory system.'
+        ]
     };
 }
 
@@ -488,6 +503,13 @@ function openReceiveModal(root, repF, preselectItemID) {
 
     remarksInput.value = '';
     errorSpan.textContent = '';
+    receiveSignaturePad?.clear();
+    const chk = root.querySelector('#chkConfirmReceiveSignature');
+    if (chk) chk.checked = false;
+    const errSig = root.querySelector('#errorReceiveSignature');
+    if (errSig) errSig.textContent = '';
+    const submitBtn = root.querySelector('#btnSubmitReceive');
+    if (submitBtn) submitBtn.disabled = true;
     root.querySelector('#receiveModal').classList.remove('u-hidden');
 }
 
@@ -509,31 +531,80 @@ function openCheckedDRModal(root, record) {
         ? 'Notes: ' + record.Notes
         : 'No supplier notes were recorded.';
 
+    checkedDRSignaturePad?.clear();
+    const chk = root.querySelector('#chkConfirmCheckedDRSignature');
+    if (chk) chk.checked = false;
+    const errSig = root.querySelector('#errorCheckedDRSignature');
+    if (errSig) errSig.textContent = '';
+    const btn = root.querySelector('#btnConfirmCheckedDR');
+    if (btn) btn.disabled = true;
+
     root.querySelector('#checkedDRModal').classList.remove('u-hidden');
 }
 
 /**
- * Kani nga wiring kay para sa checked DR confirmation modal.
+ * Kani nga wiring kay para sa checked DR confirmation modal uban sa signature.
  */
 function wireCheckedDRForm(root) {
-    root.querySelector('#btnConfirmCheckedDR')?.addEventListener('click', async () => {
+    const chk = root.querySelector('#chkConfirmCheckedDRSignature');
+    const errSig = root.querySelector('#errorCheckedDRSignature');
+    const confirmBtn = root.querySelector('#btnConfirmCheckedDR');
+
+    const syncBtn = () => {
+        if (confirmBtn) {
+            confirmBtn.disabled = !(checkedDRSignaturePad?.hasSignature() && chk?.checked);
+        }
+    };
+
+    checkedDRSignaturePad = createSignaturePad(
+        root.querySelector('#checkedDRSignaturePad'),
+        {
+            onChange: (signed) => {
+                if (signed && errSig) errSig.textContent = '';
+                syncBtn();
+            }
+        }
+    );
+
+    chk?.addEventListener('change', () => {
+        if (chk.checked && errSig) errSig.textContent = '';
+        syncBtn();
+    });
+
+    root.querySelector('#btnClearCheckedDRSignature')?.addEventListener('click', () => {
+        checkedDRSignaturePad?.clear();
+        syncBtn();
+    });
+
+    confirmBtn?.addEventListener('click', async () => {
         if (!selectedDRID) {
             return;
         }
 
-        const button = root.querySelector('#btnConfirmCheckedDR');
-        button.disabled = true;
+        if (!checkedDRSignaturePad?.hasSignature()) {
+            if (errSig) errSig.textContent = 'Please draw your signature first.';
+            return;
+        }
+        if (!chk?.checked) {
+            if (errSig) errSig.textContent = 'Please confirm your signature before receiving.';
+            return;
+        }
+
+        confirmBtn.disabled = true;
 
         try {
-            await invoke('ReceivingCheckedDR', { drid: String(selectedDRID) });
-            showToast('success', 'The checked delivery was received and stock was updated.');
+            await invoke('ReceivingCheckedDR', {
+                drid: String(selectedDRID),
+                signature: checkedDRSignaturePad.toDataURL(),
+                confirmed: 'true'
+            });
+            showToast('success', 'The checked delivery was received, signed, and stock was updated.');
             root.querySelector('#checkedDRModal').classList.add('u-hidden');
             selectedDRID = null;
             await reloadAll(root);
         } catch (error) {
             showToast('error', error.message);
-        } finally {
-            button.disabled = false;
+            syncBtn();
         }
     });
 }
@@ -569,6 +640,36 @@ function wireModalClosers(root) {
  * allocation sa mga naghuwat nga reservations - tanan sa backend.
  */
 function wireReceiveForm(root) {
+    const chk = root.querySelector('#chkConfirmReceiveSignature');
+    const errSig = root.querySelector('#errorReceiveSignature');
+    const submitBtn = root.querySelector('#btnSubmitReceive');
+
+    const syncBtn = () => {
+        if (submitBtn) {
+            submitBtn.disabled = !(receiveSignaturePad?.hasSignature() && chk?.checked);
+        }
+    };
+
+    receiveSignaturePad = createSignaturePad(
+        root.querySelector('#receiveSignaturePad'),
+        {
+            onChange: (signed) => {
+                if (signed && errSig) errSig.textContent = '';
+                syncBtn();
+            }
+        }
+    );
+
+    chk?.addEventListener('change', () => {
+        if (chk.checked && errSig) errSig.textContent = '';
+        syncBtn();
+    });
+
+    root.querySelector('#btnClearReceiveSignature')?.addEventListener('click', () => {
+        receiveSignaturePad?.clear();
+        syncBtn();
+    });
+
     root.querySelector('#receiveForm')?.addEventListener('submit', async (event) => {
         event.preventDefault();
 
@@ -600,18 +701,32 @@ function wireReceiveForm(root) {
         }
         errorSpan.textContent = '';
 
+        if (!receiveSignaturePad?.hasSignature()) {
+            if (errSig) errSig.textContent = 'Please draw your signature before saving.';
+            return;
+        }
+        if (!chk?.checked) {
+            if (errSig) errSig.textContent = 'Please confirm your signature before saving.';
+            return;
+        }
+
+        if (submitBtn) submitBtn.disabled = true;
+
         try {
             await invoke('ReceivingSubmit', {
                 itemID: String(itemID),
                 quantityReceived: String(quantity),
                 repFID: modalRepF ? String(modalRepF.RepFID) : '',
-                remarks: root.querySelector('#txtReceiveRemarks').value.trim()
+                remarks: root.querySelector('#txtReceiveRemarks').value.trim(),
+                signature: receiveSignaturePad.toDataURL(),
+                confirmed: 'true'
             });
-            showToast('success', 'The receipt was recorded and waiting requests were allocated.');
+            showToast('success', 'The receipt was recorded, signed, and waiting requests were allocated.');
             root.querySelector('#receiveModal').classList.add('u-hidden');
             await reloadAll(root);
         } catch (error) {
             showToast('error', error.message);
+            syncBtn();
         }
     });
 }
@@ -656,4 +771,6 @@ export function destroy() {
     refreshHandler = null;
     modalRepF = null;
     selectedDRID = null;
+    receiveSignaturePad = null;
+    checkedDRSignaturePad = null;
 }

@@ -418,21 +418,27 @@ namespace JustMakeOverSalonApp.Inventory.Repositories
                         ? SqlResultReader.ReadRows(reader)
                         : new List<Dictionary<string, object>>();
 
+                    var sigRepo = new DocumentSignatureRepository(connectionFactory);
+                    var docSigs = sigRepo.Get(actorUserID, "STOCK_CARD", itemID);
+
                     return new Dictionary<string, object>
                     {
                         ["header"] = header,
-                        ["movements"] = movements
+                        ["movements"] = movements,
+                        ["signatures"] = docSigs["signatures"]
                     };
                 }
             }
         }
 
         // Kani nga method nagkuha sa TANANG data sa Replenishment Request
-        // print. On-demand ni, usa ra ka result set.
+        // print lakip ang active digital signatures. On-demand ni.
         public Dictionary<string, object> GetReplenishmentPrint(
             int actorUserID,
             int repFID)
         {
+            Dictionary<string, object> request;
+
             using (var connection = connectionFactory.CreateOpenConnection())
             using (var command = new SqlCommand(
                 "dbo.usp_Inventory_GetReplenishmentPrint", connection))
@@ -447,9 +453,18 @@ namespace JustMakeOverSalonApp.Inventory.Repositories
 
                 using (var reader = command.ExecuteReader())
                 {
-                    return SqlResultReader.ReadRow(reader);
+                    request = SqlResultReader.ReadRow(reader);
                 }
             }
+
+            if (request != null)
+            {
+                var sigRepo = new DocumentSignatureRepository(connectionFactory);
+                var docSigs = sigRepo.Get(actorUserID, "REPLENISHMENT_REQUEST", repFID);
+                request["Signatures"] = docSigs["signatures"];
+            }
+
+            return request;
         }
 
         // Kani nga mapper nag-convert sa row ngadto sa InventoryItemRecord.

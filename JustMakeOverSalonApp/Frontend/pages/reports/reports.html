@@ -1,0 +1,145 @@
+<!-- Centralized Read-Only Report Module.
+     Usa ra ka shared report page + report catalog picker (dili per-report page).
+     Walay operational CRUD/approve/receive/issue actions dinhi. -->
+<div class="reports-page">
+    <div class="page-header">
+        <div>
+            <h2 class="page-header__title">Reports</h2>
+            <p class="page-header__subtitle">Centralized read-only operational, inventory, procurement, and audit reporting.</p>
+        </div>
+        <div class="reports-header-actions">
+            <span class="badge badge--info" id="reportsScopeBadge">Read-only</span>
+            <button type="button" class="btn btn--ghost" id="btnPrintReport" disabled>Print / PDF</button>
+            <button type="button" class="btn btn--secondary" id="btnExportCsv" disabled>Export CSV</button>
+            <button type="button" class="btn btn--primary" id="btnExportExcel" disabled>Export Excel</button>
+        </div>
+    </div>
+
+    <div class="reports-layout">
+        <!-- Left panel: centralized report catalog picker -->
+        <aside class="card reports-catalog" aria-label="Report catalog">
+            <div class="reports-catalog__header">
+                <h3>Report Catalog</h3>
+                <input type="search" id="reportCatalogSearch" class="form-field__input reports-catalog__search"
+                       placeholder="Find a report&hellip;" autocomplete="off">
+            </div>
+            <div id="reportCatalogList" class="reports-catalog__list">
+                <p class="u-text-muted">Loading report catalog&hellip;</p>
+            </div>
+        </aside>
+
+        <!-- Right panel: filters + KPI summary + report output table -->
+        <section class="reports-workspace">
+            <!-- Selected report header & filters -->
+            <div class="card reports-filters-card">
+                <div class="reports-selected-head">
+                    <div>
+                        <span class="badge badge--neutral" id="selectedReportDomain">Inventory</span>
+                        <h3 class="reports-selected-title" id="selectedReportTitle">Select a report</h3>
+                        <p class="u-text-muted reports-selected-desc" id="selectedReportDesc"></p>
+                    </div>
+                    <div class="reports-run-controls">
+                        <button type="button" class="btn btn--ghost btn--sm" id="btnResetFilters">Reset</button>
+                        <button type="button" class="btn btn--primary" id="btnGenerateReport">Generate Report</button>
+                    </div>
+                </div>
+
+                <form id="reportFilterForm" class="reports-filter-grid" novalidate>
+                    <div class="form-field" data-filter="dateFrom">
+                        <label class="form-field__label" for="fltDateFrom">Date from</label>
+                        <input type="date" id="fltDateFrom" class="form-field__input">
+                    </div>
+                    <div class="form-field" data-filter="dateTo">
+                        <label class="form-field__label" for="fltDateTo">Date to</label>
+                        <input type="date" id="fltDateTo" class="form-field__input">
+                    </div>
+                    <div class="form-field" data-filter="asOfDate">
+                        <label class="form-field__label" for="fltAsOfDate">As of date</label>
+                        <input type="date" id="fltAsOfDate" class="form-field__input">
+                    </div>
+                    <div class="form-field" data-filter="category">
+                        <label class="form-field__label" for="fltCategory">Category</label>
+                        <select id="fltCategory" class="form-field__input">
+                            <option value="">All categories</option>
+                        </select>
+                    </div>
+                    <div class="form-field" data-filter="item">
+                        <label class="form-field__label" for="fltItem">Item</label>
+                        <select id="fltItem" class="form-field__input">
+                            <option value="">All items</option>
+                        </select>
+                    </div>
+                    <div class="form-field" data-filter="supplier">
+                        <label class="form-field__label" for="fltSupplier">Supplier</label>
+                        <select id="fltSupplier" class="form-field__input">
+                            <option value="">All suppliers</option>
+                        </select>
+                    </div>
+                    <div class="form-field" data-filter="status">
+                        <label class="form-field__label" for="fltStatus">Status / Type</label>
+                        <select id="fltStatus" class="form-field__input">
+                            <option value="">All</option>
+                        </select>
+                    </div>
+                    <div class="form-field" data-filter="requestor">
+                        <label class="form-field__label" for="fltRequestor">Requestor / User</label>
+                        <select id="fltRequestor" class="form-field__input">
+                            <option value="">All users</option>
+                        </select>
+                    </div>
+                    <div class="form-field" data-filter="departmentRole">
+                        <label class="form-field__label" for="fltRole">Role / Department</label>
+                        <select id="fltRole" class="form-field__input">
+                            <option value="">All roles</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+
+            <!-- KPI summary strip -->
+            <div id="reportSummaryStrip" class="reports-summary-grid u-hidden"></div>
+
+            <!-- Results card -->
+            <div class="card reports-results-card">
+                <div class="reports-table-toolbar">
+                    <div class="reports-table-toolbar__left">
+                        <input type="search" id="reportRowSearch" class="form-field__input reports-row-search"
+                               placeholder="Filter displayed rows&hellip;" autocomplete="off">
+                        <label class="reports-group-control">
+                            <span>Group by</span>
+                            <select id="reportGroupBy" class="form-field__input">
+                                <option value="">None</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div class="reports-meta-stamp" id="reportGeneratedMeta">
+                        Run a report to view results.
+                    </div>
+                </div>
+
+                <!-- Loading / Error / Empty / Data states -->
+                <div id="reportLoadingState" class="reports-state u-hidden">
+                    <div class="spinner" aria-hidden="true"></div>
+                    <span>Generating report&hellip;</span>
+                </div>
+
+                <div id="reportErrorState" class="reports-state reports-state--error u-hidden">
+                    <strong id="reportErrorMessage">Unable to generate report.</strong>
+                    <button type="button" class="btn btn--ghost btn--sm" id="btnRetryReport">Try again</button>
+                </div>
+
+                <div id="reportTableWrapper" class="data-table reports-table-wrap">
+                    <table id="reportResultTable">
+                        <thead id="reportTableHead"></thead>
+                        <tbody id="reportTableBody">
+                            <tr>
+                                <td class="data-table__empty">Select a report and click Generate Report.</td>
+                            </tr>
+                        </tbody>
+                        <tfoot id="reportTableFoot"></tfoot>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>

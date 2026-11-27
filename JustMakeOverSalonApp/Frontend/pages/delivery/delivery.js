@@ -1,7 +1,12 @@
 import { invoke } from '../../assets/js/core/bridge.js';
 import { getUser, hasPermission } from '../../assets/js/core/state.js';
+import { publish, AppEvents } from '../../assets/js/core/events.js';
 import { showToast } from '../../assets/js/components/toast.js';
 import { createSignaturePad } from '../../assets/js/components/signature-pad.js';
+import {
+    findStageSignature,
+    toPrintSignatureBlock
+} from '../../assets/js/components/signature-modal.js';
 import { highlightTargetRow } from '../../assets/js/core/notification-nav.js';
 import {
     printDocument,
@@ -16,6 +21,7 @@ let pendingSignDelivery = null;
 let pendingReissueDelivery = null;
 let issueSignaturePad = null;
 let signSignaturePad = null;
+let correctionSignaturePad = null;
 
 export async function init(root, params = {}) {
     root.querySelectorAll('[data-requires]').forEach((button) => {
@@ -37,26 +43,63 @@ export async function init(root, params = {}) {
     wireSignModal(root);
     wireReissueModal(root);
 
+    const showAllocated = canManageDelivery();
+    const allocatedCard = root.querySelector('#allocatedRequisitionsCard');
+    const deliveriesCard = root.querySelector('#deliveriesCard');
+
+    if (allocatedCard) {
+        allocatedCard.classList.toggle('u-hidden', !showAllocated);
+    }
+
+    if (deliveriesCard) {
+        deliveriesCard.classList.toggle('u-mt-6', showAllocated);
+    }
+
     await reloadAll(root);
 
     const highlightID = Number(params?.highlight?.id);
+    const highlightType = params?.highlight?.type;
 
-    if (params?.highlight?.type === 'delivery' && highlightID > 0) {
+    if (highlightType === 'delivery' && highlightID > 0) {
         highlightTargetRow(
             root,
             '#deliveriesTableBody [data-delivery-id="' + highlightID + '"]',
             params?.notification
         );
     } else if (
-        params?.highlight?.type === 'allocated' &&
+        (highlightType === 'allocated' || highlightType === 'requisition') &&
         highlightID > 0
     ) {
-        highlightTargetRow(
-            root,
-            '#allocatedTableBody [data-allocated-requisition-id="' +
-            highlightID + '"]',
-            params?.notification
-        );
+        const allocatedSelector =
+            '#allocatedTableBody [data-allocated-requisition-id="' + highlightID + '"]';
+        const arByReqSelector =
+            '#deliveriesTableBody [data-requisition-id="' + highlightID + '"]';
+
+        if (showAllocated && root.querySelector(allocatedSelector)) {
+            highlightTargetRow(root, allocatedSelector, params?.notification);
+        } else if (root.querySelector(arByReqSelector)) {
+            highlightTargetRow(root, arByReqSelector, params?.notification);
+        } else if (
+            params?.highlight?.fallbackPage === 'requisitions'
+            && hasPermission('requisitions.view')
+        ) {
+            publish(AppEvents.Navigate, {
+                name: 'requisitions',
+                params: {
+                    highlight: {
+                        type: 'requisition',
+                        id: highlightID
+                    },
+                    notification: params?.notification
+                }
+            });
+        } else {
+            highlightTargetRow(
+                root,
+                showAllocated ? allocatedSelector : arByReqSelector,
+                params?.notification
+            );
+        }
     }
 }
 
@@ -153,8 +196,10 @@ function renderDeliveriesTable(root) {
     if (deliveriesData.length === 0) {
         body.innerHTML =
             '<tr><td colspan="9" class="data-table__empty">' +
-            'No acknowledgement receipts yet. Generate one from an ' +
-            'allocated requisition.</td></tr>';
+            (canManageDelivery()
+                ? 'No acknowledgement receipts yet. Generate one from an allocated requisition.'
+                : 'No acknowledgement receipts yet.') +
+            '</td></tr>';
         return;
     }
 
@@ -292,7 +337,8 @@ function renderDeliveriesTable(root) {
             ? parts.join('')
             : '\u2014';
 
-        return '<tr data-delivery-id="' + delivery.DeliveryID + '">' +
+        return '<tr data-delivery-id="' + delivery.DeliveryID +
+            '" data-requisition-id="' + delivery.RequisitionID + '">' +
             '<td>' + escapeHtml(delivery.ARCode) + '</td>' +
             '<td>#' + delivery.RequisitionID + '</td>' +
             '<td>' + escapeHtml(delivery.RequestorName) + '</td>' +
@@ -420,7 +466,10 @@ function openIssueModal(root, button) {
         (delivery.ItemsSummary || 'the requested items') +
         ' for acknowledgement receipt ' + delivery.ARCode + '.';
 
-    root.querySelector('#btnConfirmDeliveryIssue').disabled = false;
+    root.querySelector('#btnConfirmDeliveryIssue').disabled = true;
+    const chk = root.querySelector('#chkConfirmDeliveryIssueSignature');
+    if (chk) chk.checked = false;
+    root.querySelector('#errorDeliveryIssueSignature').textContent = '';
 
     issueSignaturePad?.clear();
 
@@ -429,6 +478,14 @@ function openIssueModal(root, button) {
 }
 
 function wireIssueModal(root) {
+    const chk = root.querySelector('#chkConfirmDeliveryIssueSignature');
+    const confirmBtn = root.querySelector('#btnConfirmDeliveryIssue');
+    const syncIssueBtn = () => {
+        if (confirmBtn) {
+            confirmBtn.disabled = !(issueSignaturePad?.hasSignature() && chk?.checked);
+        }
+    };
+
     issueSignaturePad = createSignaturePad(
         root.querySelector('#deliveryIssueSignaturePad'),
         {
@@ -437,9 +494,17 @@ function wireIssueModal(root) {
                     root.querySelector('#errorDeliveryIssueSignature')
                         .textContent = '';
                 }
+                syncIssueBtn();
             }
         }
     );
+
+    chk?.addEventListener('change', () => {
+        if (chk.checked) {
+            root.querySelector('#errorDeliveryIssueSignature').textContent = '';
+        }
+        syncIssueBtn();
+    });
 
     const closeModal = () => {
         pendingIssueDelivery = null;
@@ -455,7 +520,10 @@ function wireIssueModal(root) {
         ?.addEventListener('click', closeModal);
 
     root.querySelector('#btnClearIssueSignature')
-        ?.addEventListener('click', () => issueSignaturePad?.clear());
+        ?.addEventListener('click', () => {
+            issueSignaturePad?.clear();
+            syncIssueBtn();
+        });
 
     root.querySelector('#deliveryIssueModal')
         ?.addEventListener('click', (event) => {
@@ -476,6 +544,12 @@ function wireIssueModal(root) {
                 return;
             }
 
+            if (!chk?.checked) {
+                root.querySelector('#errorDeliveryIssueSignature').textContent =
+                    'Please confirm your signature before issuing the items.';
+                return;
+            }
+
             const deliveryID = String(pendingIssueDelivery.DeliveryID);
             const confirmButton =
                 root.querySelector('#btnConfirmDeliveryIssue');
@@ -491,7 +565,7 @@ function wireIssueModal(root) {
             try {
                 await invoke(
                     'DeliveryMarkIssued',
-                    { deliveryID, signature }
+                    { deliveryID, signature, confirmed: 'true' }
                 );
 
                 showToast(
@@ -503,7 +577,7 @@ function wireIssueModal(root) {
                 await reloadAll(root);
             } catch (error) {
                 showToast('error', error.message);
-                confirmButton.disabled = false;
+                syncIssueBtn();
             }
         });
 }
@@ -616,12 +690,49 @@ function openCorrectionModal(root, button) {
         delivery.CorrectionNotes || '';
 
     root.querySelector('#errorCorrectionNotes').textContent = '';
+    root.querySelector('#errorCorrectionSignature').textContent = '';
+    correctionSignaturePad?.clear();
+    const chk = root.querySelector('#chkConfirmCorrectionSignature');
+    if (chk) chk.checked = false;
+    const saveBtn = root.querySelector('#btnSaveCorrection');
+    if (saveBtn) saveBtn.disabled = true;
 
     root.querySelector('#correctionModal')
         .classList.remove('u-hidden');
 }
 
 function wireCorrectionModal(root) {
+    const chk = root.querySelector('#chkConfirmCorrectionSignature');
+    const errSig = root.querySelector('#errorCorrectionSignature');
+    const saveButton = root.querySelector('#btnSaveCorrection');
+
+    const syncSaveBtn = () => {
+        if (saveButton) {
+            saveButton.disabled = !(correctionSignaturePad?.hasSignature() && chk?.checked);
+        }
+    };
+
+    correctionSignaturePad = createSignaturePad(
+        root.querySelector('#correctionSignaturePad'),
+        {
+            onChange: (signed) => {
+                if (signed && errSig) errSig.textContent = '';
+                syncSaveBtn();
+            }
+        }
+    );
+
+    chk?.addEventListener('change', () => {
+        if (chk.checked && errSig) errSig.textContent = '';
+        syncSaveBtn();
+    });
+
+    root.querySelector('#btnClearCorrectionSignature')
+        ?.addEventListener('click', () => {
+            correctionSignaturePad?.clear();
+            syncSaveBtn();
+        });
+
     const closeModal = () => {
         root.querySelector('#correctionModal')
             .classList.add('u-hidden');
@@ -650,27 +761,40 @@ function wireCorrectionModal(root) {
             const notes =
                 root.querySelector('#txtCorrectionNotes').value.trim();
 
-            const saveButton =
-                root.querySelector('#btnSaveCorrection');
-
             if (!notes) {
                 root.querySelector('#errorCorrectionNotes').textContent =
                     'The correction details are required.';
                 return;
             }
 
+            if (!correctionSignaturePad?.hasSignature()) {
+                if (errSig) errSig.textContent = 'Please draw your signature before saving.';
+                return;
+            }
+
+            if (!chk?.checked) {
+                if (errSig) errSig.textContent = 'Please confirm your signature before saving.';
+                return;
+            }
+
             root.querySelector('#errorCorrectionNotes').textContent = '';
+            if (errSig) errSig.textContent = '';
             saveButton.disabled = true;
 
             try {
                 await invoke(
                     'DeliveryRecordCorrection',
-                    { deliveryID, notes }
+                    {
+                        deliveryID,
+                        notes,
+                        signature: correctionSignaturePad.toDataURL(),
+                        confirmed: 'true'
+                    }
                 );
 
                 showToast(
                     'success',
-                    'The correction was recorded. The receipt can now ' +
+                    'The correction was signed and recorded. The receipt can now ' +
                     'be re-issued.'
                 );
 
@@ -678,8 +802,7 @@ function wireCorrectionModal(root) {
                 await reloadAll(root);
             } catch (error) {
                 showToast('error', error.message);
-            } finally {
-                saveButton.disabled = false;
+                syncSaveBtn();
             }
         });
 }
@@ -766,7 +889,10 @@ function openSignModal(root, button) {
         ' and complete the delivery of ' +
         (delivery.ItemsSummary || 'the items') + '.';
 
-    root.querySelector('#btnConfirmDeliverySign').disabled = false;
+    root.querySelector('#btnConfirmDeliverySign').disabled = true;
+    const chk = root.querySelector('#chkConfirmDeliverySignSignature');
+    if (chk) chk.checked = false;
+    root.querySelector('#errorDeliverySignature').textContent = '';
 
     signSignaturePad?.clear();
 
@@ -775,6 +901,14 @@ function openSignModal(root, button) {
 }
 
 function wireSignModal(root) {
+    const chk = root.querySelector('#chkConfirmDeliverySignSignature');
+    const confirmBtn = root.querySelector('#btnConfirmDeliverySign');
+    const syncSignBtn = () => {
+        if (confirmBtn) {
+            confirmBtn.disabled = !(signSignaturePad?.hasSignature() && chk?.checked);
+        }
+    };
+
     signSignaturePad = createSignaturePad(
         root.querySelector('#deliverySignaturePad'),
         {
@@ -783,9 +917,17 @@ function wireSignModal(root) {
                     root.querySelector('#errorDeliverySignature')
                         .textContent = '';
                 }
+                syncSignBtn();
             }
         }
     );
+
+    chk?.addEventListener('change', () => {
+        if (chk.checked) {
+            root.querySelector('#errorDeliverySignature').textContent = '';
+        }
+        syncSignBtn();
+    });
 
     const closeModal = () => {
         pendingSignDelivery = null;
@@ -801,7 +943,10 @@ function wireSignModal(root) {
         ?.addEventListener('click', closeModal);
 
     root.querySelector('#btnClearSignature')
-        ?.addEventListener('click', () => signSignaturePad?.clear());
+        ?.addEventListener('click', () => {
+            signSignaturePad?.clear();
+            syncSignBtn();
+        });
 
     root.querySelector('#deliverySignModal')
         ?.addEventListener('click', (event) => {
@@ -822,6 +967,12 @@ function wireSignModal(root) {
                 return;
             }
 
+            if (!chk?.checked) {
+                root.querySelector('#errorDeliverySignature').textContent =
+                    'Please confirm your signature before completing the delivery.';
+                return;
+            }
+
             const deliveryID = String(pendingSignDelivery.DeliveryID);
             const confirmButton =
                 root.querySelector('#btnConfirmDeliverySign');
@@ -837,7 +988,7 @@ function wireSignModal(root) {
             try {
                 await invoke(
                     'DeliveryComplete',
-                    { deliveryID, signature }
+                    { deliveryID, signature, confirmed: 'true' }
                 );
 
                 showToast(
@@ -850,7 +1001,7 @@ function wireSignModal(root) {
                 await reloadAll(root);
             } catch (error) {
                 showToast('error', error.message);
-                confirmButton.disabled = false;
+                syncSignBtn();
             }
         });
 }
@@ -986,7 +1137,8 @@ async function handlePrintCorrectionReport(root, button) {
             buildCorrectionReport(
                 report.header,
                 report.items || [],
-                report.signatures || []
+                report.signatures || [],
+                report.documentSignatures || []
             )
         );
     } catch (error) {
@@ -999,7 +1151,7 @@ async function handlePrintCorrectionReport(root, button) {
     }
 }
 
-function buildCorrectionReport(header, items, signatures) {
+function buildCorrectionReport(header, items, signatures, documentSignatures = []) {
     const pad = (value) => String(value || 0).padStart(4, '0');
 
     return {
@@ -1051,8 +1203,6 @@ function buildCorrectionReport(header, items, signatures) {
             {
                 title: 'Issuance',
                 lines: [
-                    'Generated by: '
-                    + (header.GeneratedByName || '\u2014'),
                     'Issued by: '
                     + (header.IssuedByName || '\u2014'),
                     'Corrected by: '
@@ -1137,14 +1287,12 @@ function buildCorrectionReport(header, items, signatures) {
                 name: header.IssuedByName || ' ',
                 label: 'Issued by'
             },
-            {
-                name: header.CorrectedByName || ' ',
-                label: 'Corrected by'
-            }
-        ],
-
-        footer: 'This correction report preserves the discrepancy and '
-            + 'correction history of the acknowledgement receipt.'
+            toPrintSignatureBlock(
+                findStageSignature(documentSignatures, 'Corrected'),
+                'Corrected by',
+                header.CorrectedByName || ' '
+            )
+        ]
     };
 }
 
@@ -1232,7 +1380,11 @@ function buildReceiptSheet(receipt) {
     }
 
     sheet.appendChild(buildReceiptSignatures(receipt));
-    sheet.appendChild(buildReceiptFooter(receipt));
+
+    const footer = buildReceiptFooter(receipt);
+    if (footer) {
+        sheet.appendChild(footer);
+    }
 
     return sheet;
 }
@@ -1410,13 +1562,14 @@ function buildReceiptSignatures(receipt) {
 function buildReceiptSignature(label, name, dateValue, signatureData) {
     const block = receiptNode('div', 'receipt-signature');
     const space = receiptNode('div', 'receipt-signature-space');
+    const hasDigital = Boolean(signatureData && signatureData.startsWith('data:image/'));
 
-    if (signatureData && signatureData.startsWith('data:image/')) {
+    if (hasDigital) {
         const image = document.createElement('img');
 
         image.className = 'receipt-signature-image';
         image.src = signatureData;
-        image.alt = 'Signature';
+        image.alt = 'Digital signature';
         space.appendChild(image);
     }
 
@@ -1427,34 +1580,33 @@ function buildReceiptSignature(label, name, dateValue, signatureData) {
         'receipt-signature-name',
         name || ' '
     ));
-    block.appendChild(receiptNode(
-        'p',
-        'receipt-signature-date',
-        dateValue
-            ? formatDate(dateValue, true)
-            : 'Date: ______________'
-    ));
+
+    if (dateValue) {
+        const formatted = formatDate(dateValue, true);
+        if (formatted && formatted !== '\u2014') {
+            block.appendChild(receiptNode(
+                'p',
+                'receipt-signature-date',
+                formatted
+            ));
+        }
+    }
 
     return block;
 }
 
 function buildReceiptFooter(receipt) {
+    if (!receipt.CorrectedByName) {
+        return null;
+    }
+
     const footer = receiptNode('footer', 'receipt-footer');
 
     footer.appendChild(receiptNode(
         'p',
         null,
-        'System-generated acknowledgement receipt. '
-        + 'Keep this copy for your records.'
+        'Last corrected by ' + receipt.CorrectedByName + '.'
     ));
-
-    if (receipt.CorrectedByName) {
-        footer.appendChild(receiptNode(
-            'p',
-            null,
-            'Last corrected by ' + receipt.CorrectedByName + '.'
-        ));
-    }
 
     return footer;
 }
@@ -1530,6 +1682,7 @@ export function destroy() {
     pendingReissueDelivery = null;
     issueSignaturePad = null;
     signSignaturePad = null;
+    correctionSignaturePad = null;
 
     // Kani nga cleanup kay para dili mo-pilit ang print mode kung
     // mobalhin ang user sa laing page samtang nag-print.

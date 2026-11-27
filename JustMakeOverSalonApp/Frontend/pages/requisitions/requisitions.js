@@ -3,6 +3,11 @@ import { invoke } from '../../assets/js/core/bridge.js';
 import { hasPermission } from '../../assets/js/core/state.js';
 import { showToast } from '../../assets/js/components/toast.js';
 import { createSignaturePad } from '../../assets/js/components/signature-pad.js';
+import {
+    openSignatureDialog,
+    findStageSignature,
+    toPrintSignatureBlock
+} from '../../assets/js/components/signature-modal.js';
 import { highlightTargetRow } from '../../assets/js/core/notification-nav.js';
 import {
     printDocument,
@@ -75,13 +80,27 @@ export async function init(root, params = {}) {
 
     // Kani nga params handling kay para sa notification redirect:
     // i-highlight ug i-scroll ang specific nga requisition row
-    // (pending/review panel una, history fallback).
+    // (pending/review panel una, own history ikaduha, ug All Requisitions
+    // History modal kung approver ang user ug dili na pending).
     const highlightID = Number(params?.highlight?.id);
     if (params?.highlight?.type === 'requisition' && highlightID > 0) {
         const pendingSelector = '#pendingRequisitionsBody [data-requisition-id="' + highlightID + '"]';
         const historySelector = '#requisitionHistoryBody [data-requisition-id="' + highlightID + '"]';
-        const selector = root.querySelector(pendingSelector) ? pendingSelector : historySelector;
-        highlightTargetRow(root, selector, params?.notification);
+
+        if (root.querySelector(pendingSelector)) {
+            highlightTargetRow(root, pendingSelector, params?.notification);
+        } else if (root.querySelector(historySelector)) {
+            highlightTargetRow(root, historySelector, params?.notification);
+        } else if (hasPermission('requisitions.approve')) {
+            await openAllRequisitionHistoryModal(root);
+            highlightTargetRow(
+                root,
+                '#allRequisitionHistoryBody [data-requisition-id="' + highlightID + '"]',
+                params?.notification
+            );
+        } else {
+            highlightTargetRow(root, historySelector, params?.notification);
+        }
     }
 
     // Get the search input from the HTML page.
@@ -175,7 +194,14 @@ export async function init(root, params = {}) {
         });
     }
 
-    // Kani nga shared signature pad kay required sa approval.
+    // Kani nga shared signature pad + confirmation checkbox kay required sa approval.
+    const chkApprove = root.querySelector('#chkConfirmApprovalSignature');
+    const syncApproveBtn = () => {
+        if (confirmApprovalButton) {
+            confirmApprovalButton.disabled = !(approvalSignaturePad?.hasSignature() && chkApprove?.checked);
+        }
+    };
+
     approvalSignaturePad = createSignaturePad(
         root.querySelector('#approvalSignaturePad'),
         {
@@ -183,12 +209,21 @@ export async function init(root, params = {}) {
                 if (signed) {
                     root.querySelector('#errorApprovalSignature').textContent = '';
                 }
+                syncApproveBtn();
             }
         }
     );
 
+    chkApprove?.addEventListener('change', function () {
+        if (chkApprove.checked) {
+            root.querySelector('#errorApprovalSignature').textContent = '';
+        }
+        syncApproveBtn();
+    });
+
     root.querySelector('#btnClearApprovalSignature')?.addEventListener('click', function () {
         approvalSignaturePad?.clear();
+        syncApproveBtn();
     });
 
     // Kani nga wiring kay para sa revise modal (Rejected -> resubmit).
@@ -252,14 +287,29 @@ async function submitRequisition(root) {
         return;
     }
 
+    // By-process signature: Requestor signs right when submitting the RF.
+    const sigResult = await openSignatureDialog({
+        title: 'Sign & Submit Requisition',
+        message: `Sign as requestor to submit your requisition (${selectedItems.length} item(s), needed by ${requiredDate}).`,
+        stageLabel: 'Requestor signature',
+        confirmLabel: 'I confirm this signature and submit this requisition for approval.',
+        submitText: 'Confirm & Submit'
+    });
+
+    if (!sigResult) {
+        return;
+    }
+
     try {
         // Disable the button while submitting para malikayan ang repeated clicks.
         submitButton.disabled = true;
 
-        // Send the requisition details to the C# backend.
+        // Send the requisition details + requestor signature to the C# backend.
         const result = await invoke('CreateRequisition', {
             requiredDate: requiredDate,
             justification: justification,
+            signature: sigResult.signature,
+            confirmed: 'true',
 
             // Get the Item IDs and convert them into strings.
             itemIDs: selectedItems.map(item => String(item.ItemID)),
@@ -635,9 +685,13 @@ function approveRequisition(root, requisitionID) {
     root.querySelector('#approvalRequisitionNumber').textContent =
         '#' + requisitionID;
 
-    // Reset the signature pad ug error sa kada bag-ong approval.
+    // Reset the signature pad, checkbox, ug error sa kada bag-ong approval.
     approvalSignaturePad?.clear();
+    const chk = root.querySelector('#chkConfirmApprovalSignature');
+    if (chk) chk.checked = false;
     root.querySelector('#errorApprovalSignature').textContent = '';
+    const confirmBtn = root.querySelector('#confirmApproval');
+    if (confirmBtn) confirmBtn.disabled = true;
 
     // Display the custom approval modal.
     root.querySelector('#approvalModal').hidden = false;
@@ -652,6 +706,8 @@ function closeApprovalModal(root) {
 
     // Clear the signature ug selected requisition.
     approvalSignaturePad?.clear();
+    const chk = root.querySelector('#chkConfirmApprovalSignature');
+    if (chk) chk.checked = false;
     root.querySelector('#errorApprovalSignature').textContent = '';
 
     // Clear the selected requisition.
@@ -670,10 +726,17 @@ async function confirmRequisitionApproval(root) {
         return;
     }
 
-    // Required ang Manager signature before approval.
+    // Required ang Manager signature ug confirmation before approval.
     if (!approvalSignaturePad?.hasSignature()) {
         root.querySelector('#errorApprovalSignature').textContent =
             'Please sign before approving the requisition.';
+        return;
+    }
+
+    const chk = root.querySelector('#chkConfirmApprovalSignature');
+    if (!chk?.checked) {
+        root.querySelector('#errorApprovalSignature').textContent =
+            'Please confirm your signature before approving the requisition.';
         return;
     }
 
@@ -683,10 +746,11 @@ async function confirmRequisitionApproval(root) {
         // Disable the button while processing.
         confirmButton.disabled = true;
 
-        // Send the requisition ID ug signature to the C# backend.
+        // Send the requisition ID, signature, ug confirmation to the C# backend.
         await invoke('ApproveRequisition', {
             requisitionID: String(selectedApprovalRequisitionID),
-            signature: signature
+            signature: signature,
+            confirmed: 'true'
         });
 
         // Store the ID for the success message.
@@ -1333,7 +1397,7 @@ function renderAllRequisitionHistory(root, requisitions) {
 
         // Return the completed history row.
         return `
-            <tr>
+            <tr data-requisition-id="${requisition.RequisitionID}">
                 <td>#${requisition.RequisitionID}</td>
                 <td>${requisition.RequestorUserID}</td>
                 <td>${requisition.RequestorName || '-'}</td>
@@ -1379,7 +1443,8 @@ async function printRequisitionForm(root, requisitionID) {
         await printDocument(
             buildRequisitionFormDocument(
                 form.header,
-                form.items || []
+                form.items || [],
+                form.signatures || []
             )
         );
     } catch (error) {
@@ -1390,7 +1455,7 @@ async function printRequisitionForm(root, requisitionID) {
     }
 }
 
-function buildRequisitionFormDocument(header, items) {
+function buildRequisitionFormDocument(header, items, signatures = []) {
     const totals = items.reduce(
         (sum, item) => ({
             requested: sum.requested
@@ -1454,7 +1519,11 @@ function buildRequisitionFormDocument(header, items) {
                     header.ApprovedDate
                         ? 'Approved on '
                         + formatPrintDate(header.ApprovedDate)
-                        : 'Not yet approved'
+                        : ['Approved', 'Fulfilled'].includes(header.Status)
+                            ? 'Approved'
+                            : header.Status === 'Rejected'
+                                ? 'Rejected'
+                                : 'Pending approval'
                 ]
             }
         ],
@@ -1522,26 +1591,34 @@ function buildRequisitionFormDocument(header, items) {
         ].filter(Boolean),
 
         signatures: [
-            {
-                name: header.RequestorName,
-                label: 'Requested by'
-            },
-            {
-                name: header.DepartmentHeadName || ' ',
-                label: 'Department head',
-                image: signature.startsWith('data:image/')
-                    ? signature
-                    : null,
-                date: header.ApprovedDate
-            },
+            toPrintSignatureBlock(
+                findStageSignature(signatures, 'Requested'),
+                'Requested by',
+                header.RequestorName
+            ),
+            (() => {
+                const stored = findStageSignature(signatures, 'Approved');
+                if (stored) {
+                    return toPrintSignatureBlock(
+                        stored,
+                        'Department head',
+                        header.DepartmentHeadName || ' '
+                    );
+                }
+                return {
+                    name: header.DepartmentHeadName || ' ',
+                    label: 'Department head',
+                    image: signature.startsWith('data:image/')
+                        ? signature
+                        : null,
+                    date: header.ApprovedDate
+                };
+            })(),
             {
                 name: ' ',
                 label: 'Received by'
             }
-        ],
-
-        footer: 'This requisition form is generated by the salon '
-            + 'inventory system and reflects the recorded approval.'
+        ]
     };
 }
 

@@ -55,7 +55,9 @@ namespace JustMakeOverSalonApp.Requisition.Services
             CurrentUser actor,
             DateTime requiredDate,
             string justification,
-            List<RequisitionDetailModel> items)
+            List<RequisitionDetailModel> items,
+            string signatureImage,
+            bool confirmed)
         {
             // Check if the user has permission to create a requisition.
             actor.RequirePermission("requisitions.create");
@@ -88,6 +90,25 @@ namespace JustMakeOverSalonApp.Requisition.Services
                     "Please select at least one item.");
             }
 
+            if (!confirmed)
+            {
+                throw new ArgumentException(
+                    "Please confirm your signature before submitting the requisition.");
+            }
+
+            if (string.IsNullOrWhiteSpace(signatureImage)
+                || !signatureImage.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ArgumentException(
+                    "A valid signature is required before submitting the requisition.");
+            }
+
+            if (signatureImage.Length > 2000000)
+            {
+                throw new ArgumentException(
+                    "The signature image is too large.");
+            }
+
             // Loop through each selected item to validate its information.
             foreach (var item in items)
             {
@@ -112,7 +133,9 @@ namespace JustMakeOverSalonApp.Requisition.Services
                 actor.UserID,
                 requiredDate,
                 justification,
-                items);
+                items,
+                signatureImage,
+                true);
         }
 
         // FUNCTION 3: LoadRequisitionHistory
@@ -210,7 +233,8 @@ namespace JustMakeOverSalonApp.Requisition.Services
         public void ApproveRequisition(
             CurrentUser actor,
             int requisitionID,
-            string signature)
+            string signature,
+            bool confirmed)
         {
             if (actor == null)
             {
@@ -225,6 +249,12 @@ namespace JustMakeOverSalonApp.Requisition.Services
             {
                 throw new ArgumentException(
                     "Invalid requisition selected.");
+            }
+
+            if (!confirmed)
+            {
+                throw new ArgumentException(
+                    "Please confirm your signature before approving the requisition.");
             }
 
             if (string.IsNullOrWhiteSpace(signature))
@@ -250,7 +280,8 @@ namespace JustMakeOverSalonApp.Requisition.Services
             repository.ApproveRequisition(
                 requisitionID,
                 actor.UserID,
-                signature);
+                signature,
+                true);
         }
 
         // FUNCTION 6: RejectRequisition

@@ -7,7 +7,7 @@
  */
 import { invoke } from './bridge.js';
 import { publish, AppEvents } from './events.js';
-import { hasPermission } from './state.js';
+import { getUser, hasPermission } from './state.js';
 import { showToast } from '../components/toast.js';
 
 // Informational notifications are marked read when opened.
@@ -21,6 +21,8 @@ const INFO_ONLY_TYPES = new Set([
     'REQUISITION_FULFILLED',
     'REQUISITION_CANCELLED',
     'DELIVERY_REISSUED',
+    'DELIVERY_ISSUED',
+    'DELIVERY_COMPLETED',
     'PO_APPROVED'
 ]);
 
@@ -81,14 +83,23 @@ function markInfoNotificationRead(notification) {
 export function navigateToNotification(notification) {
     const type = String(
         notification?.NotificationType || ''
-    );
+    ).trim().toUpperCase();
+
+    const entityType = String(
+        notification?.RelatedEntityType || ''
+    ).trim().toUpperCase();
 
     const entityID =
         Number(notification?.RelatedEntityID) || 0;
 
+    const userRole = String(getUser()?.role || '');
+    const canManageDelivery = hasPermission('delivery.manage')
+        && ['Admin', 'Inventory Staff'].includes(userRole);
+
     let name = null;
     let params = {};
     let permission = null;
+    let markReadAsInfo = INFO_ONLY_TYPES.has(type);
 
     if (
         type === 'REQUISITION_SUBMITTED'
@@ -100,122 +111,154 @@ export function navigateToNotification(notification) {
         || type === 'REQUISITION_CANCELLED'
     ) {
         name = 'requisitions';
-
-        params = {
-            highlight: {
-                type: 'requisition',
-                id: entityID
-            }
-        };
-
+        params = entityID > 0
+            ? { highlight: { type: 'requisition', id: entityID } }
+            : {};
         permission = 'requisitions.view';
     } else if (type === 'REQUISITION_ALLOCATED') {
-        name = 'delivery';
-
-        params = {
-            highlight: {
-                type: 'allocated',
-                id: entityID
-            }
-        };
-
-        permission = 'delivery.view';
+        if (canManageDelivery && hasPermission('delivery.view')) {
+            name = 'delivery';
+            params = entityID > 0
+                ? { highlight: { type: 'allocated', id: entityID } }
+                : {};
+            permission = 'delivery.view';
+        } else if (hasPermission('delivery.view')) {
+            name = 'delivery';
+            params = entityID > 0
+                ? {
+                    highlight: {
+                        type: 'requisition',
+                        id: entityID,
+                        fallbackPage: 'requisitions'
+                    }
+                }
+                : {};
+            permission = 'delivery.view';
+            markReadAsInfo = true;
+        } else if (hasPermission('requisitions.view')) {
+            name = 'requisitions';
+            params = entityID > 0
+                ? { highlight: { type: 'requisition', id: entityID } }
+                : {};
+            permission = 'requisitions.view';
+            markReadAsInfo = true;
+        } else {
+            name = 'delivery';
+            permission = 'delivery.view';
+        }
     } else if (type === 'STOCK_SHORTAGE') {
-        name = 'purchasing';
-
-        params = {
-            highlight: {
-                type: 'repf',
-                id: entityID
-            }
-        };
-
-        permission = null;
+        if (hasPermission('purchasing.view')) {
+            name = 'purchasing';
+            params = entityID > 0
+                ? { highlight: { type: 'repf', id: entityID } }
+                : {};
+            permission = 'purchasing.view';
+        } else if (hasPermission('inventory.view')) {
+            name = 'inventory';
+            params = entityID > 0
+                ? { highlight: { type: 'repf', id: entityID } }
+                : {};
+            permission = 'inventory.view';
+            markReadAsInfo = true;
+        } else if (hasPermission('requisitions.view')) {
+            name = 'requisitions';
+            params = {};
+            permission = 'requisitions.view';
+            markReadAsInfo = true;
+        } else {
+            name = 'purchasing';
+            permission = 'purchasing.view';
+        }
     } else if (type === 'PURCHASE_DELIVERY') {
         name = 'receiving';
-
-        params = {
-            highlight: {
-                type: 'checkeddr',
-                id: entityID
-            }
-        };
-
+        params = entityID > 0
+            ? { highlight: { type: 'checkeddr', id: entityID } }
+            : {};
         permission = 'receiving.view';
     } else if (
         type === 'PO_PENDING_APPROVAL'
         || type === 'PO_APPROVED'
     ) {
         name = 'purchasing';
-
-        params = {
-            highlight: {
-                type: 'po',
-                id: entityID
-            }
-        };
-
+        params = entityID > 0
+            ? { highlight: { type: 'po', id: entityID } }
+            : {};
         permission = 'purchasing.view';
     } else if (type === 'PO_REJECTED') {
         // Preserve the distinction between a notification for
         // Purchasing and one for the original requestor.
-        const onRequisition = String(
-            notification?.RelatedEntityType || ''
-        ) === 'REQUISITION';
+        const onRequisition = entityType === 'REQUISITION';
 
         name = onRequisition
             ? 'requisitions'
             : 'purchasing';
 
-        params = onRequisition
-            ? {
-                highlight: {
-                    type: 'requisition',
-                    id: entityID
-                }
-            }
-            : {
-                highlight: {
-                    type: 'po',
-                    id: entityID
-                }
-            };
+        params = entityID > 0
+            ? (onRequisition
+                ? { highlight: { type: 'requisition', id: entityID } }
+                : { highlight: { type: 'po', id: entityID } })
+            : {};
 
         permission = onRequisition
             ? 'requisitions.view'
             : 'purchasing.view';
-    } else if (type === 'DELIVERY_REISSUED') {
+
+        if (onRequisition) {
+            markReadAsInfo = true;
+        }
+    } else if (
+        type === 'DELIVERY_REISSUED'
+        || type === 'DELIVERY_DISCREPANCY'
+        || type === 'DELIVERY_GENERATED'
+        || type === 'DELIVERY_ISSUED'
+        || type === 'DELIVERY_COMPLETED'
+    ) {
         name = 'delivery';
-
-        params = {
-            highlight: {
-                type: 'delivery',
-                id: entityID
-            }
-        };
-
-        permission = 'delivery.view';
-    } else if (type === 'DELIVERY_DISCREPANCY') {
-        name = 'delivery';
-
-        params = {
-            highlight: {
-                type: 'delivery',
-                id: entityID
-            }
-        };
-
+        params = entityID > 0
+            ? { highlight: { type: 'delivery', id: entityID } }
+            : {};
         permission = 'delivery.view';
     } else if (type === 'LOW_STOCK') {
         name = 'inventory';
-
-        params = {
-            highlight: {
-                type: 'item',
-                id: entityID
-            }
-        };
-
+        params = entityID > 0
+            ? { highlight: { type: 'item', id: entityID } }
+            : {};
+        permission = 'inventory.view';
+    } else if (entityType === 'REQUISITION') {
+        name = 'requisitions';
+        params = entityID > 0
+            ? { highlight: { type: 'requisition', id: entityID } }
+            : {};
+        permission = 'requisitions.view';
+    } else if (entityType === 'PURCHASE_ORDER') {
+        name = 'purchasing';
+        params = entityID > 0
+            ? { highlight: { type: 'po', id: entityID } }
+            : {};
+        permission = 'purchasing.view';
+    } else if (entityType === 'REPLENISHMENT_REQUEST') {
+        name = hasPermission('purchasing.view') ? 'purchasing' : 'inventory';
+        params = entityID > 0
+            ? { highlight: { type: 'repf', id: entityID } }
+            : {};
+        permission = name === 'purchasing' ? 'purchasing.view' : 'inventory.view';
+    } else if (entityType === 'DELIVERY') {
+        name = 'delivery';
+        params = entityID > 0
+            ? { highlight: { type: 'delivery', id: entityID } }
+            : {};
+        permission = 'delivery.view';
+    } else if (entityType === 'DELIVERY_RECEIPT') {
+        name = 'receiving';
+        params = entityID > 0
+            ? { highlight: { type: 'checkeddr', id: entityID } }
+            : {};
+        permission = 'receiving.view';
+    } else if (entityType === 'ITEM') {
+        name = 'inventory';
+        params = entityID > 0
+            ? { highlight: { type: 'item', id: entityID } }
+            : {};
         permission = 'inventory.view';
     }
 
@@ -231,17 +274,12 @@ export function navigateToNotification(notification) {
             'You do not have permission to open this notification.'
         );
 
-        return false;
+        // Return true so callers do not replace this message with
+        // a generic "no linked panel" toast or navigate away.
+        return true;
     }
 
-    const requestorPORejection =
-        type === 'PO_REJECTED'
-        && String(
-            notification?.RelatedEntityType || ''
-        ) === 'REQUISITION';
-
-    if (INFO_ONLY_TYPES.has(type)
-        || requestorPORejection) {
+    if (markReadAsInfo) {
         markInfoNotificationRead(notification);
     }
 
@@ -259,24 +297,37 @@ export function navigateToNotification(notification) {
 
 /**
  * Highlight and scroll to a related row after it has rendered.
+ * Accepts a single CSS selector or an array of fallback selectors.
  * Missing records are marked read with an informational message.
  *
  * @param {HTMLElement} root
- * @param {string} selector
+ * @param {string|string[]} selectorOrList
  * @param {object} [notification]
  */
 
 export function highlightTargetRow(
     root,
-    selector,
+    selectorOrList,
     notification
 ) {
-    if (!root || !selector) {
+    const selectors = (Array.isArray(selectorOrList)
+        ? selectorOrList
+        : [selectorOrList]
+    ).filter(Boolean);
+
+    if (!root || selectors.length === 0) {
         return;
     }
 
     requestAnimationFrame(() => {
-        const target = root.querySelector(selector);
+        let target = null;
+
+        for (const selector of selectors) {
+            target = root.querySelector(selector);
+            if (target) {
+                break;
+            }
+        }
 
         if (!target) {
             if (notification) {

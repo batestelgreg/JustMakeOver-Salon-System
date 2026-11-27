@@ -2,6 +2,11 @@
 import { highlightTargetRow } from '../../assets/js/core/notification-nav.js';
 import { updateNotificationBadge } from '../../assets/js/components/header.js';
 import {
+    openSignatureDialog,
+    findStageSignature,
+    toPrintSignatureBlock
+} from '../../assets/js/components/signature-modal.js';
+import {
     printDocument,
     formatPrintDate,
     formatPrintMoney
@@ -80,7 +85,11 @@ export async function init(root, params = {}) {
         const selector = type === 'po'
             ? `#orderTable [data-po-id="${id}"]`
             : type === 'repf'
-                ? `#replenishmentTable [data-repf-id="${id}"]`
+                ? [
+                    `#replenishmentTable [data-repf-id="${id}"]`,
+                    `#requestTable [data-repf-id="${id}"]`,
+                    `#orderTable [data-repf-id="${id}"]`
+                ]
                 : null;
 
         if (selector) {
@@ -545,6 +554,13 @@ function table(view, selector, headings, rows, build) {
 
             if (selector === '#orderTable') {
                 row.dataset.poId = record.POID;
+                if (record.RepFID) {
+                    row.dataset.repfId = record.RepFID;
+                }
+            }
+
+            if (selector === '#requestTable' && record.RepFID) {
+                row.dataset.repfId = record.RepFID;
             }
 
             if (selector === '#replenishmentTable') {
@@ -1288,12 +1304,26 @@ async function handleSubmit(view, event) {
             return;
         }
 
+        const drSig = await openSignatureDialog({
+            title: 'Sign Delivery Check',
+            message: `Sign as checker to record supplier delivery for PO-${pad(po.POID)} (${po.ItemName}: ${delivered} delivered, ${accepted} accepted, ${rejected} rejected).`,
+            stageLabel: 'Checked by signature',
+            confirmLabel: 'I confirm this signature and the inspected delivery quantities.',
+            submitText: 'Confirm & Record Check'
+        });
+
+        if (!drSig || view.closed) {
+            return;
+        }
+
         await act(view, 'RecordDR', {
             ...values,
 
             poID: Number(
                 find(view, '#receiptPO').value
-            )
+            ),
+            signature: drSig.signature,
+            confirmed: 'true'
         });
     } else if (form.id === 'decisionForm') {
         const notes = find(
@@ -1545,8 +1575,25 @@ async function handleClick(view, event) {
             preventScroll: true
         });
     } else if (action === 'CreatePR') {
+        const repf = view.data?.replenishments?.find((r) => r.RepFID === id);
+        const prSig = await openSignatureDialog({
+            title: 'Sign & Create Purchase Request',
+            message: repf
+                ? `Sign to process Replenishment REP-${pad(id)} (${repf.ItemName}, qty needed: ${repf.QuantityNeeded}) into a Purchase Request.`
+                : `Sign to create a Purchase Request for Replenishment REP-${pad(id)}.`,
+            stageLabel: 'Approved / Processed by signature',
+            confirmLabel: 'I confirm this signature to process this replenishment request into a PR.',
+            submitText: 'Confirm & Create PR'
+        });
+
+        if (!prSig || view.closed) {
+            return;
+        }
+
         await act(view, action, {
-            repFID: id
+            repFID: id,
+            signature: prSig.signature,
+            confirmed: 'true'
         });
     } else if (action === 'RevisePR') {
         await act(view, action, {
@@ -1558,22 +1605,33 @@ async function handleClick(view, event) {
         find(view, '#decisionReason').value = '';
 
         find(view, '#purchasingDecision').showModal();
-    } else if ([
-        'ApprovePO',
-        'DispatchPO'
-    ].includes(action)) {
+    } else if (action === 'ApprovePO') {
+        const sigResult = await openSignatureDialog({
+            title: 'Approve Purchase Order #' + id,
+            message: order
+                ? `Approve PO-${pad(id)} for ${order.ItemName} (${order.QuantityOrdered} unit(s), total ${money(order.TotalAmount)}) from ${order.SupplierName}.`
+                : `Draw your signature to approve Purchase Order #${id}.`,
+            stageLabel: 'Approver signature',
+            confirmLabel: 'I confirm this signature and understand that this PO approval will be locked after saving.',
+            submitText: 'Confirm & Approve PO'
+        });
+
+        if (!sigResult || view.closed) {
+            return;
+        }
 
         const succeeded = await act(
             view,
-            action,
-            { poID: id }
+            'ApprovePO',
+            {
+                poID: id,
+                signature: sigResult.signature,
+                confirmed: 'true'
+            }
         );
 
         // Preserve the existing email-draft behavior after approval.
-        if (succeeded
-            && action === 'ApprovePO'
-            && !view.closed) {
-
+        if (succeeded && !view.closed) {
             const approved = view.data?.orders.find(
                 (r) => r.POID === id
             );
@@ -1588,6 +1646,12 @@ async function handleClick(view, event) {
                 );
             }
         }
+    } else if (action === 'DispatchPO') {
+        await act(
+            view,
+            action,
+            { poID: id }
+        );
     } else if (action === 'FollowupSent') {
         await act(view, action, {
             followupID: id
@@ -1962,18 +2026,16 @@ function buildPurchaseOrderDocument(order) {
                 name: order.RequestedByName,
                 label: 'Requested by'
             },
-            {
-                name: order.ApprovedByName,
-                label: 'Approved by'
-            },
+            toPrintSignatureBlock(
+                findStageSignature(order.Signatures, 'Approved'),
+                'Approved by',
+                order.ApprovedByName
+            ),
             {
                 name: ' ',
                 label: 'Supplier acknowledgement'
             }
-        ],
-
-        footer: 'This purchase order is valid only when approved '
-            + 'by authorised salon management.'
+        ]
     };
 }
 
@@ -2178,10 +2240,7 @@ function buildReturnSlipDocument(header, items) {
                 name: ' ',
                 label: 'Approved by'
             }
-        ],
-
-        footer: 'Rejected items are returned to the supplier. '
-            + 'This slip does not replace the official delivery receipt.'
+        ]
     };
 }
 

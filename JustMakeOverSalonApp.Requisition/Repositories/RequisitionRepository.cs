@@ -125,7 +125,9 @@ namespace JustMakeOverSalonApp.Requisition.Repositories
             int requestorUserID,
             DateTime requiredDate,
             string justification,
-            List<RequisitionDetailModel> items)
+            List<RequisitionDetailModel> items,
+            string signatureImage,
+            bool confirmed)
         {
             // Open a database connection and start a transaction.
             using (var connection = connectionFactory.CreateOpenConnection())
@@ -247,6 +249,21 @@ namespace JustMakeOverSalonApp.Requisition.Repositories
                         command.ExecuteNonQuery();
                     }
 
+
+                    // Record requestor digital signature atomically inside the same transaction.
+                    using (var sigCommand = new SqlCommand(
+                        "dbo.usp_DocumentSignature_Sign", connection, transaction))
+                    {
+                        sigCommand.CommandType = CommandType.StoredProcedure;
+                        sigCommand.Parameters.Add("@ActorUserID", SqlDbType.Int).Value = requestorUserID;
+                        sigCommand.Parameters.Add("@DocumentType", SqlDbType.VarChar, 40).Value = "REQUISITION";
+                        sigCommand.Parameters.Add("@DocumentID", SqlDbType.Int).Value = requisitionID;
+                        sigCommand.Parameters.Add("@Stage", SqlDbType.VarChar, 40).Value = "Requested";
+                        sigCommand.Parameters.Add("@SignatureImage", SqlDbType.NVarChar, -1).Value = signatureImage;
+                        sigCommand.Parameters.Add("@Confirmed", SqlDbType.Bit).Value = confirmed;
+                        sigCommand.Parameters.Add("@ReturnResult", SqlDbType.Bit).Value = false;
+                        sigCommand.ExecuteNonQuery();
+                    }
 
                     // If all inserts are successful, commit the transaction.
                     transaction.Commit();
@@ -712,11 +729,12 @@ namespace JustMakeOverSalonApp.Requisition.Repositories
         public void ApproveRequisition(
             int requisitionID,
             int approverUserID,
-            string signature)
+            string signature,
+            bool confirmed)
         {
             using (var connection = connectionFactory.CreateOpenConnection())
             using (var command = new SqlCommand(
-                "usp_Requisition_Approve", connection))
+                "dbo.usp_Requisition_ApproveWithSignature", connection))
             {
                 command.CommandType = CommandType.StoredProcedure;
 
@@ -726,8 +744,11 @@ namespace JustMakeOverSalonApp.Requisition.Repositories
                 command.Parameters.Add("@ApproverUserID", SqlDbType.Int)
                     .Value = approverUserID;
 
-                command.Parameters.Add("@Signature", SqlDbType.NVarChar, -1)
+                command.Parameters.Add("@SignatureImage", SqlDbType.NVarChar, -1)
                     .Value = signature;
+
+                command.Parameters.Add("@Confirmed", SqlDbType.Bit)
+                    .Value = confirmed;
 
                 command.ExecuteNonQuery();
             }
@@ -963,10 +984,14 @@ namespace JustMakeOverSalonApp.Requisition.Repositories
                         ? SqlResultReader.ReadRows(reader)
                         : new List<Dictionary<string, object>>();
 
+                    var sigRepo = new DocumentSignatureRepository(connectionFactory);
+                    var docSigs = sigRepo.Get(actorUserID, "REQUISITION", requisitionID);
+
                     return new Dictionary<string, object>
                     {
                         ["header"] = header,
-                        ["items"] = items
+                        ["items"] = items,
+                        ["signatures"] = docSigs["signatures"]
                     };
                 }
             }

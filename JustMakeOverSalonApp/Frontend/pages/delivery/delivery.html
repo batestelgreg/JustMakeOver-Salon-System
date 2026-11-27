@@ -11,8 +11,8 @@
     </div>
 
     <!-- Kani nga card kay para sa allocated requisitions nga ready na
-         para sa AR generation (ang START sa Figure 10: items allocated). -->
-    <div class="card">
+         para sa AR generation (Admin & Inventory Staff only). -->
+    <div class="card" id="allocatedRequisitionsCard">
         <h3 class="delivery-panel-title">Allocated Requisitions</h3>
         <p class="delivery-panel-subtitle">Fully allocated requisitions ready for an acknowledgement receipt.</p>
         <div class="data-table">
@@ -35,7 +35,7 @@
     </div>
 
     <!-- Kani nga card kay para sa AR records (open ug completed). -->
-    <div class="card u-mt-6">
+    <div class="card u-mt-6" id="deliveriesCard">
         <h3 class="delivery-panel-title">Acknowledgement Receipts</h3>
         <p class="delivery-panel-subtitle">Issue the items, check them against the AR, record any correction, then sign to complete the delivery.</p>
         <div class="data-table">
@@ -109,14 +109,27 @@
                                   maxlength="500" placeholder="Describe the item replacement or record correction&hellip;"></textarea>
                         <span class="form-field__error" id="errorCorrectionNotes"></span>
                     </div>
-                    <p class="u-text-muted" style="font-size: 12px;">
+                    <div class="signature-pad">
+                        <div class="signature-pad__header">
+                            <span class="signature-pad__label">Corrected by (Digital signature)</span>
+                            <button type="button" class="btn btn--ghost btn--sm" id="btnClearCorrectionSignature">Clear</button>
+                        </div>
+                        <canvas id="correctionSignaturePad" class="signature-pad__canvas"
+                                width="600" height="180" aria-label="Correction signature pad"></canvas>
+                        <span class="form-field__error" id="errorCorrectionSignature"></span>
+                    </div>
+                    <label class="signature-confirm-check">
+                        <input type="checkbox" id="chkConfirmCorrectionSignature">
+                        <span>I confirm this signature and understand that this correction record will be logged and locked.</span>
+                    </label>
+                    <p class="u-text-muted u-mt-4" style="font-size: 12px; margin-bottom: 0;">
                         Save this after the item is replaced or the record is corrected. The receipt
                         can then be re-issued so the items are issued to the department again.
                     </p>
                 </div>
                 <div class="modal__footer">
                     <button type="button" class="btn btn--ghost" id="btnCancelCorrection">Cancel</button>
-                    <button type="submit" class="btn btn--primary" id="btnSaveCorrection">Save Correction</button>
+                    <button type="submit" class="btn btn--primary" id="btnSaveCorrection" disabled>Sign &amp; Save Correction</button>
                 </div>
             </form>
         </div>
@@ -159,6 +172,10 @@
                             width="600" height="200" aria-label="Signature pad"></canvas>
                     <span class="form-field__error" id="errorDeliverySignature"></span>
                 </div>
+                <label class="signature-confirm-check">
+                    <input type="checkbox" id="chkConfirmDeliverySignSignature">
+                    <span>I confirm this signature and understand that completing this AR locks the record and deducts stock.</span>
+                </label>
                 <p class="u-text-muted u-mt-4" style="font-size: 12px; margin-bottom: 0;">
                     Draw your signature above. Signing deducts the issued quantity from stock and marks the
                     requisition as fulfilled.
@@ -166,7 +183,7 @@
             </div>
             <div class="modal__footer">
                 <button type="button" class="btn btn--ghost" id="btnCancelDeliverySign">Cancel</button>
-                <button type="button" class="btn btn--primary" id="btnConfirmDeliverySign">Sign &amp; Complete</button>
+                <button type="button" class="btn btn--primary" id="btnConfirmDeliverySign" disabled>Sign &amp; Complete</button>
             </div>
         </div>
     </div>
@@ -212,6 +229,10 @@
                             width="600" height="200" aria-label="Inventory Staff signature pad"></canvas>
                     <span class="form-field__error" id="errorDeliveryIssueSignature"></span>
                 </div>
+                <label class="signature-confirm-check">
+                    <input type="checkbox" id="chkConfirmDeliveryIssueSignature">
+                    <span>I confirm this signature and release of the items for this acknowledgement receipt.</span>
+                </label>
                 <p class="u-text-muted u-mt-4" style="font-size: 12px; margin-bottom: 0;">
                     Draw your signature above to confirm the actual release of the items. Your name
                     and the issuance date and time will appear in the ISSUED BY section of the AR.
@@ -219,7 +240,7 @@
             </div>
             <div class="modal__footer">
                 <button type="button" class="btn btn--ghost" id="btnCancelDeliveryIssue">Cancel</button>
-                <button type="button" class="btn btn--primary" id="btnConfirmDeliveryIssue">Issue Items</button>
+                <button type="button" class="btn btn--primary" id="btnConfirmDeliveryIssue" disabled>Issue Items</button>
             </div>
         </div>
     </div>
