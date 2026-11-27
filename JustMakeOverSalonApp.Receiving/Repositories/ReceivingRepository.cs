@@ -262,7 +262,7 @@ namespace JustMakeOverSalonApp.Receiving.Repositories
             if (receipt != null)
             {
                 var sigRepo = new DocumentSignatureRepository(connectionFactory);
-                var sigResult = sigRepo.Get(actorUserID, "RECEIVING_REPORT", (int)inventoryLogID);
+                var sigResult = sigRepo.GetPrintPack(actorUserID, "RECEIVING_REPORT", (int)inventoryLogID);
                 receipt["Signatures"] = sigResult["signatures"];
             }
 

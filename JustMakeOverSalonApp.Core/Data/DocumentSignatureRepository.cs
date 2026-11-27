@@ -57,6 +57,43 @@ namespace JustMakeOverSalonApp.Core.Data
             }
         }
 
+        // Kani nga method nag-return sa direct + linked-process active signatures
+        // para sa business document prints (PO, Return Slip, RR, RepF, Stock Card).
+        public Dictionary<string, object> GetPrintPack(
+            int actorUserID,
+            string documentType,
+            int documentID)
+        {
+            using (var connection =
+                connectionFactory.CreateOpenConnection())
+            using (var command = new SqlCommand(
+                "dbo.usp_DocumentSignature_GetPrintPack", connection))
+            {
+                command.CommandType = CommandType.StoredProcedure;
+
+                command.Parameters.Add(
+                    "@ActorUserID",
+                    SqlDbType.Int).Value = actorUserID;
+
+                command.Parameters.Add(
+                    "@DocumentType",
+                    SqlDbType.VarChar,
+                    40).Value = documentType;
+
+                command.Parameters.Add(
+                    "@DocumentID",
+                    SqlDbType.Int).Value = documentID;
+
+                using (var reader = command.ExecuteReader())
+                {
+                    return new Dictionary<string, object>
+                    {
+                        ["signatures"] = SqlResultReader.ReadRows(reader)
+                    };
+                }
+            }
+        }
+
         // Kani nga method kay generic sign. Ang stored procedure ra ang
         // nag-check sa stage configuration, permission, confirmation, ug document hash.
         public Dictionary<string, object> Sign(

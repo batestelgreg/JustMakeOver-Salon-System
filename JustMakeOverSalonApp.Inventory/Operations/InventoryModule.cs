@@ -96,11 +96,24 @@ namespace JustMakeOverSalonApp.Inventory.Operations
             context.SendResponse(requestID, true, new { categoryID }, null);
         }
 
-        // Kani nga handler nag-himo ug bag-ong inventory item.
+        // Kani nga handler nag-himo ug bag-ong inventory item uban sa
+        // Stock Card "Prepared by" digital signature.
         private async Task HandleInventoryCreateAsync(Dictionary<string, object> payload, string requestID)
         {
             var actor = context.RequireUser();
-            await service.CreateItemAsync(
+            string signature = context.GetValueAsString(payload, "signature");
+            bool confirmed = ParseBool(context.GetValueAsString(payload, "confirmed"));
+
+            if (!confirmed)
+            {
+                throw new JustMakeOverSalonApp.Core.Validation.BusinessException(
+                    "Please confirm your signature before creating the item.");
+            }
+            JustMakeOverSalonApp.Core.Services.DocumentSignatureService.ValidateSignatureImage(
+                signature,
+                "A digital signature is required to create an inventory item.");
+
+            var created = await service.CreateItemAsync(
                 actor,
                 context.GetValueAsString(payload, "itemCode"),
                 context.GetValueAsString(payload, "itemName"),
@@ -109,7 +122,18 @@ namespace JustMakeOverSalonApp.Inventory.Operations
                 context.GetValueAsInt(payload, "reorderPoint"),
                 ParseDecimal(context.GetValueAsString(payload, "unitPrice")),
                 context.GetValueAsInt(payload, "initialQuantity"));
-            context.SendResponse(requestID, true, null, null);
+
+            if (created != null && created.ItemID > 0)
+            {
+                var sigRepo = new DocumentSignatureRepository(new SqlConnectionFactory());
+                sigRepo.Sign(actor.UserID, "STOCK_CARD", created.ItemID, "Prepared", signature, true);
+            }
+
+            context.SendResponse(requestID, true, new
+            {
+                itemID = created?.ItemID ?? 0,
+                itemCode = created?.ItemCode ?? string.Empty
+            }, null);
         }
 
         // Kani nga handler nag-update sa item details.
@@ -129,28 +153,102 @@ namespace JustMakeOverSalonApp.Inventory.Operations
             context.SendResponse(requestID, true, null, null);
         }
 
-        // Kani nga handler nag-perform ug manual stock adjustment.
+        // Kani nga handler nag-perform ug manual stock adjustment uban sa
+        // Stock Card "Inventory custodian" digital signature.
         private async Task HandleInventoryAdjustAsync(Dictionary<string, object> payload, string requestID)
         {
             var actor = context.RequireUser();
+            int itemID = context.GetValueAsInt(payload, "itemID");
+            string signature = context.GetValueAsString(payload, "signature");
+            bool confirmed = ParseBool(context.GetValueAsString(payload, "confirmed"));
+
+            if (!confirmed)
+            {
+                throw new JustMakeOverSalonApp.Core.Validation.BusinessException(
+                    "Please confirm your signature before applying the stock adjustment.");
+            }
+            JustMakeOverSalonApp.Core.Services.DocumentSignatureService.ValidateSignatureImage(
+                signature,
+                "A digital signature is required to adjust stock.");
+
             await service.AdjustStockAsync(
                 actor,
-                context.GetValueAsInt(payload, "itemID"),
+                itemID,
                 context.GetValueAsInt(payload, "quantityChange"),
                 context.GetValueAsString(payload, "remarks"));
+
+            if (itemID > 0)
+            {
+                var sigRepo = new DocumentSignatureRepository(new SqlConnectionFactory());
+                sigRepo.Sign(actor.UserID, "STOCK_CARD", itemID, "Custodian", signature, true);
+            }
+
             context.SendResponse(requestID, true, null, null);
         }
 
-        // Kani nga handler nag-issue ug stock (flowchart Figure 8.A).
+        // Kani nga handler nag-issue ug stock (flowchart Figure 8.A) uban sa
+        // Inventory custodian digital signature.
         private async Task HandleInventoryIssueAsync(Dictionary<string, object> payload, string requestID)
         {
             var actor = context.RequireUser();
+            int itemID = context.GetValueAsInt(payload, "itemID");
+            int? requisitionID = ParseNullableInt(context.GetValueAsString(payload, "requisitionID"));
+            string signature = context.GetValueAsString(payload, "signature");
+            bool confirmed = ParseBool(context.GetValueAsString(payload, "confirmed"));
+
+            if (!confirmed)
+            {
+                throw new JustMakeOverSalonApp.Core.Validation.BusinessException(
+                    "Please confirm your signature before issuing stock.");
+            }
+            JustMakeOverSalonApp.Core.Services.DocumentSignatureService.ValidateSignatureImage(
+                signature,
+                "A digital signature is required to issue stock.");
+
             var outcome = await service.IssueStockAsync(
                 actor,
-                context.GetValueAsInt(payload, "itemID"),
+                itemID,
                 context.GetValueAsInt(payload, "quantityRequested"),
-                ParseNullableInt(context.GetValueAsString(payload, "requisitionID")),
+                requisitionID,
                 ParseNullableDate(context.GetValueAsString(payload, "estimatedRestockDate")));
+
+            var sigRepo = new DocumentSignatureRepository(new SqlConnectionFactory());
+            if (itemID > 0)
+            {
+                try
+                {
+                    sigRepo.Sign(actor.UserID, "STOCK_CARD", itemID, "Custodian", signature, true);
+                }
+                catch
+                {
+                    // Ignore if snapshot hash did not change (already signed at same balance).
+                }
+            }
+
+            if (outcome != null && outcome.RepFID.HasValue && outcome.RepFID.Value > 0)
+            {
+                try
+                {
+                    sigRepo.Sign(actor.UserID, "REPLENISHMENT_REQUEST", outcome.RepFID.Value, "Inventory", signature, true);
+                }
+                catch
+                {
+                    // Ignore if already signed.
+                }
+
+                if (!requisitionID.HasValue)
+                {
+                    try
+                    {
+                        sigRepo.Sign(actor.UserID, "REPLENISHMENT_REQUEST", outcome.RepFID.Value, "Requested", signature, true);
+                    }
+                    catch
+                    {
+                        // Ignore if already signed.
+                    }
+                }
+            }
+
             context.SendResponse(requestID, true, new { outcome }, null);
         }
 
@@ -223,6 +321,12 @@ namespace JustMakeOverSalonApp.Inventory.Operations
         private static DateTime? ParseNullableDate(string raw)
         {
             return DateTime.TryParse(raw, out var parsed) ? parsed : (DateTime?)null;
+        }
+
+        private static bool ParseBool(string raw)
+        {
+            return string.Equals(raw, "true", StringComparison.OrdinalIgnoreCase)
+                || raw == "1";
         }
     }
 }

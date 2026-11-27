@@ -441,10 +441,11 @@ function buildReceivingReport(receipt) {
                 'Checked by',
                 ' '
             ),
-            {
-                name: ' ',
-                label: 'Approved by'
-            }
+            toPrintSignatureBlock(
+                findStageSignature(receipt.Signatures, 'Approved'),
+                'Approved by',
+                ' '
+            )
         ]
     };
 }

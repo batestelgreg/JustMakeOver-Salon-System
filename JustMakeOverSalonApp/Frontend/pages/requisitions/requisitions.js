@@ -1615,8 +1615,12 @@ function buildRequisitionFormDocument(header, items, signatures = []) {
                 };
             })(),
             {
-                name: ' ',
-                label: 'Received by'
+                name: header.ReceivedByName || ' ',
+                label: 'Received by',
+                image: header.ReceivedSignatureData && String(header.ReceivedSignatureData).startsWith('data:image/')
+                    ? header.ReceivedSignatureData
+                    : null,
+                date: header.ReceivedDate
             }
         ]
     };

@@ -191,7 +191,7 @@ namespace JustMakeOverSalonApp.Purchasing.Repositories
             if (order != null)
             {
                 var sigRepo = new DocumentSignatureRepository(connectionFactory);
-                var sigResult = sigRepo.Get(actorUserID, "PURCHASE_ORDER", poID);
+                var sigResult = sigRepo.GetPrintPack(actorUserID, "PURCHASE_ORDER", poID);
                 order["Signatures"] = sigResult["signatures"];
             }
 
@@ -199,7 +199,7 @@ namespace JustMakeOverSalonApp.Purchasing.Repositories
         }
 
         // Kani nga method nagkuha sa TANANG data sa Return Slip:
-        // header + delivered/accepted/rejected line items.
+        // header + delivered/accepted/rejected line items + linked digital signatures.
         public Dictionary<string, object> GetReturnSlipPrint(
             int actorUserID,
             int drID)
@@ -233,10 +233,14 @@ namespace JustMakeOverSalonApp.Purchasing.Repositories
                         ? SqlResultReader.ReadRows(reader)
                         : new List<Dictionary<string, object>>();
 
+                    var sigRepo = new DocumentSignatureRepository(connectionFactory);
+                    var sigResult = sigRepo.GetPrintPack(actorUserID, "RETURN_SLIP", drID);
+
                     return new Dictionary<string, object>
                     {
                         ["header"] = header,
-                        ["items"] = items
+                        ["items"] = items,
+                        ["signatures"] = sigResult["signatures"]
                     };
                 }
             }
