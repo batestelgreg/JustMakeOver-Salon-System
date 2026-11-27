@@ -28,6 +28,10 @@ namespace JustMakeOverSalonApp.Delivery.Operations
             registry.Register("DeliveryComplete", HandleDeliveryCompleteAsync);
             registry.Register("DeliveryReissue", HandleDeliveryReissueAsync);
             registry.Register("DeliveryReceipt", HandleDeliveryReceiptAsync);
+
+            // Kani nga operation kay ON-DEMAND print call ra. Wala ni
+            // ma-apil sa page load.
+            registry.Register("DeliveryCorrectionReportPrint", HandleDeliveryCorrectionReportAsync);
         }
 
         // Kani nga handler nagdala sa TANANG page data sa usa ra ka response
@@ -133,6 +137,20 @@ namespace JustMakeOverSalonApp.Delivery.Operations
             {
                 receipt
             }, null);
+        }
+
+        // Kani nga handler nagkuha sa real Correction Report print data
+        // (header + items + signature history) on-demand.
+        private async Task HandleDeliveryCorrectionReportAsync(Dictionary<string, object> payload, string requestID)
+        {
+            var actor = context.RequireUser();
+            var deliveryID = ParseID(context.GetValueAsString(payload, "deliveryID"));
+
+            var report = await service.GetCorrectionReportAsync(
+                actor,
+                deliveryID);
+
+            context.SendResponse(requestID, true, new { report }, null);
         }
 
         // Kani nga helper kay para sa safe ID parsing (empty o invalid = 0,

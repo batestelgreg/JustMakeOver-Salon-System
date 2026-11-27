@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using JustMakeOverSalonApp.Core.Contracts;
 using JustMakeOverSalonApp.Core.Models;
@@ -70,6 +71,33 @@ namespace JustMakeOverSalonApp.Receiving.Services
             repository.ReceiveCheckedDR(actor.UserID, drID);
 
             return Task.CompletedTask;
+        }
+
+        // Kani nga method nagkuha sa real Receiving Report print data
+        // on-demand. Dili ni mo-apil sa page load.
+        public Task<Dictionary<string, object>> GetPrintAsync(
+            CurrentUser actor,
+            long inventoryLogID)
+        {
+            actor.RequirePermission(PermissionCodes.ReceivingView);
+
+            if (inventoryLogID <= 0)
+            {
+                throw new BusinessException(
+                    "A valid receiving record is required.");
+            }
+
+            var receipt = repository.GetPrint(
+                actor.UserID,
+                inventoryLogID);
+
+            if (receipt == null)
+            {
+                throw new BusinessException(
+                    "The receiving record could not be found.");
+            }
+
+            return Task.FromResult(receipt);
         }
     }
 }

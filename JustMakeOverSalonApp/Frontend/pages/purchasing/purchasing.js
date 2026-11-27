@@ -1,8 +1,16 @@
 ﻿import { invoke } from '../../assets/js/core/bridge.js';
 import { highlightTargetRow } from '../../assets/js/core/notification-nav.js';
 import { updateNotificationBadge } from '../../assets/js/components/header.js';
+import {
+    printDocument,
+    formatPrintDate,
+    formatPrintMoney
+} from '../../assets/js/components/print-document.js';
 
 let current = null;
+
+// Kani nga helper kay para sa document numbers (PO-0001, RF-0001, etc.).
+const pad = (value) => String(value || 0).padStart(4, '0');
 
 const money = (value) => Number(value || 0).toLocaleString('en-PH', {
     style: 'currency',
@@ -42,16 +50,6 @@ export async function init(root, params = {}) {
         }
     };
 
-    view.afterPrint = () => {
-        document.body.classList.remove('purchasing-print');
-
-        const article = find(view, '#purchaseOrderPrint');
-
-        if (article) {
-            article.hidden = true;
-        }
-    };
-
     view.backgroundRefresh = () => refreshInBackground(view);
 
     view.refreshTimer = window.setInterval(
@@ -64,8 +62,6 @@ export async function init(root, params = {}) {
     root.addEventListener('click', view.click);
     root.addEventListener('submit', view.submit);
     root.addEventListener('change', view.change);
-
-    window.addEventListener('afterprint', view.afterPrint);
 
     find(view, '#budgetForm').elements.year.value =
         new Date().getFullYear();
@@ -127,13 +123,6 @@ export function destroy() {
     view.root.removeEventListener('click', view.click);
     view.root.removeEventListener('submit', view.submit);
     view.root.removeEventListener('change', view.change);
-
-    window.removeEventListener(
-        'afterprint',
-        view.afterPrint
-    );
-
-    document.body.classList.remove('purchasing-print');
 
     current = null;
 }
@@ -1020,6 +1009,15 @@ function render(view) {
 
             buttons([
                 r.QuantityRejected > 0
+                && [
+                    'Print return slip',
+                    'PrintReturnSlip',
+                    r.DRID,
+                    'Print the supplier return slip for the '
+                    + 'rejected items on this delivery.'
+                ],
+
+                r.QuantityRejected > 0
                 && replacementOrder(view, r.POID)
                 && [
                     'Replacement email',
@@ -1624,7 +1622,9 @@ async function handleClick(view, event) {
             'Quotation ready for editing'
         );
     } else if (action === 'PrintPO' && order) {
-        printOrder(view, order);
+        await printPurchaseOrder(view, order.POID);
+    } else if (action === 'PrintReturnSlip') {
+        await printReturnSlip(view, id);
     } else if (action === 'EmailPO' && order) {
         email(
             view,
@@ -1785,41 +1785,404 @@ function email(
     return true;
 }
 
-function printOrder(view, order) {
-    const article = find(
-        view,
-        '#purchaseOrderPrint'
-    );
-
-    article.replaceChildren();
-
-    const heading = document.createElement('h1');
-
-    heading.textContent = 'Just MakeOver Salon';
-
-    const content = document.createElement('pre');
-
-    content.textContent = orderText(order);
-    content.style.whiteSpace = 'pre-wrap';
-    content.style.font = '14pt sans-serif';
-
-    article.append(heading, content);
-
-    article.hidden = false;
-
-    document.body.classList.add(
-        'purchasing-print'
-    );
-
+// Kani nga function kay nag-print sa real Purchase Order document
+// on-demand. Usa ra ka DB call, ug ang shared print engine ang
+// nag-render sa business layout.
+async function printPurchaseOrder(view, poID) {
     try {
-        window.print();
-    } finally {
-        document.body.classList.remove(
-            'purchasing-print'
+        const result = await invoke(
+            'PurchasingPurchaseOrderPrint',
+            { poID }
         );
 
-        article.hidden = true;
+        const order = result?.order;
+
+        if (!order) {
+            throw new Error(
+                'The purchase order could not be found.'
+            );
+        }
+
+        await printDocument(
+            buildPurchaseOrderDocument(order)
+        );
+    } catch (error) {
+        showPurchasingToast(
+            view,
+            error.message
+            || 'Unable to print the purchase order.',
+            true,
+            'Print unavailable'
+        );
     }
+}
+
+function buildPurchaseOrderDocument(order) {
+    const contact = [
+        order.SupplierContact,
+        order.SupplierPhone,
+        order.SupplierEmail
+    ].filter(Boolean).join(' \u00b7 ');
+
+    return {
+        title: 'PURCHASE ORDER',
+        code: 'PO-' + pad(order.POID),
+        codeLabel: 'PO No.',
+        status: order.Status,
+        salonName: order.SalonName,
+        salonTagline: order.SalonTagline,
+
+        meta: [
+            {
+                label: 'Date issued',
+                value: formatPrintDate(order.DateIssued)
+            },
+            {
+                label: 'Expected delivery',
+                value: formatPrintDate(order.ExpectedDate)
+            },
+            {
+                label: 'Dispatched',
+                value: formatPrintDate(order.DispatchedAt)
+            },
+            {
+                label: 'Purchase request',
+                value: 'PR-' + pad(order.PRID)
+            },
+            {
+                label: 'Replenishment',
+                value: 'RepF-' + pad(order.RepFID)
+            },
+            {
+                label: 'Origin requisition',
+                value: order.OriginRequisitionID
+                    ? 'RF-' + pad(order.OriginRequisitionID)
+                    : 'Stock replenishment'
+            }
+        ],
+
+        parties: [
+            {
+                title: 'Supplier',
+                lines: [
+                    order.SupplierName,
+                    order.SupplierCode
+                        ? 'Supplier code: ' + order.SupplierCode
+                        : '',
+                    contact,
+                    order.SupplierAddress
+                ]
+            },
+            {
+                title: 'Deliver to',
+                lines: [
+                    order.SalonName,
+                    order.SalonTagline,
+                    'Requested by: '
+                    + (order.RequestedByName || '\u2014')
+                ]
+            }
+        ],
+
+        sections: [
+            {
+                type: 'table',
+                title: 'Order details',
+                columns: [
+                    { label: '#', align: 'center' },
+                    { label: 'Item code' },
+                    { label: 'Description' },
+                    { label: 'Unit' },
+                    { label: 'Qty', align: 'right' },
+                    { label: 'Unit price', align: 'right' },
+                    { label: 'Amount', align: 'right' }
+                ],
+                rows: [[
+                    1,
+                    order.ItemCode,
+                    order.ItemName,
+                    order.UnitOfMeasure,
+                    order.QuantityOrdered,
+                    formatPrintMoney(order.UnitPrice),
+                    formatPrintMoney(order.TotalAmount)
+                ]],
+                foot: [[
+                    {
+                        text: 'Total',
+                        colSpan: 6,
+                        align: 'right'
+                    },
+                    {
+                        text: formatPrintMoney(order.TotalAmount),
+                        align: 'right'
+                    }
+                ]]
+            },
+            {
+                type: 'kv',
+                title: 'Delivery summary',
+                items: [
+                    {
+                        label: 'Category',
+                        value: order.CategoryName
+                    },
+                    {
+                        label: 'Accepted quantity',
+                        value: order.AcceptedQuantity
+                    },
+                    {
+                        label: 'Stocked quantity',
+                        value: order.StockedQuantity
+                    },
+                    {
+                        label: 'Outstanding quantity',
+                        value: order.OutstandingQuantity
+                    },
+                    {
+                        label: 'Approved by',
+                        value: order.ApprovedByName
+                    },
+                    {
+                        label: 'Requested by',
+                        value: order.RequestedByName
+                    }
+                ]
+            }
+        ],
+
+        notes: order.DecisionReason
+            ? [{
+                label: 'Decision:',
+                value: order.DecisionReason
+            }]
+            : [],
+
+        signatures: [
+            {
+                name: order.RequestedByName,
+                label: 'Requested by'
+            },
+            {
+                name: order.ApprovedByName,
+                label: 'Approved by'
+            },
+            {
+                name: ' ',
+                label: 'Supplier acknowledgement'
+            }
+        ],
+
+        footer: 'This purchase order is valid only when approved '
+            + 'by authorised salon management.'
+    };
+}
+
+// Kani nga function kay nag-print sa Return Slip para sa mga
+// rejected items sa supplier delivery. On-demand ra ang fetch.
+async function printReturnSlip(view, drID) {
+    try {
+        const result = await invoke(
+            'PurchasingReturnSlipPrint',
+            { drID }
+        );
+
+        const slip = result?.slip;
+
+        if (!slip || !slip.header) {
+            throw new Error(
+                'The delivery receipt could not be found.'
+            );
+        }
+
+        await printDocument(
+            buildReturnSlipDocument(
+                slip.header,
+                slip.items || []
+            )
+        );
+    } catch (error) {
+        showPurchasingToast(
+            view,
+            error.message
+            || 'Unable to print the return slip.',
+            true,
+            'Print unavailable'
+        );
+    }
+}
+
+function buildReturnSlipDocument(header, items) {
+    const totals = items.reduce(
+        (sum, item) => ({
+            delivered: sum.delivered
+                + Number(item.QuantityDelivered || 0),
+            accepted: sum.accepted
+                + Number(item.QuantityAccepted || 0),
+            rejected: sum.rejected
+                + Number(item.QuantityRejected || 0)
+        }),
+        { delivered: 0, accepted: 0, rejected: 0 }
+    );
+
+    const contact = [
+        header.SupplierContact,
+        header.SupplierPhone,
+        header.SupplierEmail
+    ].filter(Boolean).join(' \u00b7 ');
+
+    return {
+        title: 'RETURN SLIP',
+        code: 'RS-' + pad(header.DRID),
+        codeLabel: 'Slip No.',
+        status: header.Status,
+        salonName: header.SalonName,
+        salonTagline: header.SalonTagline,
+
+        meta: [
+            {
+                label: 'Delivery date',
+                value: formatPrintDate(header.DeliveryDate)
+            },
+            {
+                label: 'Supplier DR',
+                value: header.SupplierDRNumber
+            },
+            {
+                label: 'Purchase order',
+                value: 'PO-' + pad(header.POID)
+            },
+            {
+                label: 'PO status',
+                value: header.POStatus
+            },
+            {
+                label: 'Replenishment',
+                value: 'RepF-' + pad(header.RepFID)
+            },
+            {
+                label: 'Recorded by',
+                value: header.RecordedByName
+            }
+        ],
+
+        parties: [
+            {
+                title: 'Return to supplier',
+                lines: [
+                    header.SupplierName,
+                    header.SupplierCode
+                        ? 'Supplier code: ' + header.SupplierCode
+                        : '',
+                    contact,
+                    header.SupplierAddress
+                ]
+            },
+            {
+                title: 'Return reference',
+                lines: [
+                    'Original PO: PO-' + pad(header.POID),
+                    header.OriginRequisitionID
+                        ? 'Origin requisition: RF-'
+                        + pad(header.OriginRequisitionID)
+                        : 'Stock replenishment',
+                    'Outstanding on PO: '
+                    + header.OutstandingQuantity
+                ]
+            }
+        ],
+
+        sections: [
+            {
+                type: 'table',
+                title: 'Returned items',
+                columns: [
+                    { label: '#', align: 'center' },
+                    { label: 'Item code' },
+                    { label: 'Description' },
+                    { label: 'Unit' },
+                    {
+                        label: 'Delivered',
+                        align: 'right'
+                    },
+                    {
+                        label: 'Accepted',
+                        align: 'right'
+                    },
+                    {
+                        label: 'Rejected',
+                        align: 'right'
+                    },
+                    { label: 'Remarks' }
+                ],
+                rows: items.map((item, index) => [
+                    index + 1,
+                    item.ItemCode,
+                    item.ItemName,
+                    item.UnitOfMeasure,
+                    item.QuantityDelivered,
+                    item.QuantityAccepted,
+                    item.QuantityRejected,
+                    item.Remarks
+                ]),
+                foot: [[
+                    {
+                        text: 'Total',
+                        colSpan: 4,
+                        align: 'right'
+                    },
+                    {
+                        text: totals.delivered,
+                        align: 'right'
+                    },
+                    {
+                        text: totals.accepted,
+                        align: 'right'
+                    },
+                    {
+                        text: totals.rejected,
+                        align: 'right'
+                    },
+                    { text: '' }
+                ]]
+            }
+        ],
+
+        notes: [
+            header.Notes
+                ? {
+                    label: 'Inspection notes:',
+                    value: header.Notes
+                }
+                : null,
+            header.ReplacementRequestedAt
+                ? {
+                    label: 'Replacement requested:',
+                    value: formatPrintDate(
+                        header.ReplacementRequestedAt,
+                        true
+                    )
+                }
+                : null
+        ].filter(Boolean),
+
+        signatures: [
+            {
+                name: header.RecordedByName,
+                label: 'Recorded by'
+            },
+            {
+                name: ' ',
+                label: 'Supplier representative'
+            },
+            {
+                name: ' ',
+                label: 'Approved by'
+            }
+        ],
+
+        footer: 'Rejected items are returned to the supplier. '
+            + 'This slip does not replace the official delivery receipt.'
+    };
 }
 
 function showPurchasingToast(

@@ -96,6 +96,60 @@ namespace JustMakeOverSalonApp.Purchasing.Services
             }
         }
 
+        // Kani nga method nagkuha sa real PO print data. On-demand ra
+        // ni, so wala ni ma-apil sa page load.
+        public Task<Dictionary<string, object>> GetPurchaseOrderPrintAsync(
+            CurrentUser actor,
+            int poID)
+        {
+            RequireActor(actor);
+
+            if (poID <= 0)
+            {
+                throw new BusinessException(
+                    "A valid purchase order is required.");
+            }
+
+            var order = repository.GetPurchaseOrderPrint(
+                actor.UserID,
+                poID);
+
+            if (order == null)
+            {
+                throw new BusinessException(
+                    "The purchase order could not be found.");
+            }
+
+            return Task.FromResult(order);
+        }
+
+        // Kani nga method nagkuha sa real Return Slip data para sa
+        // supplier delivery nga may rejected items.
+        public Task<Dictionary<string, object>> GetReturnSlipPrintAsync(
+            CurrentUser actor,
+            int drID)
+        {
+            RequireActor(actor);
+
+            if (drID <= 0)
+            {
+                throw new BusinessException(
+                    "A valid delivery receipt is required.");
+            }
+
+            var slip = repository.GetReturnSlipPrint(
+                actor.UserID,
+                drID);
+
+            if (slip == null)
+            {
+                throw new BusinessException(
+                    "The delivery receipt could not be found.");
+            }
+
+            return Task.FromResult(slip);
+        }
+
         private static void RequireActor(CurrentUser actor)
         {
             if (actor == null)

@@ -1,0 +1,349 @@
+/* ============================================================
+   Shared business document print engine
+   Kani nga stylesheet kay para sa tanang printed documents:
+   PO, RF, RR, Stock Card, Return Slip, Correction Report,
+   Replenishment Request. Usa ra ka layout, walay duplication.
+   ============================================================ */
+
+/* Kani nga host kay hidden sa screen; print ra ang mo-display. */
+.print-document-host {
+    display: none;
+}
+
+@media print {
+    @page {
+        size: A4;
+        margin: 12mm;
+    }
+
+    /* Kani nga rule kay nag-hide sa tibuok app samtang nag-print,
+       ug ang print host ra ang makita. */
+    body.print-document > *:not(.print-document-host) {
+        display: none !important;
+    }
+
+    body.print-document .print-document-host {
+        display: block !important;
+        position: static;
+        width: 100%;
+        background: #ffffff;
+        color: #000000;
+        font-family: "Segoe UI", Arial, sans-serif;
+        font-size: 10pt;
+        line-height: 1.35;
+    }
+
+    .print-document-host .print-sheet {
+        width: 100%;
+    }
+
+    /* Header: logo + salon name sa wala, document title sa tuo. */
+    .print-document-host .print-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 24px;
+        border-bottom: 2px solid #000000;
+        padding-bottom: 10px;
+        margin-bottom: 12px;
+        page-break-inside: avoid;
+    }
+
+    .print-document-host .print-brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .print-document-host .print-logo {
+        width: 54px;
+        height: 54px;
+        object-fit: contain;
+    }
+
+    .print-document-host .print-salon {
+        margin: 0;
+        font-size: 18pt;
+        letter-spacing: 0.5px;
+    }
+
+    .print-document-host .print-tagline {
+        margin: 2px 0 0;
+        font-size: 9pt;
+        color: #333333;
+    }
+
+    .print-document-host .print-title {
+        text-align: right;
+    }
+
+    .print-document-host .print-title h2 {
+        margin: 0;
+        font-size: 16pt;
+        letter-spacing: 1px;
+    }
+
+    .print-document-host .print-code {
+        margin: 4px 0 0;
+        font-size: 10pt;
+        font-weight: 600;
+    }
+
+    .print-document-host .print-status {
+        display: inline-block;
+        margin-top: 6px;
+        padding: 2px 8px;
+        border: 1px solid #000000;
+        font-size: 8.5pt;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Meta grid: date, status, references. */
+    .print-document-host .print-meta {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px 18px;
+        margin: 10px 0 12px;
+        page-break-inside: avoid;
+    }
+
+    .print-document-host .print-meta-item {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+    }
+
+    .print-document-host .print-meta-label {
+        font-size: 8pt;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        color: #444444;
+    }
+
+    .print-document-host .print-meta-value {
+        font-size: 10pt;
+        font-weight: 600;
+        overflow-wrap: anywhere;
+    }
+
+    /* Party boxes: supplier, requestor, deliver to, etc. */
+    .print-document-host .print-parties {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin: 0 0 12px;
+        page-break-inside: avoid;
+    }
+
+    .print-document-host .print-party {
+        border: 1px solid #000000;
+        padding: 8px 10px;
+    }
+
+    .print-document-host .print-party-title {
+        margin: 0 0 4px;
+        font-size: 8.5pt;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .print-document-host .print-party-line {
+        margin: 0 0 2px;
+        font-size: 9.5pt;
+        overflow-wrap: anywhere;
+    }
+
+    /* Sections and tables. */
+    .print-document-host .print-section {
+        margin: 0 0 12px;
+    }
+
+    .print-document-host .print-section-title {
+        margin: 0 0 6px;
+        font-size: 10pt;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .print-document-host .print-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .print-document-host .print-table th,
+    .print-document-host .print-table td {
+        border: 1px solid #000000;
+        padding: 5px 7px;
+        font-size: 9.5pt;
+        vertical-align: top;
+        overflow-wrap: anywhere;
+    }
+
+    .print-document-host .print-table th {
+        background: #eeeeee;
+        text-transform: uppercase;
+        font-size: 8.5pt;
+        letter-spacing: 0.4px;
+    }
+
+    .print-document-host .print-table tfoot td {
+        font-weight: 700;
+        background: #f7f7f7;
+    }
+
+    .print-document-host .print-table tr {
+        page-break-inside: avoid;
+    }
+
+    .print-document-host .print-table thead {
+        display: table-header-group;
+    }
+
+    .print-document-host .print-table tfoot {
+        display: table-footer-group;
+    }
+
+    .print-document-host .print-align-right {
+        text-align: right;
+    }
+
+    .print-document-host .print-align-center {
+        text-align: center;
+    }
+
+    .print-document-host .print-table-empty {
+        text-align: center;
+        color: #555555;
+    }
+
+    /* Key/value grid para sa stock summary, totals, ug uban pa. */
+    .print-document-host .print-kv {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px 18px;
+        border: 1px solid #000000;
+        padding: 8px 10px;
+        page-break-inside: avoid;
+    }
+
+    .print-document-host .print-kv-item {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+    }
+
+    .print-document-host .print-kv-label {
+        font-size: 8pt;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        color: #444444;
+    }
+
+    .print-document-host .print-kv-value {
+        font-size: 10pt;
+        font-weight: 600;
+        overflow-wrap: anywhere;
+    }
+
+    .print-document-host .print-text {
+        margin: 0;
+        font-size: 9.5pt;
+        white-space: pre-wrap;
+    }
+
+    /* Notes block. */
+    .print-document-host .print-notes {
+        border-top: 1px solid #000000;
+        margin-top: 6px;
+        padding-top: 8px;
+        page-break-inside: avoid;
+    }
+
+    .print-document-host .print-notes-title {
+        margin: 0 0 4px;
+        font-size: 9pt;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .print-document-host .print-note {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 3px;
+    }
+
+    .print-document-host .print-note-label {
+        font-size: 9pt;
+        font-weight: 700;
+        flex: 0 0 auto;
+    }
+
+    .print-document-host .print-note-value {
+        font-size: 9.5pt;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+    }
+
+    /* Signature blocks: 3 columns, underlined space above the name. */
+    .print-document-host .print-signatures {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+        margin-top: 28px;
+        page-break-inside: avoid;
+    }
+
+    .print-document-host .print-signature {
+        text-align: center;
+    }
+
+    .print-document-host .print-signature-space {
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        height: 48px;
+        border-bottom: 1px solid #000000;
+    }
+
+    .print-document-host .print-signature-image {
+        display: block;
+        max-width: 100%;
+        max-height: 46px;
+        object-fit: contain;
+    }
+
+    .print-document-host .print-signature-name {
+        margin: 5px 0 0;
+        font-size: 9.5pt;
+        font-weight: 700;
+    }
+
+    .print-document-host .print-signature-label {
+        margin: 2px 0 0;
+        font-size: 8.5pt;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        color: #333333;
+    }
+
+    .print-document-host .print-signature-date {
+        margin: 2px 0 0;
+        font-size: 8.5pt;
+        color: #444444;
+    }
+
+    /* Footer note. */
+    .print-document-host .print-footer {
+        margin-top: 18px;
+        border-top: 1px solid #000000;
+        padding-top: 6px;
+    }
+
+    .print-document-host .print-footer p {
+        margin: 0;
+        font-size: 8pt;
+        color: #444444;
+        text-align: center;
+    }
+}

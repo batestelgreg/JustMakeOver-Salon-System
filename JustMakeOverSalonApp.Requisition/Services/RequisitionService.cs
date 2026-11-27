@@ -1,5 +1,6 @@
 ﻿
 using JustMakeOverSalonApp.Core.Models;
+using JustMakeOverSalonApp.Core.Validation;
 using JustMakeOverSalonApp.Requisition.Models;
 using System;
 using System.Collections.Generic;
@@ -366,6 +367,40 @@ namespace JustMakeOverSalonApp.Requisition.Services
                 requiredDate,
                 justification.Trim(),
                 items);
+        }
+
+        // FUNCTION 8: GetPrint
+        // Kani nga method nagkuha sa TANANG data sa Requisition Form print
+        // (header + line items) on-demand. Dili ni mo-apil sa page load.
+        public Dictionary<string, object> GetPrint(
+            CurrentUser actor,
+            int requisitionID)
+        {
+            if (actor == null)
+            {
+                throw new BusinessException("Invalid user session.");
+            }
+
+            // Kani nga permission kay parehas sa requisition view.
+            actor.RequirePermission("requisitions.view");
+
+            if (requisitionID <= 0)
+            {
+                throw new BusinessException(
+                    "Invalid requisition selected.");
+            }
+
+            var form = repository.GetPrint(
+                actor.UserID,
+                requisitionID);
+
+            if (form == null)
+            {
+                throw new BusinessException(
+                    "The requisition could not be found.");
+            }
+
+            return form;
         }
 
     }

@@ -391,33 +391,8 @@ dialog.purchasing-remove-dialog {
     border-left-color: #c83d32;
 }
 
-/* Keep PO print content hidden during normal use */
-@media screen {
-    #purchaseOrderPrint {
-        display: none !important;
-    }
-}
-
-/* Print only the selected purchase order */
+/* Print only the shared business document host. */
 @media print {
-    body.purchasing-print > * {
-        visibility: hidden;
-    }
-
-    body.purchasing-print #purchaseOrderPrint,
-    body.purchasing-print #purchaseOrderPrint * {
-        visibility: visible;
-    }
-
-    body.purchasing-print #purchaseOrderPrint {
-        display: block !important;
-        position: absolute;
-        inset: 0;
-        padding: 30px;
-        background: white;
-        color: black;
-    }
-
     .purchasing-toast {
         display: none !important;
     }

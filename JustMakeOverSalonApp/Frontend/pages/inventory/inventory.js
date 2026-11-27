@@ -8,6 +8,14 @@ import { hasPermission } from '../../assets/js/core/state.js';
 import { publish, AppEvents } from '../../assets/js/core/events.js';
 import { showToast } from '../../assets/js/components/toast.js';
 import { highlightTargetRow } from '../../assets/js/core/notification-nav.js';
+import {
+    printDocument,
+    formatPrintDate,
+    formatPrintMoney
+} from '../../assets/js/components/print-document.js';
+
+// Kani nga helper kay para sa document numbers (REP-0001, etc.).
+const pad = (value) => String(value || 0).padStart(4, '0');
 
 let itemsData = [];
 let categoriesData = [];
@@ -222,6 +230,9 @@ function renderItemsTable(root) {
             actions.appendChild(buildAction('Edit', () => openItemModal(root, item), 'btn-action--edit'));
         }
 
+        // Kani nga Stock Card kay on-demand ra; usa ka DB call sa print.
+        actions.appendChild(buildAction('Stock Card', () => printStockCard(root, item.ItemID)));
+
         actionsCell.appendChild(actions);
         row.appendChild(actionsCell);
         body.appendChild(row);
@@ -279,7 +290,7 @@ function renderRepFsTable(root) {
     }
 
     if (repFsData.length === 0) {
-        body.innerHTML = '<tr><td colspan="6" class="data-table__empty">No replenishment requests.</td></tr>';
+        body.innerHTML = '<tr><td colspan="7" class="data-table__empty">No replenishment requests.</td></tr>';
         return;
     }
 
@@ -312,8 +323,339 @@ function renderRepFsTable(root) {
         badge.textContent = f.Status;
         statusCell.textContent = '';
         statusCell.appendChild(badge);
+
+        // Kani nga Print Request kay on-demand ra para sa RepF record.
+        const actionCell = document.createElement('td');
+        actionCell.appendChild(buildAction(
+            'Print Request',
+            () => printReplenishmentRequest(root, f.RepFID)
+        ));
+        row.appendChild(actionCell);
+
         body.appendChild(row);
     });
+}
+
+// Kani nga function kay nag-print sa real Stock Card on-demand.
+// Usa ra ka DB call, ug ang shared print engine ang nag-layout.
+async function printStockCard(root, itemID) {
+    try {
+        const result = await invoke(
+            'InventoryStockCardPrint',
+            { itemID }
+        );
+
+        const card = result?.card;
+
+        if (!card || !card.header) {
+            throw new Error('The item could not be found.');
+        }
+
+        await printDocument(
+            buildStockCard(card.header, card.movements || [])
+        );
+    } catch (error) {
+        showToast(
+            'error',
+            error.message || 'Unable to print the stock card.'
+        );
+    }
+}
+
+function buildStockCard(header, movements) {
+    const totals = movements.reduce(
+        (sum, movement) => {
+            const change = Number(movement.QuantityChange || 0);
+
+            return {
+                stockIn: sum.stockIn + (change > 0 ? change : 0),
+                stockOut: sum.stockOut + (change < 0 ? -change : 0)
+            };
+        },
+        { stockIn: 0, stockOut: 0 }
+    );
+
+    return {
+        title: 'STOCK CARD',
+        code: header.ItemCode,
+        codeLabel: 'Item code',
+        status: header.IsActive ? 'Active' : 'Inactive',
+        salonName: header.SalonName,
+        salonTagline: header.SalonTagline,
+
+        meta: [
+            {
+                label: 'Item',
+                value: header.ItemName
+            },
+            {
+                label: 'Category',
+                value: header.CategoryName
+            },
+            {
+                label: 'Unit',
+                value: header.UnitOfMeasure
+            },
+            {
+                label: 'Reorder point',
+                value: header.ReorderPoint
+            },
+            {
+                label: 'Unit price',
+                value: formatPrintMoney(header.UnitPrice)
+            },
+            {
+                label: 'Last updated',
+                value: formatPrintDate(header.LastUpdated, true)
+            }
+        ],
+
+        sections: [
+            {
+                type: 'kv',
+                title: 'Current stock position',
+                items: [
+                    {
+                        label: 'On hand',
+                        value: header.QuantityOnHand
+                    },
+                    {
+                        label: 'Reserved',
+                        value: header.QuantityReserved
+                    },
+                    {
+                        label: 'Available',
+                        value: header.QuantityAvailable
+                    }
+                ]
+            },
+            {
+                type: 'table',
+                title: 'Stock movements',
+                columns: [
+                    { label: '#', align: 'center' },
+                    { label: 'Date' },
+                    { label: 'Type' },
+                    { label: 'Reference' },
+                    { label: 'Source' },
+                    {
+                        label: 'Change',
+                        align: 'right'
+                    },
+                    {
+                        label: 'Balance',
+                        align: 'right'
+                    },
+                    { label: 'By' },
+                    { label: 'Remarks' }
+                ],
+                rows: movements.map((movement, index) => [
+                    index + 1,
+                    formatPrintDate(movement.TransactionDate, true),
+                    movement.TransactionType,
+                    movement.ReferenceDisplay,
+                    movement.SourceDisplay,
+                    movement.QuantityChange,
+                    movement.NewQuantity,
+                    movement.UserName,
+                    movement.Remarks
+                ]),
+                emptyText: 'No stock movements recorded for this item.',
+                foot: [[
+                    {
+                        text: 'Total stock in',
+                        colSpan: 5,
+                        align: 'right'
+                    },
+                    {
+                        text: totals.stockIn,
+                        align: 'right'
+                    },
+                    {
+                        text: 'Total out: ' + totals.stockOut,
+                        colSpan: 3
+                    }
+                ]]
+            }
+        ],
+
+        signatures: [
+            {
+                name: ' ',
+                label: 'Prepared by'
+            },
+            {
+                name: ' ',
+                label: 'Inventory custodian'
+            },
+            {
+                name: ' ',
+                label: 'Approved by'
+            }
+        ],
+
+        footer: 'This stock card is generated from the recorded '
+            + 'inventory movements of the salon system.'
+    };
+}
+
+// Kani nga function kay nag-print sa Replenishment Request on-demand.
+async function printReplenishmentRequest(root, repFID) {
+    try {
+        const result = await invoke(
+            'InventoryReplenishmentPrint',
+            { repFID }
+        );
+
+        const request = result?.request;
+
+        if (!request) {
+            throw new Error(
+                'The replenishment request could not be found.'
+            );
+        }
+
+        await printDocument(buildReplenishmentRequest(request));
+    } catch (error) {
+        showToast(
+            'error',
+            error.message
+            || 'Unable to print the replenishment request.'
+        );
+    }
+}
+
+function buildReplenishmentRequest(request) {
+    return {
+        title: 'REPLENISHMENT REQUEST',
+        code: 'REP-' + pad(request.RepFID),
+        codeLabel: 'RepF No.',
+        status: request.Status,
+        salonName: request.SalonName,
+        salonTagline: request.SalonTagline,
+
+        meta: [
+            {
+                label: 'Date generated',
+                value: formatPrintDate(request.DateGenerated, true)
+            },
+            {
+                label: 'Item',
+                value: request.ItemCode + ' \u2014 ' + request.ItemName
+            },
+            {
+                label: 'Category',
+                value: request.CategoryName
+            },
+            {
+                label: 'Unit',
+                value: request.UnitOfMeasure
+            },
+            {
+                label: 'Origin requisition',
+                value: request.OriginRequisitionID
+                    ? 'RF-' + pad(request.OriginRequisitionID)
+                    : 'Reorder point'
+            },
+            {
+                label: 'Origin requestor',
+                value: request.OriginRequestorName
+            }
+        ],
+
+        parties: [
+            {
+                title: 'Stock position',
+                lines: [
+                    'On hand: ' + request.QuantityOnHand,
+                    'Reserved: ' + request.QuantityReserved,
+                    'Available: ' + request.QuantityAvailable,
+                    'Reorder point: ' + request.ReorderPoint
+                ]
+            },
+            {
+                title: 'Purchase order',
+                lines: request.POID
+                    ? [
+                        'PO-' + pad(request.POID),
+                        request.SupplierName,
+                        'PO status: ' + request.POStatus
+                    ]
+                    : ['No purchase order yet.']
+            }
+        ],
+
+        sections: [
+            {
+                type: 'table',
+                title: 'Requested quantity',
+                columns: [
+                    { label: '#', align: 'center' },
+                    { label: 'Item code' },
+                    { label: 'Description' },
+                    { label: 'Unit' },
+                    {
+                        label: 'Needed',
+                        align: 'right'
+                    },
+                    {
+                        label: 'Received',
+                        align: 'right'
+                    },
+                    {
+                        label: 'Remaining',
+                        align: 'right'
+                    }
+                ],
+                rows: [[
+                    1,
+                    request.ItemCode,
+                    request.ItemName,
+                    request.UnitOfMeasure,
+                    request.QuantityNeeded,
+                    request.QuantityReceived,
+                    request.RemainingQuantity
+                ]],
+                foot: [[
+                    {
+                        text: 'Total',
+                        colSpan: 4,
+                        align: 'right'
+                    },
+                    {
+                        text: request.QuantityNeeded,
+                        align: 'right'
+                    },
+                    {
+                        text: request.QuantityReceived,
+                        align: 'right'
+                    },
+                    {
+                        text: request.RemainingQuantity,
+                        align: 'right'
+                    }
+                ]]
+            }
+        ],
+
+        signatures: [
+            {
+                name: request.OriginRequestorName,
+                label: 'Requested by'
+            },
+            {
+                name: ' ',
+                label: 'Inventory staff'
+            },
+            {
+                name: ' ',
+                label: 'Approved by'
+            }
+        ],
+
+        footer: 'This replenishment request is generated from the '
+            + 'salon stock position and purchase records.'
+    };
 }
 
 /**

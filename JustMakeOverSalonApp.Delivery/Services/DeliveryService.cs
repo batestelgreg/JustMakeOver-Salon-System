@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using JustMakeOverSalonApp.Core.Contracts;
 using JustMakeOverSalonApp.Core.Models;
@@ -44,6 +45,28 @@ namespace JustMakeOverSalonApp.Delivery.Services
             }
 
             return Task.FromResult(receipt);
+        }
+
+        // Kani nga method nagkuha sa real Correction Report print data
+        // (header + items + signature history) on-demand.
+        public Task<Dictionary<string, object>> GetCorrectionReportAsync(
+            CurrentUser actor,
+            int deliveryID)
+        {
+            RequireDeliveryViewer(actor);
+            ValidateDeliveryID(deliveryID);
+
+            var report = repository.GetCorrectionReport(
+                actor.UserID,
+                deliveryID);
+
+            if (report == null)
+            {
+                throw new BusinessException(
+                    "The correction report could not be found.");
+            }
+
+            return Task.FromResult(report);
         }
 
         // Inventory Staff or Admin generates the AR.

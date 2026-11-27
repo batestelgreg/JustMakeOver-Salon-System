@@ -387,6 +387,71 @@ namespace JustMakeOverSalonApp.Inventory.Repositories
             return overview;
         }
 
+        // Kani nga method nagkuha sa TANANG data sa Stock Card print:
+        // item header + running stock movements. On-demand ni.
+        public Dictionary<string, object> GetStockCard(
+            int actorUserID,
+            int itemID)
+        {
+            using (var connection = connectionFactory.CreateOpenConnection())
+            using (var command = new SqlCommand(
+                "dbo.usp_Inventory_GetStockCard", connection))
+            {
+                command.CommandType = CommandType.StoredProcedure;
+
+                command.Parameters.Add("@ActorUserID", SqlDbType.Int)
+                    .Value = actorUserID;
+
+                command.Parameters.Add("@ItemID", SqlDbType.Int)
+                    .Value = itemID;
+
+                using (var reader = command.ExecuteReader())
+                {
+                    var header = SqlResultReader.ReadRow(reader);
+
+                    if (header == null)
+                    {
+                        return null;
+                    }
+
+                    var movements = reader.NextResult()
+                        ? SqlResultReader.ReadRows(reader)
+                        : new List<Dictionary<string, object>>();
+
+                    return new Dictionary<string, object>
+                    {
+                        ["header"] = header,
+                        ["movements"] = movements
+                    };
+                }
+            }
+        }
+
+        // Kani nga method nagkuha sa TANANG data sa Replenishment Request
+        // print. On-demand ni, usa ra ka result set.
+        public Dictionary<string, object> GetReplenishmentPrint(
+            int actorUserID,
+            int repFID)
+        {
+            using (var connection = connectionFactory.CreateOpenConnection())
+            using (var command = new SqlCommand(
+                "dbo.usp_Inventory_GetReplenishmentPrint", connection))
+            {
+                command.CommandType = CommandType.StoredProcedure;
+
+                command.Parameters.Add("@ActorUserID", SqlDbType.Int)
+                    .Value = actorUserID;
+
+                command.Parameters.Add("@RepFID", SqlDbType.Int)
+                    .Value = repFID;
+
+                using (var reader = command.ExecuteReader())
+                {
+                    return SqlResultReader.ReadRow(reader);
+                }
+            }
+        }
+
         // Kani nga mapper nag-convert sa row ngadto sa InventoryItemRecord.
         private static InventoryItemRecord MapItem(SqlDataReader reader)
         {
