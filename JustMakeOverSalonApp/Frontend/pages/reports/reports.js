@@ -634,7 +634,7 @@ const REPORT_CATALOG = [
             { key: 'SignerName', label: 'Signer' },
             { key: 'SignerRole', label: 'Role' },
             { key: 'SignedAt', label: 'Signed At', type: 'datetime' },
-            { key: 'Source', label: 'Source' },
+            { key: 'Source', label: 'Source', type: 'auditDoc' },
             { key: 'IntegrityStatus', label: 'Integrity' }
         ]
     },
@@ -711,7 +711,21 @@ const REPORT_CATALOG = [
         auditOnly: true,
         description: 'Unified audit trail of digital signatures (with live SHA-256 hash verification), report runs, prints, and exports.',
         filters: ['dateFrom', 'dateTo', 'requestor', 'status'],
-        statuses: ['PURCHASE_ORDER', 'RECEIVING_REPORT', 'STOCK_CARD', 'CORRECTION_REPORT', 'REQUISITION', 'REPLENISHMENT_REQUEST', 'ACKNOWLEDGEMENT_RECEIPT', 'GENERATE', 'PRINT', 'EXPORT_CSV', 'EXPORT_EXCEL', 'DOC_PRINT'],
+        statuses: [
+            { value: 'PURCHASE_ORDER', label: 'Purchase Order' },
+            { value: 'RECEIVING_REPORT', label: 'Receiving Report' },
+            { value: 'STOCK_CARD', label: 'Stock Card' },
+            { value: 'CORRECTION_REPORT', label: 'Correction Report' },
+            { value: 'REQUISITION', label: 'Requisition Form' },
+            { value: 'REPLENISHMENT_REQUEST', label: 'Replenishment Request' },
+            { value: 'ACKNOWLEDGEMENT_RECEIPT', label: 'Acknowledgement Receipt' },
+            { value: 'DELIVERY_CHECK', label: 'Delivery Check' },
+            { value: 'GENERATE', label: 'Viewed Report' },
+            { value: 'PRINT', label: 'Printed Report' },
+            { value: 'EXPORT_CSV', label: 'Exported (CSV)' },
+            { value: 'EXPORT_EXCEL', label: 'Exported (Excel)' },
+            { value: 'DOC_PRINT', label: 'Printed Document' }
+        ],
         groupOptions: ['Category', 'DocumentType', 'IntegrityStatus', 'ActorRole'],
         summaryCards: [
             { key: 'TotalEvents', label: 'Audit Events', type: 'int' },
@@ -723,14 +737,14 @@ const REPORT_CATALOG = [
         columns: [
             { key: 'EventDate', label: 'Timestamp', type: 'datetime' },
             { key: 'Category', label: 'Category' },
-            { key: 'DocumentType', label: 'Document / Report' },
+            { key: 'DocumentType', label: 'Document / Report', type: 'auditDoc' },
             { key: 'DocumentRef', label: 'Ref' },
-            { key: 'StageOrAction', label: 'Stage / Action' },
+            { key: 'StageOrAction', label: 'Stage / Action', type: 'auditAction' },
             { key: 'ActorName', label: 'Actor' },
             { key: 'ActorRole', label: 'Role' },
             { key: 'HashPrefix', label: 'Hash' },
             { key: 'IntegrityStatus', label: 'Status' },
-            { key: 'Details', label: 'Details' }
+            { key: 'Details', label: 'Details', type: 'auditDetails' }
         ]
     },
     {
@@ -749,7 +763,7 @@ const REPORT_CATALOG = [
         columns: [
             { key: 'EventDate', label: 'Timestamp', type: 'datetime' },
             { key: 'RecordType', label: 'Type' },
-            { key: 'DocumentRef', label: 'Document' },
+            { key: 'DocumentRef', label: 'Document', type: 'auditDoc' },
             { key: 'ActorName', label: 'Actor' },
             { key: 'Status', label: 'Status' },
             { key: 'Summary', label: 'Summary / Reason' }
@@ -772,9 +786,9 @@ const REPORT_CATALOG = [
             { key: 'ActionDate', label: 'Timestamp', type: 'datetime' },
             { key: 'ActorName', label: 'Actor' },
             { key: 'ActorRole', label: 'Role' },
-            { key: 'ActionType', label: 'Action' },
+            { key: 'ActionType', label: 'Action', type: 'activityAction' },
             { key: 'TargetUser', label: 'Target User' },
-            { key: 'Description', label: 'Description' }
+            { key: 'Description', label: 'Description', type: 'activityDesc' }
         ]
     }
 ];
@@ -998,8 +1012,13 @@ function selectReport(root, rep) {
         statusSelect.innerHTML = '<option value="">All</option>';
         (rep.statuses || []).forEach((s) => {
             const opt = document.createElement('option');
-            opt.value = s;
-            opt.textContent = s;
+            if (typeof s === 'object' && s !== null) {
+                opt.value = s.value;
+                opt.textContent = s.label;
+            } else {
+                opt.value = s;
+                opt.textContent = s;
+            }
             statusSelect.appendChild(opt);
         });
     }
@@ -1269,9 +1288,10 @@ function renderReportTable(root) {
     const hasTotalCols = cols.some((c) => c.total);
 
     if (groupKey) {
+        const groupCol = cols.find((c) => c.key === groupKey);
         const groups = new Map();
         rows.forEach((row) => {
-            const label = String(row[groupKey] ?? EM_DASH);
+            const label = formatCell(row[groupKey], groupCol?.type);
             if (!groups.has(label)) groups.set(label, []);
             groups.get(label).push(row);
         });
@@ -1365,9 +1385,10 @@ async function handlePrintReport(root) {
     const hasTotalCols = cols.some((c) => c.total);
 
     if (groupKey && rows.length > 0) {
+        const groupCol = cols.find((c) => c.key === groupKey);
         const groups = new Map();
         rows.forEach((row) => {
-            const label = String(row[groupKey] ?? EM_DASH);
+            const label = formatCell(row[groupKey], groupCol?.type);
             if (!groups.has(label)) groups.set(label, []);
             groups.get(label).push(row);
         });
@@ -1416,8 +1437,6 @@ async function handlePrintReport(root) {
     const descriptor = {
         auditSkip: true,
         title: selectedReport.name.toUpperCase(),
-        code: selectedReport.code,
-        codeLabel: 'Report Code',
         status: selectedReport.domain,
         salonName: ctx.SalonName || 'Just Make Over',
         salonTagline: ctx.SalonTagline || '',
@@ -1531,6 +1550,245 @@ function triggerDownload(blob, filename) {
 // =========================================================================
 // FORMATTING & SORTING HELPERS
 // =========================================================================
+const REPORT_NAME_BY_CODE = new Map(
+    REPORT_CATALOG.map((rep) => [rep.code.toUpperCase(), rep.name])
+);
+
+const DOC_TYPE_LABELS = {
+    PURCHASE_ORDER: 'Purchase Order',
+    RECEIVING_REPORT: 'Receiving Report',
+    STOCK_CARD: 'Stock Card',
+    CORRECTION_REPORT: 'Correction Report',
+    REQUISITION: 'Requisition Form',
+    REPLENISHMENT_REQUEST: 'Replenishment Request',
+    ACKNOWLEDGEMENT_RECEIPT: 'Acknowledgement Receipt',
+    DELIVERY_CHECK: 'Delivery Check',
+    RETURN_SLIP: 'Return Slip'
+};
+
+const AUDIT_ACTION_LABELS = {
+    GENERATE: 'Viewed',
+    PRINT: 'Printed',
+    DOC_PRINT: 'Printed Document',
+    EXPORT_CSV: 'Exported (CSV)',
+    EXPORT_EXCEL: 'Exported (Excel)'
+};
+
+const ACTIVITY_ACTION_LABELS = {
+    LOGIN_SUCCEEDED: 'Signed In',
+    LOGIN_FAILED: 'Sign-In Failed',
+    LOGOUT: 'Signed Out',
+    PASSWORD_CHANGED: 'Changed Password',
+    USER_CREATED: 'Created User',
+    USER_UPDATED: 'Updated User',
+    USER_ACTIVATED: 'Activated User',
+    USER_DEACTIVATED: 'Deactivated User',
+    ROLE_UPDATED: 'Updated Role',
+    ROLE_PERMISSIONS_UPDATED: 'Updated Role Permissions',
+    INVENTORY_ITEM_CREATED: 'Created Item',
+    INVENTORY_ITEM_UPDATED: 'Updated Item',
+    INVENTORY_ADJUSTED: 'Adjusted Stock',
+    REQUISITION_APPROVED: 'Approved Requisition',
+    REQUISITION_REJECTED: 'Rejected Requisition',
+    REQUISITION_CANCELLED: 'Cancelled Requisition',
+    REQUISITION_REVISED: 'Revised Requisition',
+    PURCHASING_ACTION: 'Purchasing Action',
+    PURCHASE_DR_RECEIVED: 'Received Supplier Delivery',
+    SUPPLIER_CREATED: 'Created Supplier',
+    SUPPLIER_UPDATED: 'Updated Supplier',
+    DELIVERY_AR_GENERATED: 'Generated AR',
+    DELIVERY_ISSUED: 'Issued Delivery',
+    DELIVERY_COMPLETED: 'Completed Delivery',
+    DELIVERY_DISCREPANCY: 'Noted Discrepancy',
+    DELIVERY_CORRECTED: 'Recorded Correction',
+    DELIVERY_REISSUED: 'Re-issued Delivery',
+    DOCUMENT_SIGNED: 'Signed Document',
+    DOCUMENT_SIGNATURE_REVOKED: 'Revoked Signature',
+    REPORT_PRINT: 'Printed Report',
+    REPORT_DOC_PRINT: 'Printed Document',
+    REPORT_EXPORT_CSV: 'Exported Report (CSV)',
+    REPORT_EXPORT_EXCEL: 'Exported Report (Excel)'
+};
+
+const FILTER_KEY_LABELS = {
+    DateFrom: 'From',
+    DateTo: 'To',
+    AsOf: 'As of',
+    AsOfDate: 'As of',
+    CategoryID: 'Category',
+    ItemID: 'Item',
+    SupplierID: 'Supplier',
+    Status: 'Status',
+    Requestor: 'Requestor',
+    UserID: 'User',
+    Role: 'Role'
+};
+
+function toTitlePhrase(text) {
+    return String(text || '')
+        .toLowerCase()
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, (ch) => ch.toUpperCase())
+        .replace(/\b(Po|Pr|Rr|Ar|Rf|Dr|Rm|Repf|Itm|Sup|Csv)\b/g, (m) => m.toUpperCase());
+}
+
+function formatAuditDocLabel(raw) {
+    const str = String(raw || '').trim();
+    if (!str) return EM_DASH;
+    const upper = str.toUpperCase();
+    if (REPORT_NAME_BY_CODE.has(upper)) {
+        return REPORT_NAME_BY_CODE.get(upper);
+    }
+    if (DOC_TYPE_LABELS[upper]) {
+        return DOC_TYPE_LABELS[upper];
+    }
+    // e.g. "STOCK CARD ITM-012" or "RECEIVING REPORT REFP-0059"
+    const docMatch = str.match(/^(STOCK CARD|RECEIVING REPORT|PURCHASE ORDER|REQUISITION FORM|REPLENISHMENT REQUEST|CORRECTION REPORT|RETURN SLIP|ACKNOWLEDGEMENT RECEIPT)\s+(.+)$/i);
+    if (docMatch) {
+        return `${toTitlePhrase(docMatch[1])} (${docMatch[2].trim()})`;
+    }
+    return str;
+}
+
+function formatAuditDetails(raw) {
+    const str = String(raw || '').trim();
+    if (!str) return EM_DASH;
+
+    // Parse raw SQL filter strings like "DateFrom=All; DateTo=All; Status=All; Requestor=All"
+    if (str.includes('=')) {
+        const parts = str.split(';').map((p) => p.trim()).filter(Boolean);
+        const active = [];
+        let looksLikeFilter = true;
+
+        for (const part of parts) {
+            const idx = part.indexOf('=');
+            if (idx <= 0) {
+                looksLikeFilter = false;
+                break;
+            }
+            const key = part.slice(0, idx).trim();
+            const val = part.slice(idx + 1).trim();
+            if (!val || val.toLowerCase() === 'all') {
+                continue;
+            }
+            const label = FILTER_KEY_LABELS[key] || key;
+            active.push(`${label}: ${val}`);
+        }
+
+        if (looksLikeFilter) {
+            return active.length > 0 ? active.join(' · ') : 'All records';
+        }
+    }
+
+    // e.g. "Document ITM-012" -> "Printed document ITM-012"
+    const docRefMatch = str.match(/^Document\s+(.+)$/i);
+    if (docRefMatch) {
+        return `Printed ${docRefMatch[1].trim()}`;
+    }
+
+    return str;
+}
+
+function formatActivityDescription(raw) {
+    const str = String(raw || '').trim();
+    if (!str) return EM_DASH;
+
+    // 1. Legacy DOC_PRINT: "DOC_PRINT STOCK CARD ITM-012 (1 rows) | Document ITM-012"
+    const docPrintMatch = str.match(/^DOC_PRINT\s+(.+?)(?:\s*\(\d+\s*rows?\))?(?:\s*\|\s*Document\s+(.+))?$/i);
+    if (docPrintMatch) {
+        const label = formatAuditDocLabel(docPrintMatch[1].trim());
+        return `Printed ${label}.`;
+    }
+
+    // 2. Legacy or new REPORT PRINT / EXPORT: "PRINT PUR_PO_OUTSTANDING (7 rows) | All records"
+    const repLogMatch = str.match(/^(PRINT|EXPORT_CSV|EXPORT_EXCEL)\s+([A-Z0-9_]+)(?:\s*\((\d+)\s*rows?\))?(?:\s*\|\s*(.+))?$/i);
+    if (repLogMatch) {
+        const action = repLogMatch[1].toUpperCase();
+        const repName = REPORT_NAME_BY_CODE.get(repLogMatch[2].toUpperCase()) || repLogMatch[2];
+        const count = repLogMatch[3] != null ? Number(repLogMatch[3]) : null;
+        const filterPart = (repLogMatch[4] || '').trim();
+        const rowWord = count === 1 ? '1 row' : `${count} rows`;
+
+        const verb = action === 'PRINT'
+            ? `Printed ${repName} report`
+            : action === 'EXPORT_CSV'
+                ? `Exported ${repName} report to CSV`
+                : `Exported ${repName} report to Excel`;
+
+        const extras = [];
+        if (count !== null && !isNaN(count)) extras.push(rowWord);
+        if (filterPart && filterPart.toLowerCase() !== 'all records') extras.push(filterPart);
+
+        return extras.length > 0 ? `${verb} (${extras.join(' · ')}).` : `${verb}.`;
+    }
+
+    // 3. New SQL format: "Printed PUR_PO_OUTSTANDING (7 rows)." -> replace report code with friendly name
+    const newRepMatch = str.match(/^(Printed|Exported to CSV:|Exported to Excel:)\s+([A-Z0-9_]+)(.*)$/);
+    if (newRepMatch && REPORT_NAME_BY_CODE.has(newRepMatch[2].toUpperCase())) {
+        const repName = REPORT_NAME_BY_CODE.get(newRepMatch[2].toUpperCase());
+        return `${newRepMatch[1]} ${repName} report${newRepMatch[3]}`;
+    }
+
+    // 4. Digital signature log: "Digitally signed STOCK_CARD #14 (Custodian) as Inventory Staff [hash ...]."
+    const sigMatch = str.match(/^Digitally signed\s+([A-Z_]+)\s+#(\d+)\s+\(([^)]+)\)\s+as\s+([^[\].]+?)(?:\s*\[hash[^\]]*\])?\.?$/i);
+    if (sigMatch) {
+        const docLabel = DOC_TYPE_LABELS[sigMatch[1].toUpperCase()] || toTitlePhrase(sigMatch[1]);
+        return `Signed ${docLabel} #${sigMatch[2]} (${sigMatch[3]}) as ${sigMatch[4].trim()}.`;
+    }
+
+    // 5. Purchasing action log: "SetBudget; PR=; PO=; Annual budget saved." or "ApprovePO; PO=43; PO approved..."
+    if (/^[A-Za-z]+;\s*(PR=|PO=|RepF=|DR=)/.test(str)) {
+        const parts = str.split(';').map((p) => p.trim()).filter(Boolean);
+        const refs = [];
+        let message = '';
+        for (let i = 1; i < parts.length; i++) {
+            const p = parts[i];
+            const kv = p.match(/^(PR|PO|RepF|DR)=(.*)$/i);
+            if (kv) {
+                if (kv[2].trim()) refs.push(`${kv[1].toUpperCase()} #${kv[2].trim()}`);
+            } else {
+                message = message ? `${message} ${p}` : p;
+            }
+        }
+        if (message) {
+            const cleanMsg = message.endsWith('.') ? message : `${message}.`;
+            return refs.length > 0 ? `${refs.join(', ')} — ${cleanMsg}` : cleanMsg;
+        }
+    }
+
+    // 6. Stock adjustment: "Stock adjusted by 1 for item ID 14."
+    const adjMatch = str.match(/^Stock adjusted by\s+(-?\d+)\s+for item ID\s+(\d+)\.?$/i);
+    if (adjMatch) {
+        const delta = Number(adjMatch[1]);
+        const sign = delta > 0 ? `+${delta}` : String(delta);
+        return `Adjusted stock by ${sign} for Item #${adjMatch[2]}.`;
+    }
+
+    // 7. Requisition approved/rejected/cancelled
+    const reqActionMatch = str.match(/^(Approved|Rejected)\s+requisition\s+#(\d+)\.?$/i);
+    if (reqActionMatch) {
+        return `${reqActionMatch[1]} Requisition #${reqActionMatch[2]}.`;
+    }
+
+    const reqCancelMatch = str.match(/^Requisition ID:\s*(\d+)\.\s*(.*)$/i);
+    if (reqCancelMatch) {
+        const note = reqCancelMatch[2].trim();
+        return note ? `Cancelled Requisition #${reqCancelMatch[1]} (${note.replace(/\.$/, '')}).` : `Cancelled Requisition #${reqCancelMatch[1]}.`;
+    }
+
+    // 8. Supplier / Role / User ID cleanups
+    const supMatch = str.match(/^Supplier details were updated for SupplierID\s+(\d+)\.?$/i);
+    if (supMatch) return `Updated supplier details (Supplier #${supMatch[1]}).`;
+
+    const rolePermMatch = str.match(/^Permissions updated for role ID\s+(\d+)\.?$/i);
+    if (rolePermMatch) return `Updated permissions for Role #${rolePermMatch[1]}.`;
+
+    const userCreateMatch = str.match(/^User account created with role ID\s+(\d+)\.?$/i);
+    if (userCreateMatch) return `Created user account (Role #${userCreateMatch[1]}).`;
+
+    return str;
+}
+
 function formatCell(value, type) {
     if (value === null || value === undefined || value === '') {
         return EM_DASH;
@@ -1551,6 +1809,23 @@ function formatCell(value, type) {
     }
     if (type === 'datetime') {
         return formatPrintDate(value, true);
+    }
+    if (type === 'auditDoc') {
+        return formatAuditDocLabel(value);
+    }
+    if (type === 'auditAction') {
+        const key = String(value).trim().toUpperCase();
+        return AUDIT_ACTION_LABELS[key] || String(value);
+    }
+    if (type === 'auditDetails') {
+        return formatAuditDetails(value);
+    }
+    if (type === 'activityAction') {
+        const key = String(value).trim().toUpperCase();
+        return ACTIVITY_ACTION_LABELS[key] || toTitlePhrase(value);
+    }
+    if (type === 'activityDesc') {
+        return formatActivityDescription(value);
     }
     return String(value);
 }
