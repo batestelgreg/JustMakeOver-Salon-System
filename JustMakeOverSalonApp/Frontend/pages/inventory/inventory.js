@@ -9,6 +9,7 @@ import { publish, AppEvents } from '../../assets/js/core/events.js';
 import { showToast } from '../../assets/js/components/toast.js';
 import { highlightTargetRow } from '../../assets/js/core/notification-nav.js';
 import {
+    openSignatureDialog,
     findStageSignature,
     toPrintSignatureBlock
 } from '../../assets/js/components/signature-modal.js';
@@ -498,11 +499,7 @@ function buildStockCard(header, movements, signatures = []) {
                 findStageSignature(signatures, 'Custodian'),
                 'Inventory custodian',
                 ' '
-            ),
-            {
-                name: ' ',
-                label: 'Approved by'
-            }
+            )
         ]
     };
 }
@@ -652,10 +649,11 @@ function buildReplenishmentRequest(request) {
                 'Requested by',
                 request.OriginRequestorName
             ),
-            {
-                name: ' ',
-                label: 'Inventory staff'
-            },
+            toPrintSignatureBlock(
+                findStageSignature(request.Signatures, 'Inventory'),
+                'Inventory staff',
+                ' '
+            ),
             toPrintSignatureBlock(
                 findStageSignature(request.Signatures, 'Approved'),
                 'Approved by',
@@ -913,6 +911,21 @@ function wireItemForm(root) {
             payload.isActive = root.querySelector('#chkItemActive').checked ? 'true' : 'false';
         } else {
             payload.initialQuantity = root.querySelector('#txtInitialQuantity').value || '0';
+
+            const sigResult = await openSignatureDialog({
+                title: 'Sign New Inventory Item',
+                message: `Sign as Prepared by to create "${itemName}" and initialize its Stock Card.`,
+                stageLabel: 'Prepared by signature',
+                confirmLabel: 'I confirm this signature and understand that this Stock Card creation will be recorded.',
+                submitText: 'Confirm & Save Item'
+            });
+
+            if (!sigResult) {
+                return;
+            }
+
+            payload.signature = sigResult.signature;
+            payload.confirmed = 'true';
         }
 
         saveButton.disabled = true;
@@ -958,13 +971,27 @@ function wireAdjustForm(root) {
             return;
         }
 
+        const sigResult = await openSignatureDialog({
+            title: 'Sign Stock Adjustment',
+            message: `Sign as Inventory Custodian to adjust ${modalTargetItem.ItemName} (${modalTargetItem.ItemCode}) by ${quantity > 0 ? '+' + quantity : quantity} unit(s).`,
+            stageLabel: 'Inventory custodian signature',
+            confirmLabel: 'I confirm this signature and stock balance adjustment on the Stock Card.',
+            submitText: 'Confirm & Apply Adjustment'
+        });
+
+        if (!sigResult) {
+            return;
+        }
+
         try {
             await invoke('InventoryAdjust', {
                 itemID: String(modalTargetItem.ItemID),
                 quantityChange: String(quantity),
-                remarks: root.querySelector('#txtAdjustRemarks').value.trim()
+                remarks: root.querySelector('#txtAdjustRemarks').value.trim(),
+                signature: sigResult.signature,
+                confirmed: 'true'
             });
-            showToast('success', 'The stock was adjusted.');
+            showToast('success', 'The stock was adjusted and signed.');
             root.querySelector('#adjustModal').classList.add('u-hidden');
             await reloadAll(root);
         } catch (error) {
@@ -1001,12 +1028,26 @@ function wireIssueForm(root) {
             return;
         }
 
+        const sigResult = await openSignatureDialog({
+            title: 'Sign Stock Issuance',
+            message: `Sign as Inventory Custodian to issue ${quantity} unit(s) of ${modalTargetItem.ItemName} (${modalTargetItem.ItemCode}).`,
+            stageLabel: 'Inventory custodian signature',
+            confirmLabel: 'I confirm this signature for issuing stock and updating the Stock Card.',
+            submitText: 'Confirm & Issue Stock'
+        });
+
+        if (!sigResult) {
+            return;
+        }
+
         try {
             const result = await invoke('InventoryIssue', {
                 itemID: String(modalTargetItem.ItemID),
                 quantityRequested: String(quantity),
                 requisitionID: root.querySelector('#txtIssueRequisition').value.trim(),
-                estimatedRestockDate: root.querySelector('#txtIssueEstimate').value
+                estimatedRestockDate: root.querySelector('#txtIssueEstimate').value,
+                signature: sigResult.signature,
+                confirmed: 'true'
             });
 
             const outcome = result?.outcome;

@@ -483,11 +483,13 @@ function buildNotes(notes) {
 
 function buildSignatures(signatures) {
     const wrapper = node('section', 'print-signatures');
+    const items = (signatures || []).filter(Boolean);
 
-    signatures.forEach((signature) => {
-        if (!signature) {
-            return;
-        }
+    if (items.length > 0 && items.length !== 3) {
+        wrapper.style.gridTemplateColumns = `repeat(${items.length}, 1fr)`;
+    }
+
+    items.forEach((signature) => {
 
         const block = node('div', 'print-signature');
         const space = node('div', 'print-signature-space');

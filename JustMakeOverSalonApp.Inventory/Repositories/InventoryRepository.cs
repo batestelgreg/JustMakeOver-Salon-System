@@ -419,7 +419,7 @@ namespace JustMakeOverSalonApp.Inventory.Repositories
                         : new List<Dictionary<string, object>>();
 
                     var sigRepo = new DocumentSignatureRepository(connectionFactory);
-                    var docSigs = sigRepo.Get(actorUserID, "STOCK_CARD", itemID);
+                    var docSigs = sigRepo.GetPrintPack(actorUserID, "STOCK_CARD", itemID);
 
                     return new Dictionary<string, object>
                     {
@@ -460,7 +460,7 @@ namespace JustMakeOverSalonApp.Inventory.Repositories
             if (request != null)
             {
                 var sigRepo = new DocumentSignatureRepository(connectionFactory);
-                var docSigs = sigRepo.Get(actorUserID, "REPLENISHMENT_REQUEST", repFID);
+                var docSigs = sigRepo.GetPrintPack(actorUserID, "REPLENISHMENT_REQUEST", repFID);
                 request["Signatures"] = docSigs["signatures"];
             }
 

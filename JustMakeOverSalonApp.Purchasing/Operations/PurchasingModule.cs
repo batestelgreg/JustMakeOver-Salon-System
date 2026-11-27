@@ -71,9 +71,11 @@ namespace JustMakeOverSalonApp.Purchasing.Operations
                 return;
             }
 
-            // By-process signing for CreatePR (signs RepF Approved) and RecordDR (signs Delivery Check Checked).
+            // By-process signing for CreatePR (signs RepF Approved), CreatePO
+            // (signs PO Requested), and RecordDR (signs Delivery Check Checked).
             bool requiresInlineSign =
                 string.Equals(action, "CreatePR", System.StringComparison.Ordinal)
+                || string.Equals(action, "CreatePO", System.StringComparison.Ordinal)
                 || string.Equals(action, "RecordDR", System.StringComparison.Ordinal);
 
             string inlineSig = null;
@@ -119,6 +121,16 @@ namespace JustMakeOverSalonApp.Purchasing.Operations
                         {
                             // Ignore if this RepF already has an active Approved signature (e.g. re-opened PR).
                         }
+                    }
+                }
+                else if (string.Equals(action, "CreatePO", System.StringComparison.Ordinal))
+                {
+                    int poID = result != null && result.ContainsKey("ID") && result["ID"] != null
+                        ? ParseID(result["ID"].ToString())
+                        : 0;
+                    if (poID > 0)
+                    {
+                        sigRepo.Sign(actor.UserID, "PURCHASE_ORDER", poID, "Requested", inlineSig, true);
                     }
                 }
                 else if (string.Equals(action, "RecordDR", System.StringComparison.Ordinal))

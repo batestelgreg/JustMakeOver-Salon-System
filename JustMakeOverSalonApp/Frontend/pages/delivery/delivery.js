@@ -1280,12 +1280,20 @@ function buildCorrectionReport(header, items, signatures, documentSignatures = [
 
         signatures: [
             {
-                name: header.RequestorName,
-                label: 'Requestor'
+                name: header.SignedByName || header.RequestorName,
+                label: 'Requestor',
+                image: header.RequestorSignatureData && String(header.RequestorSignatureData).startsWith('data:image/')
+                    ? header.RequestorSignatureData
+                    : null,
+                date: header.SignedDate
             },
             {
                 name: header.IssuedByName || ' ',
-                label: 'Issued by'
+                label: 'Issued by',
+                image: header.IssuedSignatureData && String(header.IssuedSignatureData).startsWith('data:image/')
+                    ? header.IssuedSignatureData
+                    : null,
+                date: header.IssuedDate
             },
             toPrintSignatureBlock(
                 findStageSignature(documentSignatures, 'Corrected'),

@@ -1242,9 +1242,26 @@ async function handleSubmit(view, event) {
 
         if (!form.reportValidity()) return;
 
+        const prRow = view.data?.requests?.find((r) => r.PRID === prID);
+        const poSig = await openSignatureDialog({
+            title: 'Sign & Create Purchase Order',
+            message: prRow
+                ? `Sign as Requested by to create a Purchase Order for PR-${pad(prID)} (${prRow.ItemName}, qty: ${prRow.QuantityNeeded}).`
+                : `Sign as Requested by to create a Purchase Order for PR-${pad(prID)}.`,
+            stageLabel: 'Requested by signature',
+            confirmLabel: 'I confirm this signature and understand that this Purchase Order request will be recorded.',
+            submitText: 'Confirm & Create PO'
+        });
+
+        if (!poSig || view.closed) {
+            return;
+        }
+
         await act(view, 'CreatePO', {
             prID,
-            ...values
+            ...values,
+            signature: poSig.signature,
+            confirmed: 'true'
         });
     } else if (form.id === 'budgetForm') {
         await act(view, 'SetBudget', values);
@@ -2022,10 +2039,11 @@ function buildPurchaseOrderDocument(order) {
             : [],
 
         signatures: [
-            {
-                name: order.RequestedByName,
-                label: 'Requested by'
-            },
+            toPrintSignatureBlock(
+                findStageSignature(order.Signatures, 'Requested'),
+                'Requested by',
+                order.RequestedByName
+            ),
             toPrintSignatureBlock(
                 findStageSignature(order.Signatures, 'Approved'),
                 'Approved by',
@@ -2059,7 +2077,8 @@ async function printReturnSlip(view, drID) {
         await printDocument(
             buildReturnSlipDocument(
                 slip.header,
-                slip.items || []
+                slip.items || [],
+                slip.signatures || []
             )
         );
     } catch (error) {
@@ -2073,7 +2092,7 @@ async function printReturnSlip(view, drID) {
     }
 }
 
-function buildReturnSlipDocument(header, items) {
+function buildReturnSlipDocument(header, items, signatures = []) {
     const totals = items.reduce(
         (sum, item) => ({
             delivered: sum.delivered
@@ -2228,18 +2247,20 @@ function buildReturnSlipDocument(header, items) {
         ].filter(Boolean),
 
         signatures: [
-            {
-                name: header.RecordedByName,
-                label: 'Recorded by'
-            },
+            toPrintSignatureBlock(
+                findStageSignature(signatures, 'Recorded'),
+                'Recorded by',
+                header.RecordedByName
+            ),
             {
                 name: ' ',
                 label: 'Supplier representative'
             },
-            {
-                name: ' ',
-                label: 'Approved by'
-            }
+            toPrintSignatureBlock(
+                findStageSignature(signatures, 'Approved'),
+                'Approved by',
+                ' '
+            )
         ]
     };
 }
