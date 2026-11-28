@@ -246,6 +246,82 @@ namespace JustMakeOverSalonApp.Purchasing.Repositories
             }
         }
 
+        // Records a Pending email dispatch attempt in dbo.EMAIL_LOGS after
+        // validating actor permissions and supplier email format in TSQL.
+        public Dictionary<string, object> BeginEmailLog(
+            int actorUserID,
+            int poID,
+            string emailType,
+            int? followupID,
+            string subject)
+        {
+            using (var connection =
+                connectionFactory.CreateOpenConnection())
+            using (var command = new SqlCommand(
+                "dbo.usp_Purchasing_BeginEmailLog",
+                connection))
+            {
+                command.CommandType = CommandType.StoredProcedure;
+
+                command.Parameters.Add("@ActorUserID", SqlDbType.Int).Value = actorUserID;
+                command.Parameters.Add("@POID", SqlDbType.Int).Value = poID;
+                command.Parameters.Add("@EmailType", SqlDbType.VarChar, 30).Value =
+                    string.IsNullOrWhiteSpace(emailType) ? "PURCHASE_ORDER" : emailType;
+                command.Parameters.Add("@FollowupID", SqlDbType.Int).Value =
+                    followupID.HasValue ? (object)followupID.Value : DBNull.Value;
+                command.Parameters.Add("@Subject", SqlDbType.NVarChar, 300).Value =
+                    string.IsNullOrWhiteSpace(subject) ? (object)DBNull.Value : subject;
+
+                using (var reader = command.ExecuteReader())
+                {
+                    var row = SqlResultReader.ReadRow(reader);
+                    if (row == null)
+                    {
+                        throw new InvalidOperationException(
+                            "The email log could not be initialized.");
+                    }
+
+                    return row;
+                }
+            }
+        }
+
+        // Marks an EMAIL_LOGS entry as Sent or Failed, and on success transitions
+        // an Approved PO to Sent to Supplier (or marks a follow-up sent).
+        public Dictionary<string, object> CompleteEmailLog(
+            int actorUserID,
+            long emailLogID,
+            string emailStatus,
+            string errorMessage,
+            bool markDispatched)
+        {
+            using (var connection =
+                connectionFactory.CreateOpenConnection())
+            using (var command = new SqlCommand(
+                "dbo.usp_Purchasing_CompleteEmailLog",
+                connection))
+            {
+                command.CommandType = CommandType.StoredProcedure;
+
+                command.Parameters.Add("@ActorUserID", SqlDbType.Int).Value = actorUserID;
+                command.Parameters.Add("@EmailLogID", SqlDbType.BigInt).Value = emailLogID;
+                command.Parameters.Add("@EmailStatus", SqlDbType.VarChar, 20).Value = emailStatus;
+                command.Parameters.Add("@ErrorMessage", SqlDbType.NVarChar, 1000).Value =
+                    string.IsNullOrWhiteSpace(errorMessage) ? (object)DBNull.Value : errorMessage;
+                command.Parameters.Add("@MarkDispatched", SqlDbType.Bit).Value = markDispatched;
+
+                using (var reader = command.ExecuteReader())
+                {
+                    return SqlResultReader.ReadRow(reader)
+                        ?? new Dictionary<string, object>
+                        {
+                            ["EmailLogID"] = emailLogID,
+                            ["EmailStatus"] = emailStatus
+                        };
+                }
+            }
+        }
+
         // Kani nga helper kay nag-delegate sa shared mapper aron usa ra
         // ang date/JSON conversion rules sa tibuok app.
         private static List<Dictionary<string, object>> ReadRows(

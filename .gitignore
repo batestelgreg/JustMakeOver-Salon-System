@@ -24,3 +24,7 @@ packages/
 Thumbs.db
 [Tt]humbs.db
 [Dd]esktop.ini
+
+## Local SMTP / Secret Configs (never commit credentials)
+Secrets.config
+**/Secrets.config

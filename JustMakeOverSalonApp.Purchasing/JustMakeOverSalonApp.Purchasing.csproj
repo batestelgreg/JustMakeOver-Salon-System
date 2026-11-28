@@ -6,6 +6,8 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\JustMakeOverSalonApp.Core\JustMakeOverSalonApp.Core.csproj" />
+		<PackageReference Include="MailKit" Version="4.16.0" />
+		<Reference Include="System.Configuration" />
 		<Reference Include="System.Web.Extensions" />
 	</ItemGroup>
 </Project>
