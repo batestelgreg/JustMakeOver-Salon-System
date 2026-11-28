@@ -4,17 +4,6 @@ SET ANSI_NULLS ON;
 SET QUOTED_IDENTIFIER ON;
 GO
 
-/* ============================================================
-   V039: Purchase Order SMTP Email Logging & Tracking
-   - Creates dbo.EMAIL_LOGS to record Pending / Sent / Failed
-     email dispatches for Purchase Orders and Follow-ups.
-   - Extends dbo.vw_PurchasingWorkspacePO with the latest PO
-     EmailStatus, EmailSentAt, EmailRecipient, and EmailErrorMessage.
-   - Adds dbo.usp_Purchasing_BeginEmailLog (with TSQL supplier
-     email validation) and dbo.usp_Purchasing_CompleteEmailLog
-     (updates status, auto-marks PO Sent to Supplier or follow-up
-     sent on success, and writes a USER_AUDIT_LOGS entry).
-   ============================================================ */
 
 IF OBJECT_ID(N'dbo.EMAIL_LOGS', N'U') IS NULL
 BEGIN
@@ -70,9 +59,6 @@ IF NOT EXISTS
         ON dbo.EMAIL_LOGS (POID, EmailType, CreatedAt DESC, EmailLogID DESC);
 GO
 
-/* ============================================================
-   1. PO SUMMARY VIEW — expose latest PO email status
-   ============================================================ */
 
 CREATE OR ALTER VIEW dbo.vw_PurchasingWorkspacePO
 AS
@@ -142,9 +128,6 @@ OUTER APPLY
 ) em;
 GO
 
-/* ============================================================
-   2. BEGIN EMAIL LOG (validates permission + supplier email)
-   ============================================================ */
 
 CREATE OR ALTER PROCEDURE dbo.usp_Purchasing_BeginEmailLog
     @ActorUserID INT,
@@ -249,9 +232,7 @@ BEGIN
 END;
 GO
 
-/* ============================================================
-   3. COMPLETE EMAIL LOG (Sent / Failed + auto-dispatch PO)
-   ============================================================ */
+
 
 CREATE OR ALTER PROCEDURE dbo.usp_Purchasing_CompleteEmailLog
     @ActorUserID INT,

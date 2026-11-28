@@ -1,39 +1,3 @@
-/*
-    V042_NotificationFlowAndRedirectFixes.sql
-
-    Closes all missing workflow notifications, eliminates duplicate/misrouted
-    alerts, ensures action-required alerts auto-mark read on completion, and
-    aligns notification entity links for accurate click-to-highlight redirects:
-
-    1. Missing action notifications added:
-       - DELIVERY_ISSUED   -> Requestor when Inventory Staff issues AR items
-       - DELIVERY_COMPLETED -> Issuer / delivery.manage when Requestor signs AR
-       - PO_RECEIVED       -> purchasing.manage when checked supplier DR is stocked in
-
-    2. Duplicate & recipient fixes:
-       - Drop legacy trg_PurchaseOrders_NotifyRequisitionRequestor (avoids
-         duplicate PO_REJECTED alongside trg_Purchasing_PONotifications).
-       - Remove duplicate PO_APPROVED insert from usp_Purchasing_ApprovePO
-         (single source of truth in trg_Purchasing_PONotifications).
-       - Route DELIVERY_DISCREPANCY, DELIVERY_REISSUED, REQUISITION_ALLOCATED
-         to delivery.manage (not inventory.view / delivery.view).
-       - Route REQUISITION_CANCELLED to requisitions.approve or inventory.update
-         (only users who can view requisitions, not Purchasing Staff).
-       - Target Requestor's STOCK_SHORTAGE to RelatedEntityType = 'REQUISITION'
-         (RelatedEntityID = @RequisitionID) so click highlights their exact RF,
-         while Purchasing/Inventory STOCK_SHORTAGE keeps REPLENISHMENT_REQUEST.
-
-    3. Auto-mark read completeness:
-       - DELIVERY_DISCREPANCY auto-marked read on Re-issue ('Generated') or 'Completed'.
-       - DELIVERY_REISSUED auto-marked read on 'Issued' or 'Completed'.
-       - DELIVERY_ISSUED auto-marked read on 'Completed' or open discrepancy note.
-       - STOCK_ALLOCATED, STOCK_SHORTAGE, REQUISITION_ALLOCATED, REQUISITION_APPROVED,
-         STOCK_RESERVED auto-marked read when Requisition is Fulfilled or Cancelled.
-       - PO_APPROVED auto-marked read once PO is Sent to Supplier / Delivered / Cancelled.
-
-    Idempotent: DROP IF EXISTS + CREATE OR ALTER.
-*/
-
 USE JustMakeOverSalonDB;
 GO
 SET ANSI_NULLS ON;
@@ -41,17 +5,8 @@ GO
 SET QUOTED_IDENTIFIER ON;
 GO
 
-/* ============================================================
-   1. REMOVE LEGACY DUPLICATE PO REJECT TRIGGER
-   ============================================================ */
-
 DROP TRIGGER IF EXISTS dbo.trg_PurchaseOrders_NotifyRequisitionRequestor;
 GO
-
-/* ============================================================
-   2. PURCHASING PO APPROVAL (NO DUPLICATE PO_APPROVED) &
-      TRIGGER AUTO-MARK ON DISPATCH/COMPLETION
-   ============================================================ */
 
 CREATE OR ALTER PROCEDURE dbo.usp_Purchasing_ApprovePO
     @POID INT,
@@ -376,10 +331,6 @@ BEGIN
 END;
 GO
 
-/* ============================================================
-   3. RECEIVE CHECKED DR -> NOTIFY PURCHASING THAT PO STOCKED IN
-   ============================================================ */
-
 CREATE OR ALTER PROCEDURE dbo.usp_Purchasing_ReceiveCheckedDR
     @ActorUserID INT,
     @DRID INT
@@ -578,10 +529,6 @@ BEGIN
 END;
 GO
 
-/* ============================================================
-   4. ISSUE STOCK SHORTAGE — REQUISITION TARGET FOR REQUESTOR
-      & PURCHASING/INVENTORY TARGET FOR REPLENISHMENT
-   ============================================================ */
 
 CREATE OR ALTER PROCEDURE dbo.usp_Inventory_IssueStock
     @ActorUserID INT,
@@ -790,9 +737,6 @@ BEGIN
 END;
 GO
 
-/* ============================================================
-   5. DELIVERY READY NOTIFICATION — TARGET delivery.manage ONLY
-   ============================================================ */
 
 CREATE OR ALTER TRIGGER dbo.trg_REQUISITION_DETAILS_AllocatedReadyNotify
 ON dbo.REQUISITION_DETAILS
@@ -844,10 +788,6 @@ BEGIN
       );
 END;
 GO
-
-/* ============================================================
-   6. DELIVERY ISSUED, DISCREPANCY, REISSUE, COMPLETE & AUTO-MARK
-   ============================================================ */
 
 CREATE OR ALTER PROCEDURE dbo.usp_Delivery_MarkIssued
     @ActorUserID INT,
@@ -1609,9 +1549,6 @@ BEGIN
 END;
 GO
 
-/* ============================================================
-   7. REQUISITION FULFILLED / CANCELLED AUTO-MARK & CANCEL RECIPIENTS
-   ============================================================ */
 
 CREATE OR ALTER TRIGGER dbo.trg_REQUISITIONS_FulfilledAutoMarkNotifications
 ON dbo.REQUISITIONS
