@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Windows.Forms;
+using JustMakeOverSalonApp.DataAccess;
 using JustMakeOverSalonApp.Utilities;
 
 namespace JustMakeOverSalonApp
@@ -32,6 +33,12 @@ namespace JustMakeOverSalonApp
 
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
+
+            if (!DatabaseBootstrapper.EnsureDatabaseReady())
+            {
+                return;
+            }
+
             Application.Run(new MainForm());
         }
     }

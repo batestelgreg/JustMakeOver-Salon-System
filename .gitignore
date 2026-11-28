@@ -1,23 +1,55 @@
-## Visual Studio Workspace & Cache
+## Visual Studio / IDE Workspace & Cache
 .vs/
 *.dtbcache.json
-.suo
+*.rsuser
+*.suo
 *.user
 *.userosscache
 *.sln.docstates
+*.userprefs
+.vscode/
 
-## Build Outputs (Bin ug Obj folders)
+## Build & Test Outputs
 [Bb]in/
 [Oo]bj/
+[Pp]ublish/
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+*.VisualState.xml
+*.cache
 
 ## NuGet Packages
-../packages/
 packages/
+**/packages/
+*.nupkg
+*.snupkg
+project.lock.json
 
-## Local SQL Server Database Files
+## Installer Outputs & Downloaded Prerequisites (publish Setup EXE via GitHub Releases)
+Installer/Output/
+Installer/Prereqs/
+*.msi
+JustMakeOverSalonSetup.exe
+
+## Local SQL Server Data Files & Backups (keep .sql schema/migration scripts tracked)
 *.mdf
 *.ldf
+*.ndf
 *.bak
+*.dacpac
+*.db
+*.sqlite
+
+## Logs, Temp Files & Local Secrets
+[Ll]ogs/
+*.log
+*.tmp
+~$*
+.env
+.env.*
+*.secrets.json
+*.pfx
+*.snk
 
 ## Operating System Temporary Files
 .DS_Store

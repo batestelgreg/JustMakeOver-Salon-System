@@ -9,6 +9,7 @@
     <RootNamespace>JustMakeOverSalonApp</RootNamespace>
     <AssemblyName>JustMakeOverSalonApp</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <ApplicationIcon>logo.ico</ApplicationIcon>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Deterministic>true</Deterministic>
@@ -103,6 +104,7 @@
     <Compile Include="Bridge\FrontendBridge.cs" />
     <Compile Include="Bridge\Modules\UsersModule.cs" />
     <Compile Include="Bridge\OperationNames.cs" />
+    <Compile Include="DataAccess\DatabaseBootstrapper.cs" />
     <Compile Include="Forms\MainForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -188,6 +190,11 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Frontend\pages\purchasing\purchasing.css">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="logo.ico" />
+    <Content Include="..\Database\FullSetup.sql">
+      <Link>Database\FullSetup.sql</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Frontend\pages\purchasing\purchasing.js">
