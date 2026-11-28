@@ -256,23 +256,78 @@ namespace JustMakeOverSalonApp.DataAccess
 
         private static void EnsureLocalDbInstanceStarted()
         {
+            string localDbExe = FindSqlLocalDbExePath() ?? "sqllocaldb";
+            RunLocalDbCli(localDbExe, "create MSSQLLocalDB", 8000);
+            RunLocalDbCli(localDbExe, "start MSSQLLocalDB", 8000);
+        }
+
+        private static string FindSqlLocalDbExePath()
+        {
+            try
+            {
+                string[] programRootCandidates =
+                {
+                    Environment.GetEnvironmentVariable("ProgramW6432"),
+                    Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles)
+                };
+
+                var foundPaths = new List<string>();
+                foreach (string root in programRootCandidates)
+                {
+                    if (string.IsNullOrWhiteSpace(root))
+                    {
+                        continue;
+                    }
+
+                    string sqlRoot = Path.Combine(root, "Microsoft SQL Server");
+                    if (!Directory.Exists(sqlRoot))
+                    {
+                        continue;
+                    }
+
+                    foreach (string dir in Directory.GetDirectories(sqlRoot))
+                    {
+                        string candidate = Path.Combine(dir, "Tools", "Binn", "SqlLocalDB.exe");
+                        if (File.Exists(candidate))
+                        {
+                            foundPaths.Add(candidate);
+                        }
+                    }
+                }
+
+                if (foundPaths.Count > 0)
+                {
+                    foundPaths.Sort(StringComparer.OrdinalIgnoreCase);
+                    return foundPaths[foundPaths.Count - 1];
+                }
+            }
+            catch
+            {
+                // Fall back to PATH lookup when directory probe fails.
+            }
+
+            return null;
+        }
+
+        private static void RunLocalDbCli(string exePath, string arguments, int timeoutMs)
+        {
             try
             {
                 var startInfo = new ProcessStartInfo
                 {
-                    FileName = "sqllocaldb",
-                    Arguments = "start MSSQLLocalDB",
+                    FileName = exePath,
+                    Arguments = arguments,
                     CreateNoWindow = true,
                     UseShellExecute = false
                 };
                 using (Process proc = Process.Start(startInfo))
                 {
-                    proc?.WaitForExit(5000);
+                    proc?.WaitForExit(timeoutMs);
                 }
             }
             catch
             {
-                // Ignore if sqllocaldb CLI is not on PATH; SqlClient auto-starts LocalDB when installed.
+                // Ignore if SqlLocalDB CLI is unavailable; SqlClient auto-starts LocalDB when registered.
             }
         }
 
