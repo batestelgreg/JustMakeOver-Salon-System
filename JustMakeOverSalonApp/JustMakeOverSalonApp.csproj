@@ -138,10 +138,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-    <None Include="Secrets.config.example" />
-    <None Include="Secrets.config" Condition="Exists('Secrets.config')">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <Content Include="bin\Debug\Frontend\assets\css\components.css" />

@@ -80,6 +80,70 @@
         </form>
     </div>
 
+    <!-- Official Salon Email (SMTP) configuration card (Admin-only).
+         All Purchase Order and Follow-Up emails sent by Purchasing Staff
+         will always use this centralized official salon email account. -->
+    <div class="card" id="emailSettingsCard">
+        <div class="u-flex--between u-mb-2" style="gap: 12px; flex-wrap: wrap;">
+            <div>
+                <h3 style="font-size: 17px;">Official Salon Email (SMTP)</h3>
+                <p class="settings-email-hint">
+                    Centralized company email used whenever Purchasing Staff or Managers email Purchase Orders and Delivery Follow-Ups to suppliers.
+                </p>
+            </div>
+            <span class="status-badge status-badge--muted" id="emailConfigBadge">Checking&hellip;</span>
+        </div>
+        <p class="settings-email-meta u-hidden" id="emailConfigMeta"></p>
+
+        <form id="emailSettingsForm" novalidate>
+            <div class="settings-grid">
+                <div class="form-field">
+                    <label class="form-field__label" for="txtSmtpSenderEmail">Official Salon Email</label>
+                    <input type="email" id="txtSmtpSenderEmail" class="form-field__input" maxlength="255" placeholder="e.g. justmakeover.salon@gmail.com" autocomplete="off">
+                    <span class="form-field__error" id="errorSmtpSenderEmail"></span>
+                </div>
+                <div class="form-field">
+                    <label class="form-field__label" for="txtSmtpSenderName">Sender Display Name</label>
+                    <input type="text" id="txtSmtpSenderName" class="form-field__input" maxlength="120" placeholder="Just MakeOver Beauty Salon &amp; Spa" autocomplete="off">
+                    <span class="form-field__error" id="errorSmtpSenderName"></span>
+                </div>
+                <div class="form-field">
+                    <label class="form-field__label" for="txtSmtpAppPassword">Google App Password (16 characters)</label>
+                    <div class="settings-password-wrap">
+                        <input type="password" id="txtSmtpAppPassword" class="form-field__input" maxlength="64" placeholder="Enter 16-character App Password" autocomplete="new-password">
+                        <button type="button" class="btn btn--ghost btn--sm settings-password-toggle" id="btnToggleSmtpPassword" aria-label="Show or hide app password">Show</button>
+                    </div>
+                    <span class="form-field__hint" id="hintSmtpAppPassword">Stored encrypted on this computer. Never shown again after saving.</span>
+                    <span class="form-field__error" id="errorSmtpAppPassword"></span>
+                </div>
+                <div class="form-field">
+                    <label class="form-field__label" for="txtSmtpHost">SMTP Host</label>
+                    <input type="text" id="txtSmtpHost" class="form-field__input" maxlength="150" value="smtp.gmail.com" autocomplete="off">
+                    <span class="form-field__error" id="errorSmtpHost"></span>
+                </div>
+                <div class="form-field">
+                    <label class="form-field__label" for="numSmtpPort">SMTP Port</label>
+                    <input type="number" id="numSmtpPort" class="form-field__input" min="1" max="65535" value="587" autocomplete="off">
+                    <span class="form-field__error" id="errorSmtpPort"></span>
+                </div>
+                <div class="form-field" style="justify-content: flex-end;">
+                    <label class="form-field__label u-flex--gap" style="margin-bottom: 10px;">
+                        <input type="checkbox" id="chkSmtpStartTls" checked> Use STARTTLS (recommended for port 587)
+                    </label>
+                </div>
+            </div>
+
+            <div class="settings-email-actions">
+                <button type="submit" class="btn btn--primary" id="btnSaveEmailSettings" data-requires="settings.manage">Save Email Settings</button>
+                <div class="settings-email-test">
+                    <input type="email" id="txtTestEmailRecipient" class="form-field__input settings-email-test__input" maxlength="255" placeholder="Test recipient email (defaults to salon email)" autocomplete="off">
+                    <button type="button" class="btn btn--secondary" id="btnSendTestEmail" data-requires="settings.manage">Send Test Email</button>
+                </div>
+            </div>
+            <span class="form-field__error" id="errorTestEmail"></span>
+        </form>
+    </div>
+
     <!-- Kani nga modal kay para sa paghimo ug pag-edit sa category. -->
     <div id="categoryModal" class="modal-overlay u-hidden">
         <div class="modal">

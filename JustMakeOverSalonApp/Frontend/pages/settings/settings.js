@@ -11,12 +11,13 @@ import { showToast } from '../../assets/js/components/toast.js';
 
 let categoriesData = [];
 let uoMsData = [];
+let emailHasStoredPassword = false;
 let addHandler = null;
 let addUomHandler = null;
 
 /**
  * Kani nga init kay nag-wire sa mga buttons ug nag-load sa categories,
- * unit of measures ug system preferences.
+ * unit of measures, system preferences, ug official salon email settings.
  */
 export async function init(root) {
     // Kani nga gating kay para sa buttons nga settings.manage ra ang allowed.
@@ -37,13 +38,23 @@ export async function init(root) {
     wireCategoryForm(root);
     wireUomForm(root);
     wirePreferencesForm(root);
+    wireEmailSettingsForm(root);
 
-    // Kani nga parallel load kay independent nga data ang tulo.
-    await Promise.all([
+    // Kani nga parallel load kay independent nga data ang upat.
+    const loaders = [
         reloadCategories(root),
         reloadUoMs(root),
         loadPreferences(root)
-    ]);
+    ];
+
+    if (hasPermission('settings.manage')) {
+        loaders.push(loadEmailSettings(root));
+    } else {
+        const card = root.querySelector('#emailSettingsCard');
+        card?.classList.add('u-hidden');
+    }
+
+    await Promise.all(loaders);
 }
 
 /**
@@ -405,9 +416,199 @@ function wirePreferencesForm(root) {
 }
 
 /**
+ * Loads non-secret Official Salon Email (SMTP) configuration for Admin.
+ */
+async function loadEmailSettings(root) {
+    try {
+        const email = await invoke('SettingsEmailGet');
+        applyEmailSettingsSummary(root, email);
+    } catch (error) {
+        const badge = root.querySelector('#emailConfigBadge');
+        if (badge) {
+            badge.className = 'status-badge status-badge--danger';
+            badge.textContent = 'Unavailable';
+        }
+        showToast('error', error.message);
+    }
+}
+
+function applyEmailSettingsSummary(root, email) {
+    if (!email) {
+        return;
+    }
+
+    emailHasStoredPassword = Boolean(email.hasPassword);
+
+    root.querySelector('#txtSmtpSenderEmail').value = email.senderEmail || '';
+    root.querySelector('#txtSmtpSenderName').value = email.senderName || 'Just MakeOver Beauty Salon & Spa';
+    root.querySelector('#txtSmtpHost').value = email.smtpHost || 'smtp.gmail.com';
+    root.querySelector('#numSmtpPort').value = email.smtpPort || 587;
+    root.querySelector('#chkSmtpStartTls').checked = email.useStartTls !== false;
+
+    const passInput = root.querySelector('#txtSmtpAppPassword');
+    const hint = root.querySelector('#hintSmtpAppPassword');
+    if (passInput) {
+        passInput.value = '';
+        passInput.placeholder = emailHasStoredPassword
+            ? 'Saved securely — leave blank to keep existing'
+            : 'Enter 16-character Google App Password';
+    }
+    if (hint) {
+        hint.textContent = emailHasStoredPassword
+            ? 'App password is saved and encrypted on this computer. Enter a new value only to replace it.'
+            : 'Stored encrypted on this computer. Never shown again after saving.';
+    }
+
+    const testInput = root.querySelector('#txtTestEmailRecipient');
+    if (testInput && !testInput.value && email.senderEmail) {
+        testInput.value = email.senderEmail;
+    }
+
+    const badge = root.querySelector('#emailConfigBadge');
+    if (badge) {
+        if (email.isConfigured) {
+            badge.className = 'status-badge status-badge--success';
+            badge.textContent = 'Configured';
+        } else {
+            badge.className = 'status-badge status-badge--danger';
+            badge.textContent = 'Not Configured';
+        }
+    }
+
+    const meta = root.querySelector('#emailConfigMeta');
+    if (meta) {
+        if (email.isConfigured) {
+            const by = email.updatedByName ? ` by ${email.updatedByName}` : '';
+            meta.textContent = `Active sender: ${email.senderEmail}${by}.`;
+            meta.classList.remove('u-hidden');
+        } else {
+            meta.textContent = 'Enter your Official Salon Gmail and 16-character Google App Password below so Purchasing can email suppliers.';
+            meta.classList.remove('u-hidden');
+        }
+    }
+}
+
+function clearEmailErrors(root) {
+    ['#errorSmtpSenderEmail', '#errorSmtpSenderName', '#errorSmtpAppPassword', '#errorSmtpHost', '#errorSmtpPort', '#errorTestEmail']
+        .forEach((selector) => {
+            const el = root.querySelector(selector);
+            if (el) el.textContent = '';
+        });
+}
+
+function wireEmailSettingsForm(root) {
+    const toggleBtn = root.querySelector('#btnToggleSmtpPassword');
+    const passInput = root.querySelector('#txtSmtpAppPassword');
+    toggleBtn?.addEventListener('click', () => {
+        if (!passInput) return;
+        const showing = passInput.type === 'text';
+        passInput.type = showing ? 'password' : 'text';
+        toggleBtn.textContent = showing ? 'Show' : 'Hide';
+    });
+
+    root.querySelector('#emailSettingsForm')?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        clearEmailErrors(root);
+
+        const saveButton = root.querySelector('#btnSaveEmailSettings');
+        const senderEmail = root.querySelector('#txtSmtpSenderEmail').value.trim();
+        const senderName = root.querySelector('#txtSmtpSenderName').value.trim();
+        const appPassword = root.querySelector('#txtSmtpAppPassword').value.trim();
+        const smtpHost = root.querySelector('#txtSmtpHost').value.trim();
+        const smtpPort = parseInt(root.querySelector('#numSmtpPort').value, 10);
+        const useStartTls = root.querySelector('#chkSmtpStartTls').checked;
+
+        if (!senderEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(senderEmail)) {
+            root.querySelector('#errorSmtpSenderEmail').textContent = 'Please enter a valid Official Salon Email address.';
+            return;
+        }
+        if (!senderName) {
+            root.querySelector('#errorSmtpSenderName').textContent = 'The sender display name is required.';
+            return;
+        }
+        if (!emailHasStoredPassword && !appPassword) {
+            root.querySelector('#errorSmtpAppPassword').textContent = 'Please enter the 16-character Google App Password.';
+            return;
+        }
+        if (!smtpHost) {
+            root.querySelector('#errorSmtpHost').textContent = 'SMTP host is required.';
+            return;
+        }
+        if (!smtpPort || smtpPort < 1 || smtpPort > 65535) {
+            root.querySelector('#errorSmtpPort').textContent = 'SMTP port must be between 1 and 65535.';
+            return;
+        }
+
+        const originalLabel = saveButton.textContent;
+        saveButton.disabled = true;
+        saveButton.textContent = 'Saving...';
+
+        try {
+            const updated = await invoke('SettingsEmailSave', {
+                senderEmail,
+                senderName,
+                appPassword,
+                smtpHost,
+                smtpPort: String(smtpPort),
+                useStartTls: useStartTls ? 'true' : 'false'
+            });
+            applyEmailSettingsSummary(root, updated);
+            showToast('success', 'Official Salon Email settings were saved.');
+        } catch (error) {
+            showToast('error', error.message);
+        } finally {
+            saveButton.disabled = false;
+            saveButton.textContent = originalLabel;
+        }
+    });
+
+    root.querySelector('#btnSendTestEmail')?.addEventListener('click', async () => {
+        clearEmailErrors(root);
+
+        const testButton = root.querySelector('#btnSendTestEmail');
+        const senderEmail = root.querySelector('#txtSmtpSenderEmail').value.trim();
+        const senderName = root.querySelector('#txtSmtpSenderName').value.trim();
+        const appPassword = root.querySelector('#txtSmtpAppPassword').value.trim();
+        const smtpHost = root.querySelector('#txtSmtpHost').value.trim();
+        const smtpPort = parseInt(root.querySelector('#numSmtpPort').value, 10);
+        const useStartTls = root.querySelector('#chkSmtpStartTls').checked;
+        const testRecipientEmail = root.querySelector('#txtTestEmailRecipient').value.trim() || senderEmail;
+
+        if (!testRecipientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(testRecipientEmail)) {
+            root.querySelector('#errorTestEmail').textContent = 'Please enter a valid test recipient email address.';
+            return;
+        }
+
+        const originalLabel = testButton.textContent;
+        testButton.disabled = true;
+        testButton.textContent = 'Sending...';
+
+        try {
+            const result = await invoke('SettingsEmailTest', {
+                testRecipientEmail,
+                senderEmail,
+                senderName,
+                appPassword,
+                smtpHost,
+                smtpPort: Number.isFinite(smtpPort) && smtpPort > 0 ? String(smtpPort) : '587',
+                useStartTls: useStartTls ? 'true' : 'false'
+            });
+            showToast('success', result?.message || `Test email sent to ${testRecipientEmail}.`);
+        } catch (error) {
+            root.querySelector('#errorTestEmail').textContent = error.message;
+            showToast('error', error.message);
+        } finally {
+            testButton.disabled = false;
+            testButton.textContent = originalLabel;
+        }
+    });
+}
+
+/**
  * Kani nga destroy kay nag-tangtang sa listeners sa settings page.
  */
 export function destroy() {
     addHandler = null;
     addUomHandler = null;
+    emailHasStoredPassword = false;
 }

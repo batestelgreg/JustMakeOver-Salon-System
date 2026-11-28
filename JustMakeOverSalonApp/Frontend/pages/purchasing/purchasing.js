@@ -1917,8 +1917,8 @@ function promptAndSendPOEmail(view, order, justApproved = false) {
     confirmEmailSend(view, {
         title: justApproved ? `PO ${poCode} Approved — Send to Supplier?` : `Send ${poCode} via Email`,
         message: justApproved
-            ? `${poCode} (${order.ItemName}, qty ${order.QuantityOrdered}, total ${money(order.TotalAmount)}) is approved. Confirm to send the Purchase Order directly to the supplier:`
-            : `Send ${poCode} (${order.ItemName}, qty ${order.QuantityOrdered}, total ${money(order.TotalAmount)}) directly to the supplier via SMTP email?`,
+            ? `${poCode} (${order.ItemName}, qty ${order.QuantityOrdered}, total ${money(order.TotalAmount)}) is approved. Confirm to send the Purchase Order from the Official Salon Email to:`
+            : `Send ${poCode} (${order.ItemName}, qty ${order.QuantityOrdered}, total ${money(order.TotalAmount)}) from the Official Salon Email to the supplier?`,
         supplierName: order.SupplierName,
         recipientEmail: recipient,
         confirmLabel: order.EmailStatus === 'Sent' ? 'Resend PO' : 'Send PO',
@@ -1968,7 +1968,7 @@ function promptAndSendFollowupEmail(view, followup) {
 
     confirmEmailSend(view, {
         title: `Send Follow-Up for ${poCode}`,
-        message: `Send this delivery follow-up reminder directly to the supplier via SMTP email?`,
+        message: `Send this delivery follow-up reminder from the Official Salon Email to the supplier?`,
         supplierName: followup.SupplierName,
         recipientEmail: recipient,
         confirmLabel: 'Send Follow-Up',

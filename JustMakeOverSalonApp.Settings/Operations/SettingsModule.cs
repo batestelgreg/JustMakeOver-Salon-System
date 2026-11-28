@@ -15,15 +15,20 @@ namespace JustMakeOverSalonApp.Settings.Operations
         public void RegisterOperations(OperationRegistry registry, IOperationContext context)
         {
             // Kani nga context ug service kay gigamit sa tanang handlers sa module.
+            var connectionFactory = new SqlConnectionFactory();
             this.context = context;
             this.service = new Services.SettingsService(
-                new Repositories.SettingsRepository(new SqlConnectionFactory()));
+                new Repositories.SettingsRepository(connectionFactory),
+                new EmailSettingsRepository(connectionFactory));
 
             // Kani mga operation names kay ang bridge contract sa Settings page.
             registry.Register("SettingsUoMs", HandleSettingsUoMsAsync);
             registry.Register("SettingsUomSave", HandleSettingsUomSaveAsync);
             registry.Register("SettingsPreferences", HandleSettingsPreferencesAsync);
             registry.Register("SettingsPreferencesSave", HandleSettingsPreferencesSaveAsync);
+            registry.Register("SettingsEmailGet", HandleSettingsEmailGetAsync);
+            registry.Register("SettingsEmailSave", HandleSettingsEmailSaveAsync);
+            registry.Register("SettingsEmailTest", HandleSettingsEmailTestAsync);
         }
 
         // Kani nga handler nagdala sa unit of measures master list
@@ -91,6 +96,90 @@ namespace JustMakeOverSalonApp.Settings.Operations
 
             await service.SavePreferencesAsync(actor, salonName, salonTagline, defaultRestockDays);
             context.SendResponse(requestID, true, null, null);
+        }
+
+        // Returns Official Salon Email configuration summary (never includes password).
+        private async Task HandleSettingsEmailGetAsync(Dictionary<string, object> payload, string requestID)
+        {
+            var actor = context.RequireUser();
+            var summary = await service.LoadEmailSettingsAsync(actor);
+            context.SendResponse(requestID, true, ToEmailResponse(summary), null);
+        }
+
+        // Saves Official Salon Email SMTP configuration into dbo.EMAIL_SETTINGS (DPAPI-encrypted).
+        private async Task HandleSettingsEmailSaveAsync(Dictionary<string, object> payload, string requestID)
+        {
+            var actor = context.RequireUser();
+
+            var senderEmail = context.GetValueAsString(payload, "senderEmail");
+            var senderName = context.GetValueAsString(payload, "senderName");
+            var appPassword = context.GetValueAsString(payload, "appPassword");
+            var smtpHost = context.GetValueAsString(payload, "smtpHost");
+            int.TryParse(context.GetValueAsString(payload, "smtpPort"), out int smtpPort);
+            var startTlsText = context.GetValueAsString(payload, "useStartTls");
+            bool useStartTls = !string.Equals(startTlsText, "false", System.StringComparison.OrdinalIgnoreCase);
+
+            var updated = await service.SaveEmailSettingsAsync(
+                actor,
+                senderEmail,
+                senderName,
+                appPassword,
+                smtpHost,
+                smtpPort,
+                useStartTls);
+
+            context.SendResponse(requestID, true, ToEmailResponse(updated), null);
+        }
+
+        // Sends a test verification email using Official Salon Email SMTP settings.
+        private async Task HandleSettingsEmailTestAsync(Dictionary<string, object> payload, string requestID)
+        {
+            var actor = context.RequireUser();
+
+            var testRecipient = context.GetValueAsString(payload, "testRecipientEmail");
+            var senderEmail = context.GetValueAsString(payload, "senderEmail");
+            var senderName = context.GetValueAsString(payload, "senderName");
+            var appPassword = context.GetValueAsString(payload, "appPassword");
+            var smtpHost = context.GetValueAsString(payload, "smtpHost");
+            int.TryParse(context.GetValueAsString(payload, "smtpPort"), out int smtpPort);
+            var startTlsText = context.GetValueAsString(payload, "useStartTls");
+            bool? useStartTls = null;
+            if (string.Equals(startTlsText, "true", System.StringComparison.OrdinalIgnoreCase))
+            {
+                useStartTls = true;
+            }
+            else if (string.Equals(startTlsText, "false", System.StringComparison.OrdinalIgnoreCase))
+            {
+                useStartTls = false;
+            }
+
+            var result = await service.SendTestEmailAsync(
+                actor,
+                testRecipient,
+                senderEmail,
+                senderName,
+                appPassword,
+                smtpHost,
+                smtpPort,
+                useStartTls);
+
+            context.SendResponse(requestID, true, result, null);
+        }
+
+        private static object ToEmailResponse(JustMakeOverSalonApp.Core.Models.EmailSettingsSummary summary)
+        {
+            return new
+            {
+                senderEmail = summary.SenderEmail ?? string.Empty,
+                senderName = summary.SenderName ?? string.Empty,
+                smtpHost = summary.SmtpHost ?? EmailSettingsRepository.DefaultSmtpHost,
+                smtpPort = summary.SmtpPort > 0 ? summary.SmtpPort : EmailSettingsRepository.DefaultSmtpPort,
+                useStartTls = summary.UseStartTls,
+                hasPassword = summary.HasPassword,
+                isConfigured = summary.IsConfigured,
+                updatedAt = summary.UpdatedAt,
+                updatedByName = summary.UpdatedByName ?? string.Empty
+            };
         }
     }
 }
