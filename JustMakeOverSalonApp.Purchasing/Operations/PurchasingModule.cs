@@ -21,9 +21,13 @@ namespace JustMakeOverSalonApp.Purchasing.Operations
         {
             this.context = context;
 
-            var repo = new PurchasingRepository(new SqlConnectionFactory());
+            var connectionFactory = new SqlConnectionFactory();
+            var repo = new PurchasingRepository(connectionFactory);
+            var emailSettingsRepo = new EmailSettingsRepository(connectionFactory);
+            EmailSettingsRepository.RegisterTransport(PurchaseEmailService.SendEmailDirectAsync);
+
             service = new PurchasingService(repo);
-            emailService = new PurchaseEmailService(repo);
+            emailService = new PurchaseEmailService(repo, emailSettingsRepo);
 
             registry.Register(
                 "PurchasingWorkspaceLoad", HandleLoadAsync);

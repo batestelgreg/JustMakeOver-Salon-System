@@ -34,10 +34,12 @@
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
+    <Reference Include="System.Security" />
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Data\DocumentSignatureRepository.cs" />
+    <Compile Include="Data\EmailSettingsRepository.cs" />
     <Compile Include="Data\SqlConnectionFactory.cs" />
     <Compile Include="Data\SqlResultReader.cs" />
     <Compile Include="Data\StoredProcedureNames.cs" />
@@ -46,6 +48,7 @@
     <Compile Include="Bridge\OperationRegistry.cs" />
     <Compile Include="Models\CurrentUser.cs" />
     <Compile Include="Models\DocumentSignatureModule.cs" />
+    <Compile Include="Models\EmailSettingsModels.cs" />
     <Compile Include="Models\LoginResult.cs" />
     <Compile Include="Models\PermissionRecord.cs" />
     <Compile Include="Models\RoleRecord.cs" />
@@ -59,6 +62,7 @@
     <Compile Include="Repositories\UserRepository.cs" />
     <Compile Include="Security\PasswordHasher.cs" />
     <Compile Include="Security\SessionContext.cs" />
+    <Compile Include="Security\SmtpSecretProtector.cs" />
     <Compile Include="Services\AuthService.cs" />
     <Compile Include="Services\DashboardService.cs" />
     <Compile Include="Services\DocumentSignatureService.cs" />

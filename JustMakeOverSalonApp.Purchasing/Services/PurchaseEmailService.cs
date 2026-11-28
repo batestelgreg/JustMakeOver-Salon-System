@@ -1,12 +1,12 @@
 using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Data.SqlClient;
 using System.Globalization;
 using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using JustMakeOverSalonApp.Core.Data;
 using JustMakeOverSalonApp.Core.Models;
 using JustMakeOverSalonApp.Core.Validation;
 using JustMakeOverSalonApp.Purchasing.Repositories;
@@ -17,16 +17,27 @@ using MimeKit;
 namespace JustMakeOverSalonApp.Purchasing.Services
 {
     // Asynchronous SMTP email service backed by MailKit.
-    // All SMTP credentials live strictly in App.config / gitignored Secrets.config
-    // on the C# side and are never exposed to the WebView2 JavaScript layer.
+    // Resolves the Admin-configured Official Salon Email from dbo.EMAIL_SETTINGS
+    // (DPAPI-encrypted in SQL) on the C# side so Purchasing Staff never need
+    // personal SMTP credentials and secrets are never exposed to WebView2 JS.
     public sealed class PurchaseEmailService
     {
         private readonly PurchasingRepository repository;
+        private readonly EmailSettingsRepository emailSettingsRepository;
 
         public PurchaseEmailService(PurchasingRepository repository)
+            : this(repository, new EmailSettingsRepository(new SqlConnectionFactory()))
+        {
+        }
+
+        public PurchaseEmailService(
+            PurchasingRepository repository,
+            EmailSettingsRepository emailSettingsRepository)
         {
             this.repository = repository
                 ?? throw new ArgumentNullException(nameof(repository));
+            this.emailSettingsRepository = emailSettingsRepository
+                ?? throw new ArgumentNullException(nameof(emailSettingsRepository));
         }
 
         public async Task<Dictionary<string, object>> SendPurchaseOrderAsync(
@@ -49,11 +60,11 @@ namespace JustMakeOverSalonApp.Purchasing.Services
             }
 
             string poCode = "PO-" + poID.ToString("D4", CultureInfo.InvariantCulture);
-            string salonName = ReadString(order, "SalonName", "Just MakeOver Beauty Salon & Spa");
+            string salonName = ReadString(order, "SalonName", EmailSettingsRepository.DefaultSenderName);
             string supplierName = ReadString(order, "SupplierName", "Supplier");
             string recipientRaw = ReadString(order, "SupplierEmail", string.Empty).Trim();
 
-            // 2. Validate supplier email in C# before constructing MimeKit addresses.
+            // 2. Validate supplier email before DB logging or MIME construction.
             if (!TryParseEmail(recipientRaw, out MailboxAddress recipientAddress))
             {
                 throw new BusinessException(
@@ -62,13 +73,17 @@ namespace JustMakeOverSalonApp.Purchasing.Services
                         : "The supplier email address (\"" + recipientRaw + "\") is not valid. Please update it under Suppliers.");
             }
 
+            // 3. Resolve Official Salon Email (Admin-configured) BEFORE recording Pending log
+            // so missing settings fail cleanly without creating spurious Failed log rows.
+            SmtpRuntimeConfig config = emailSettingsRepository.ResolveRuntimeConfig(actor.UserID, salonName);
+
             string subject = string.Format(
                 CultureInfo.InvariantCulture,
                 "Purchase Order {0} — {1}",
                 poCode,
                 salonName);
 
-            // 3. Record Pending attempt in dbo.EMAIL_LOGS (also re-validates in TSQL).
+            // 4. Record Pending attempt in dbo.EMAIL_LOGS (also re-validates in TSQL).
             long emailLogID;
             try
             {
@@ -86,10 +101,9 @@ namespace JustMakeOverSalonApp.Purchasing.Services
                 throw new BusinessException(sqlEx.Message);
             }
 
-            // 4. Build realistic business-standard HTML + plain-text PO message and send via MailKit.
+            // 5. Build business-standard HTML + plain-text PO message and send via MailKit.
             try
             {
-                var config = LoadSmtpConfig(salonName);
                 var message = BuildPurchaseOrderMimeMessage(
                     config,
                     recipientAddress,
@@ -109,9 +123,10 @@ namespace JustMakeOverSalonApp.Purchasing.Services
 
                 completed["Message"] = string.Format(
                     CultureInfo.InvariantCulture,
-                    "{0} was emailed to {1}.",
+                    "{0} was emailed to {1} from {2}.",
                     poCode,
-                    recipientAddress.Address);
+                    recipientAddress.Address,
+                    config.SenderEmail);
 
                 return completed;
             }
@@ -144,7 +159,7 @@ namespace JustMakeOverSalonApp.Purchasing.Services
             }
 
             string poCode = "PO-" + poID.ToString("D4", CultureInfo.InvariantCulture);
-            string salonName = ReadString(order, "SalonName", "Just MakeOver Beauty Salon & Spa");
+            string salonName = ReadString(order, "SalonName", EmailSettingsRepository.DefaultSenderName);
             string supplierName = ReadString(order, "SupplierName", "Supplier");
             string recipientRaw = ReadString(order, "SupplierEmail", string.Empty).Trim();
 
@@ -155,6 +170,8 @@ namespace JustMakeOverSalonApp.Purchasing.Services
                         ? "This supplier has no email address on file. Update the supplier record under Suppliers first."
                         : "The supplier email address (\"" + recipientRaw + "\") is not valid. Please update it under Suppliers.");
             }
+
+            SmtpRuntimeConfig config = emailSettingsRepository.ResolveRuntimeConfig(actor.UserID, salonName);
 
             string subject = string.Format(
                 CultureInfo.InvariantCulture,
@@ -181,7 +198,6 @@ namespace JustMakeOverSalonApp.Purchasing.Services
 
             try
             {
-                var config = LoadSmtpConfig(salonName);
                 var message = BuildFollowupMimeMessage(
                     config,
                     recipientAddress,
@@ -202,9 +218,10 @@ namespace JustMakeOverSalonApp.Purchasing.Services
 
                 completed["Message"] = string.Format(
                     CultureInfo.InvariantCulture,
-                    "Follow-up reminder for {0} was emailed to {1}.",
+                    "Follow-up reminder for {0} was emailed to {1} from {2}.",
                     poCode,
-                    recipientAddress.Address);
+                    recipientAddress.Address,
+                    config.SenderEmail);
 
                 return completed;
             }
@@ -216,8 +233,59 @@ namespace JustMakeOverSalonApp.Purchasing.Services
             }
         }
 
-        private async Task SendViaSmtpAsync(
-            SmtpSettings config,
+        // Shared MailKit transport entry point registered with Core so Settings Test Email
+        // uses the exact same SMTP connection and friendly error formatting without duplication.
+        public static async Task SendEmailDirectAsync(
+            SmtpRuntimeConfig config,
+            string recipientEmail,
+            string recipientName,
+            string subject,
+            string htmlBody,
+            string textBody,
+            CancellationToken cancellationToken = default(CancellationToken))
+        {
+            if (config == null)
+            {
+                throw new ArgumentNullException(nameof(config));
+            }
+
+            if (!TryParseEmail(config.SenderEmail, out MailboxAddress senderAddress))
+            {
+                throw new BusinessException(
+                    "The Official Salon Email address is invalid. Please update it under Settings -> Official Salon Email.");
+            }
+
+            if (!TryParseEmail(recipientEmail, out MailboxAddress recipientAddress))
+            {
+                throw new BusinessException("Please enter a valid recipient email address.");
+            }
+
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress(config.SenderName, senderAddress.Address));
+            message.To.Add(new MailboxAddress(
+                string.IsNullOrWhiteSpace(recipientName) ? recipientAddress.Address : recipientName.Trim(),
+                recipientAddress.Address));
+            message.Subject = subject ?? string.Empty;
+
+            var builder = new BodyBuilder
+            {
+                HtmlBody = htmlBody,
+                TextBody = textBody
+            };
+            message.Body = builder.ToMessageBody();
+
+            try
+            {
+                await SendViaSmtpAsync(config, message, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (!(ex is OperationCanceledException))
+            {
+                throw new BusinessException(FormatSmtpError(ex));
+            }
+        }
+
+        private static async Task SendViaSmtpAsync(
+            SmtpRuntimeConfig config,
             MimeMessage message,
             CancellationToken cancellationToken)
         {
@@ -248,7 +316,7 @@ namespace JustMakeOverSalonApp.Purchasing.Services
         }
 
         private static MimeMessage BuildPurchaseOrderMimeMessage(
-            SmtpSettings config,
+            SmtpRuntimeConfig config,
             MailboxAddress recipientAddress,
             string supplierName,
             string subject,
@@ -293,7 +361,7 @@ namespace JustMakeOverSalonApp.Purchasing.Services
             html.Append("<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\"><tr>");
             html.Append("<td style=\"vertical-align:middle;\">");
             html.Append("<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\"><tr>");
-            AppendBrandLogoCell(html, config.LogoUrl, salonName, 54);
+            EmailSettingsRepository.AppendBrandLogoCell(html, config.LogoUrl, salonName, 54);
             html.Append("<td style=\"vertical-align:middle;\">");
             html.Append("<div style=\"font-size:21px;font-weight:700;letter-spacing:0.3px;\">").Append(H(salonName)).Append("</div>");
             if (!string.IsNullOrWhiteSpace(salonTagline))
@@ -410,7 +478,7 @@ namespace JustMakeOverSalonApp.Purchasing.Services
         }
 
         private static MimeMessage BuildFollowupMimeMessage(
-            SmtpSettings config,
+            SmtpRuntimeConfig config,
             MailboxAddress recipientAddress,
             string supplierName,
             string subject,
@@ -446,7 +514,7 @@ namespace JustMakeOverSalonApp.Purchasing.Services
             html.Append("<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:620px;margin:0 auto;background-color:#ffffff;border:1px solid #dce3ec;border-radius:10px;overflow:hidden;\">");
             html.Append("<tr><td style=\"background-color:#132436;padding:20px 26px;color:#ffffff;\">");
             html.Append("<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\"><tr>");
-            AppendBrandLogoCell(html, config.LogoUrl, salonName, 48);
+            EmailSettingsRepository.AppendBrandLogoCell(html, config.LogoUrl, salonName, 48);
             html.Append("<td style=\"vertical-align:middle;\">");
             html.Append("<div style=\"font-size:19px;font-weight:700;\">").Append(H(salonName)).Append("</div>");
             if (!string.IsNullOrWhiteSpace(salonTagline))
@@ -483,50 +551,6 @@ namespace JustMakeOverSalonApp.Purchasing.Services
             return message;
         }
 
-        // Renders the salon logo via a hosted HTTPS URL (zero MIME image
-        // attachments so Gmail never shows logo.png / noname pills), with a
-        // pure HTML/CSS gold-outlined JM monogram fallback if LogoUrl is empty.
-        private static void AppendBrandLogoCell(StringBuilder html, string logoUrl, string salonName, int sizePx)
-        {
-            if (!string.IsNullOrWhiteSpace(logoUrl)
-                && Uri.TryCreate(logoUrl, UriKind.Absolute, out Uri parsed)
-                && (parsed.Scheme == Uri.UriSchemeHttps || parsed.Scheme == Uri.UriSchemeHttp))
-            {
-                html.Append("<td style=\"padding-right:14px;vertical-align:middle;\">");
-                html.Append("<img src=\"").Append(H(logoUrl))
-                    .Append("\" alt=\"").Append(H(salonName))
-                    .Append("\" width=\"").Append(sizePx)
-                    .Append("\" height=\"").Append(sizePx)
-                    .Append("\" style=\"display:block;width:").Append(sizePx)
-                    .Append("px;height:").Append(sizePx)
-                    .Append("px;border-radius:50%;border:2px solid #f2a832;box-sizing:border-box;\" />");
-                html.Append("</td>");
-                return;
-            }
-
-            int fontSize = sizePx >= 50 ? 20 : 18;
-            int innerLineHeight = sizePx - 4;
-
-            html.Append("<td style=\"padding-right:14px;vertical-align:middle;\">");
-            html.Append("<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" width=\"")
-                .Append(sizePx)
-                .Append("\" height=\"")
-                .Append(sizePx)
-                .Append("\" style=\"width:")
-                .Append(sizePx)
-                .Append("px;height:")
-                .Append(sizePx)
-                .Append("px;border-radius:50%;border:2px solid #f2a832;background-color:#0d1b2a;border-collapse:separate;\"><tr>");
-            html.Append("<td align=\"center\" valign=\"middle\" style=\"width:")
-                .Append(sizePx)
-                .Append("px;height:")
-                .Append(innerLineHeight)
-                .Append("px;text-align:center;vertical-align:middle;font-family:Georgia,'Times New Roman',serif;font-size:")
-                .Append(fontSize)
-                .Append("px;font-weight:700;letter-spacing:1px;color:#f2a832;line-height:1;\">JM</td>");
-            html.Append("</tr></table></td>");
-        }
-
         private static void AppendMetaRow(StringBuilder html, string label, string value)
         {
             html.Append("<div style=\"font-size:12px;margin-top:4px;color:#394b61;\"><span style=\"color:#64748b;\">")
@@ -536,101 +560,15 @@ namespace JustMakeOverSalonApp.Purchasing.Services
                 .Append("</strong></div>");
         }
 
-        private static SmtpSettings LoadSmtpConfig(string fallbackSenderName)
-        {
-            // Force refresh so edits to Secrets.config are picked up cleanly.
-            ConfigurationManager.RefreshSection("appSettings");
-
-            string host = (ConfigurationManager.AppSettings["SmtpHost"] ?? "smtp.gmail.com").Trim();
-            string portRaw = (ConfigurationManager.AppSettings["SmtpPort"] ?? "587").Trim();
-            string startTlsRaw = (ConfigurationManager.AppSettings["SmtpUseStartTls"] ?? "true").Trim();
-            string senderEmail = (ConfigurationManager.AppSettings["SmtpSenderEmail"] ?? string.Empty).Trim();
-            string senderName = (ConfigurationManager.AppSettings["SmtpSenderName"] ?? fallbackSenderName).Trim();
-            string logoUrl = (ConfigurationManager.AppSettings["SmtpLogoUrl"]
-                ?? "https://raw.githubusercontent.com/batestelgreg/JustMakeOverSalonSystem-App/main/JustMakeOverSalonApp/Frontend/images/logo.png").Trim();
-            string appPassword = (ConfigurationManager.AppSettings["SmtpAppPassword"] ?? string.Empty).Replace(" ", string.Empty).Trim();
-            string timeoutRaw = (ConfigurationManager.AppSettings["SmtpTimeoutMs"] ?? "20000").Trim();
-            string paymentTerms = (ConfigurationManager.AppSettings["PoPaymentTerms"] ?? "Net 30 Days upon delivery and inspection").Trim();
-
-            if (string.IsNullOrWhiteSpace(host))
-            {
-                throw new BusinessException("SMTP host is not configured in App.config.");
-            }
-
-            if (!int.TryParse(portRaw, NumberStyles.Integer, CultureInfo.InvariantCulture, out int port)
-                || port <= 0 || port > 65535)
-            {
-                port = 587;
-            }
-
-            if (!int.TryParse(timeoutRaw, NumberStyles.Integer, CultureInfo.InvariantCulture, out int timeoutMs)
-                || timeoutMs < 3000)
-            {
-                timeoutMs = 20000;
-            }
-
-            if (string.IsNullOrWhiteSpace(senderEmail)
-                || senderEmail.Equals("your-salon-email@gmail.com", StringComparison.OrdinalIgnoreCase)
-                || string.IsNullOrWhiteSpace(appPassword)
-                || appPassword.Equals("xxxx-xxxx-xxxx-xxxx", StringComparison.OrdinalIgnoreCase))
-            {
-                throw new BusinessException(
-                    "SMTP credentials are not configured yet. Add your SmtpSenderEmail and Google App Password (SmtpAppPassword) in Secrets.config, then try again.");
-            }
-
-            if (!TryParseEmail(senderEmail, out _))
-            {
-                throw new BusinessException(
-                    "The configured SmtpSenderEmail in Secrets.config is not a valid email address.");
-            }
-
-            return new SmtpSettings
-            {
-                Host = host,
-                Port = port,
-                UseStartTls = !string.Equals(startTlsRaw, "false", StringComparison.OrdinalIgnoreCase),
-                SenderEmail = senderEmail,
-                SenderName = string.IsNullOrWhiteSpace(senderName) ? "Just MakeOver Beauty Salon & Spa" : senderName,
-                LogoUrl = logoUrl,
-                AppPassword = appPassword,
-                TimeoutMs = timeoutMs,
-                PaymentTerms = string.IsNullOrWhiteSpace(paymentTerms) ? "Net 30 Days upon delivery and inspection" : paymentTerms
-            };
-        }
-
         private static bool TryParseEmail(string raw, out MailboxAddress parsed)
         {
             parsed = null;
-            if (string.IsNullOrWhiteSpace(raw))
+            if (!EmailSettingsRepository.IsValidEmailFormat(raw))
             {
                 return false;
             }
 
-            string trimmed = raw.Trim();
-            if (trimmed.Contains(" ") || !trimmed.Contains("@"))
-            {
-                return false;
-            }
-
-            if (!MailboxAddress.TryParse(trimmed, out MailboxAddress address))
-            {
-                return false;
-            }
-
-            int at = address.Address.IndexOf('@');
-            if (at <= 0 || at >= address.Address.Length - 1)
-            {
-                return false;
-            }
-
-            string domain = address.Address.Substring(at + 1);
-            if (!domain.Contains(".") || domain.StartsWith(".", StringComparison.Ordinal) || domain.EndsWith(".", StringComparison.Ordinal))
-            {
-                return false;
-            }
-
-            parsed = address;
-            return true;
+            return MailboxAddress.TryParse(raw.Trim(), out parsed);
         }
 
         private void TryRecordFailure(int actorUserID, long emailLogID, string errorMessage)
@@ -659,7 +597,7 @@ namespace JustMakeOverSalonApp.Purchasing.Services
 
             if (ex is AuthenticationException)
             {
-                return "SMTP authentication failed. Verify SmtpSenderEmail and your 16-character Google App Password in Secrets.config.";
+                return "SMTP authentication failed. Ask an Administrator to verify the Official Salon Email and 16-character Google App Password under Settings -> Official Salon Email.";
             }
 
             if (ex is SmtpCommandException cmdEx)
@@ -743,19 +681,6 @@ namespace JustMakeOverSalonApp.Purchasing.Services
             {
                 throw new BusinessException("Please sign in before sending supplier emails.");
             }
-        }
-
-        private sealed class SmtpSettings
-        {
-            public string Host { get; set; }
-            public int Port { get; set; }
-            public bool UseStartTls { get; set; }
-            public string SenderEmail { get; set; }
-            public string SenderName { get; set; }
-            public string LogoUrl { get; set; }
-            public string AppPassword { get; set; }
-            public int TimeoutMs { get; set; }
-            public string PaymentTerms { get; set; }
         }
     }
 }

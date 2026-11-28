@@ -1593,6 +1593,7 @@ const ACTIVITY_ACTION_LABELS = {
     REQUISITION_CANCELLED: 'Cancelled Requisition',
     REQUISITION_REVISED: 'Revised Requisition',
     PURCHASING_ACTION: 'Purchasing Action',
+    EMAIL_SETTINGS_UPDATED: 'Updated Salon Email Settings',
     PO_EMAIL_SENT: 'Emailed Purchase Order',
     PO_EMAIL_FAILED: 'PO Email Failed',
     PURCHASE_DR_RECEIVED: 'Received Supplier Delivery',
