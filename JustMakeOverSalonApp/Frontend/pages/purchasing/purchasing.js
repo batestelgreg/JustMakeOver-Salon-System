@@ -887,6 +887,7 @@ function render(view) {
             'Ordered',
             'Total',
             'Status',
+            'Email',
             'Expected',
             'Accepted / stocked',
             'Outstanding',
@@ -900,6 +901,7 @@ function render(view) {
             r.QuantityOrdered,
             money(r.TotalAmount),
             r.Status,
+            emailStatusCell(r),
             date(r.ExpectedDate),
 
             `${r.AcceptedQuantity} / ${r.StockedQuantity}`,
@@ -909,12 +911,15 @@ function render(view) {
             buttons([
                 ['Print PO', 'PrintPO', r.POID],
 
-                [
-                    'Email PO draft',
-                    'EmailPO',
+                (p.CanManage || p.CanApprove)
+                && !['Pending Approval', 'Rejected', 'Cancelled'].includes(r.Status)
+                && [
+                    r.EmailStatus === 'Sent' ? 'Resend PO' : 'Send PO',
+                    'SendPO',
                     r.POID,
-                    'Opens a draft in your email app. '
-                    + 'The system does not send the email automatically.'
+                    'Send this Purchase Order directly to '
+                    + (r.SupplierEmail || 'the supplier')
+                    + ' via SMTP email.'
                 ],
 
                 p.CanApprove
@@ -923,8 +928,8 @@ function render(view) {
                     'Approve',
                     'ApprovePO',
                     r.POID,
-                    'Approving opens the supplier email draft. '
-                    + 'The system does not send it automatically.'
+                    'Approve with digital signature, then confirm '
+                    + 'to email the PO directly to the supplier.'
                 ],
 
                 p.CanApprove
@@ -937,8 +942,7 @@ function render(view) {
                     'Mark as sent',
                     'DispatchPO',
                     r.POID,
-                    'Use this only after you actually sent '
-                    + 'the PO to the supplier.'
+                    'Use this if you sent the PO manually outside email.'
                 ],
 
                 p.CanManage
@@ -1089,12 +1093,13 @@ function render(view) {
                 : 'Not marked sent',
 
             buttons([
-                [
-                    'Open email draft',
-                    'EmailFollowup',
+                (p.CanManage || p.CanApprove)
+                && [
+                    r.SentAt ? 'Resend follow-up' : 'Send follow-up',
+                    'SendFollowup',
                     r.FollowupID,
-                    'Opens a draft in your email app. '
-                    + 'The system does not send the reminder automatically.'
+                    'Send this delivery follow-up reminder directly '
+                    + 'to ' + (r.Email || 'the supplier') + ' via SMTP email.'
                 ],
 
                 p.CanManage
@@ -1103,8 +1108,7 @@ function render(view) {
                     'Mark follow-up sent',
                     'FollowupSent',
                     r.FollowupID,
-                    'Use this only after you actually sent '
-                    + 'the reminder to the supplier.'
+                    'Use this if you already followed up manually.'
                 ]
             ])
         ]
@@ -1647,20 +1651,14 @@ async function handleClick(view, event) {
             }
         );
 
-        // Preserve the existing email-draft behavior after approval.
+        // Offer immediate SMTP email dispatch right after PO approval.
         if (succeeded && !view.closed) {
             const approved = view.data?.orders.find(
                 (r) => r.POID === id
             );
 
             if (approved) {
-                email(
-                    view,
-                    approved.SupplierEmail,
-                    'Purchase Order #' + id,
-                    orderText(approved),
-                    'PO approved. '
-                );
+                promptAndSendPOEmail(view, approved, true);
             }
         }
     } else if (action === 'DispatchPO') {
@@ -1706,25 +1704,15 @@ async function handleClick(view, event) {
         await printPurchaseOrder(view, order.POID);
     } else if (action === 'PrintReturnSlip') {
         await printReturnSlip(view, id);
-    } else if (action === 'EmailPO' && order) {
-        email(
-            view,
-            order.SupplierEmail,
-            'Purchase Order #' + id,
-            orderText(order)
-        );
-    } else if (action === 'EmailFollowup') {
+    } else if (action === 'SendPO' && order) {
+        promptAndSendPOEmail(view, order, false);
+    } else if (action === 'SendFollowup') {
         const followup = view.data.followups.find(
             (r) => r.FollowupID === id
         );
 
         if (followup) {
-            email(
-                view,
-                followup.Email,
-                'Follow-up: PO #' + followup.POID,
-                followup.Message
-            );
+            promptAndSendFollowupEmail(view, followup);
         }
     } else if (action === 'EmailReplacement') {
         const receipt = view.data.receipts.find(
@@ -1797,6 +1785,226 @@ function updateReceiptHint(view) {
         : 'Select a PO to see its outstanding quantity. '
         + 'Replacement deliveries use the same PO '
         + 'and a new generated delivery reference.';
+}
+
+function emailStatusCell(order) {
+    const wrap = document.createElement('div');
+    wrap.className = 'purchasing-email-status';
+
+    const status = String(order.EmailStatus || '').trim();
+    const badge = document.createElement('span');
+
+    if (status === 'Sent') {
+        badge.className = 'purchasing-email-badge purchasing-email-badge--sent';
+        badge.textContent = 'Sent';
+    } else if (status === 'Failed') {
+        badge.className = 'purchasing-email-badge purchasing-email-badge--failed';
+        badge.textContent = 'Failed';
+        if (order.EmailErrorMessage) {
+            badge.title = order.EmailErrorMessage;
+        }
+    } else if (status === 'Pending') {
+        badge.className = 'purchasing-email-badge purchasing-email-badge--pending';
+        badge.textContent = 'Pending';
+    } else {
+        badge.className = 'purchasing-email-badge purchasing-email-badge--none';
+        badge.textContent = 'Not sent';
+    }
+
+    wrap.appendChild(badge);
+
+    if (status === 'Sent' && order.EmailSentAt) {
+        const meta = document.createElement('span');
+        meta.className = 'purchasing-email-meta';
+        meta.textContent = formatPrintDate(order.EmailSentAt, true);
+        if (order.EmailRecipient) {
+            meta.title = 'Sent to ' + order.EmailRecipient;
+        }
+        wrap.appendChild(meta);
+    } else if (status === 'Failed' && order.EmailErrorMessage) {
+        const meta = document.createElement('span');
+        meta.className = 'purchasing-email-meta';
+        meta.textContent = order.EmailErrorMessage;
+        meta.title = order.EmailErrorMessage;
+        wrap.appendChild(meta);
+    }
+
+    return wrap;
+}
+
+function confirmEmailSend(view, {
+    title,
+    message,
+    recipientEmail,
+    supplierName,
+    confirmLabel = 'Send Email',
+    onConfirm
+}) {
+    if (view.root.querySelector('.purchasing-remove-dialog')) {
+        return;
+    }
+
+    const previousFocus = document.activeElement;
+    const dialog = document.createElement('dialog');
+    dialog.className = 'purchasing-remove-dialog';
+
+    const content = document.createElement('div');
+    content.className = 'purchasing-remove-content';
+
+    const heading = document.createElement('h3');
+    heading.textContent = title;
+
+    const text = document.createElement('p');
+    text.textContent = message;
+
+    const recipientBox = document.createElement('span');
+    recipientBox.className = 'purchasing-email-recipient';
+    recipientBox.textContent = `${supplierName || 'Supplier'} <${recipientEmail}>`;
+
+    const actions = document.createElement('div');
+    actions.className = 'purchasing-remove-actions';
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'purchasing-remove-cancel';
+    cancelBtn.textContent = 'Cancel';
+
+    const sendBtn = document.createElement('button');
+    sendBtn.type = 'button';
+    sendBtn.className = 'purchasing-remove-confirm';
+    sendBtn.textContent = confirmLabel;
+
+    cancelBtn.addEventListener('click', () => dialog.close());
+
+    sendBtn.addEventListener('click', async () => {
+        if (sendBtn.disabled) return;
+        sendBtn.disabled = true;
+        dialog.close();
+        dialog.remove();
+
+        if (!view.closed) {
+            await onConfirm();
+        }
+    });
+
+    dialog.addEventListener('close', () => {
+        dialog.remove();
+        if (!view.closed && previousFocus?.isConnected) {
+            previousFocus.focus();
+        }
+    }, { once: true });
+
+    actions.append(cancelBtn, sendBtn);
+    content.append(heading, text, recipientBox, actions);
+    dialog.appendChild(content);
+    view.root.appendChild(dialog);
+    dialog.showModal();
+    sendBtn.focus();
+}
+
+function promptAndSendPOEmail(view, order, justApproved = false) {
+    const recipient = String(order.SupplierEmail || '').trim();
+    const poCode = 'PO-' + pad(order.POID);
+
+    if (!recipient) {
+        const msg = (justApproved ? poCode + ' was approved, but ' : '')
+            + 'this supplier has no email address on file. Update the supplier under Suppliers first.';
+        say(view, msg);
+        showPurchasingToast(view, msg, true, 'Supplier email unavailable');
+        return;
+    }
+
+    confirmEmailSend(view, {
+        title: justApproved ? `PO ${poCode} Approved — Send to Supplier?` : `Send ${poCode} via Email`,
+        message: justApproved
+            ? `${poCode} (${order.ItemName}, qty ${order.QuantityOrdered}, total ${money(order.TotalAmount)}) is approved. Confirm to send the Purchase Order directly to the supplier:`
+            : `Send ${poCode} (${order.ItemName}, qty ${order.QuantityOrdered}, total ${money(order.TotalAmount)}) directly to the supplier via SMTP email?`,
+        supplierName: order.SupplierName,
+        recipientEmail: recipient,
+        confirmLabel: order.EmailStatus === 'Sent' ? 'Resend PO' : 'Send PO',
+        onConfirm: async () => {
+            if (view.busy || view.closed) return;
+            lock(view, true);
+            say(view, `Sending ${poCode} to ${recipient}...`);
+
+            let sentOk = false;
+            let feedback = '';
+
+            try {
+                const res = await invoke('PurchasingSendPOEmail', {
+                    poID: order.POID
+                });
+                sentOk = true;
+                feedback = res?.Message || `${poCode} was emailed to ${recipient}.`;
+            } catch (error) {
+                feedback = error.message || `Unable to email ${poCode}.`;
+            } finally {
+                lock(view, false);
+            }
+
+            if (view.closed) return;
+
+            await refresh(view, feedback);
+            showPurchasingToast(
+                view,
+                feedback,
+                !sentOk,
+                sentOk ? 'Purchase Order emailed' : 'Email failed'
+            );
+        }
+    });
+}
+
+function promptAndSendFollowupEmail(view, followup) {
+    const recipient = String(followup.Email || '').trim();
+    const poCode = 'PO-' + pad(followup.POID);
+
+    if (!recipient) {
+        const msg = 'This supplier has no email address on file. Update the supplier under Suppliers first.';
+        say(view, msg);
+        showPurchasingToast(view, msg, true, 'Supplier email unavailable');
+        return;
+    }
+
+    confirmEmailSend(view, {
+        title: `Send Follow-Up for ${poCode}`,
+        message: `Send this delivery follow-up reminder directly to the supplier via SMTP email?`,
+        supplierName: followup.SupplierName,
+        recipientEmail: recipient,
+        confirmLabel: 'Send Follow-Up',
+        onConfirm: async () => {
+            if (view.busy || view.closed) return;
+            lock(view, true);
+            say(view, `Sending follow-up for ${poCode} to ${recipient}...`);
+
+            let sentOk = false;
+            let feedback = '';
+
+            try {
+                const res = await invoke('PurchasingSendFollowupEmail', {
+                    poID: followup.POID,
+                    followupID: followup.FollowupID,
+                    message: followup.Message || ''
+                });
+                sentOk = true;
+                feedback = res?.Message || `Follow-up reminder for ${poCode} was emailed to ${recipient}.`;
+            } catch (error) {
+                feedback = error.message || `Unable to email follow-up for ${poCode}.`;
+            } finally {
+                lock(view, false);
+            }
+
+            if (view.closed) return;
+
+            await refresh(view, feedback);
+            showPurchasingToast(
+                view,
+                feedback,
+                !sentOk,
+                sentOk ? 'Follow-up emailed' : 'Email failed'
+            );
+        }
+    });
 }
 
 function orderText(order) {

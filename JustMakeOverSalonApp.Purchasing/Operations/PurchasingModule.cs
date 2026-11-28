@@ -13,6 +13,7 @@ namespace JustMakeOverSalonApp.Purchasing.Operations
     {
         private IOperationContext context;
         private PurchasingService service;
+        private PurchaseEmailService emailService;
 
         public void RegisterOperations(
             OperationRegistry registry,
@@ -20,14 +21,24 @@ namespace JustMakeOverSalonApp.Purchasing.Operations
         {
             this.context = context;
 
-            service = new PurchasingService(
-                new PurchasingRepository(new SqlConnectionFactory()));
+            var repo = new PurchasingRepository(new SqlConnectionFactory());
+            service = new PurchasingService(repo);
+            emailService = new PurchaseEmailService(repo);
 
             registry.Register(
                 "PurchasingWorkspaceLoad", HandleLoadAsync);
 
             registry.Register(
                 "PurchasingWorkspaceAction", HandleActionAsync);
+
+            // Real SMTP email dispatch via MailKit (credentials stay strictly in C#).
+            registry.Register(
+                "PurchasingSendPOEmail",
+                HandleSendPOEmailAsync);
+
+            registry.Register(
+                "PurchasingSendFollowupEmail",
+                HandleSendFollowupEmailAsync);
 
             // Kani nga operations kay ON-DEMAND print calls. Wala ni
             // ma-apil sa page load, so one DB call gihapon ang page.
@@ -144,6 +155,33 @@ namespace JustMakeOverSalonApp.Purchasing.Operations
                     }
                 }
             }
+
+            context.SendResponse(requestID, true, result, null);
+        }
+
+        // Sends the Purchase Order HTML email asynchronously via MailKit SMTP
+        // and updates dbo.EMAIL_LOGS + PO dispatch status.
+        private async Task HandleSendPOEmailAsync(
+            Dictionary<string, object> payload,
+            string requestID)
+        {
+            var result = await emailService.SendPurchaseOrderAsync(
+                context.RequireUser(),
+                ParseID(context.GetValueAsString(payload, "poID")));
+
+            context.SendResponse(requestID, true, result, null);
+        }
+
+        // Sends a delivery follow-up reminder email asynchronously via MailKit SMTP.
+        private async Task HandleSendFollowupEmailAsync(
+            Dictionary<string, object> payload,
+            string requestID)
+        {
+            var result = await emailService.SendFollowupReminderAsync(
+                context.RequireUser(),
+                ParseID(context.GetValueAsString(payload, "poID")),
+                ParseID(context.GetValueAsString(payload, "followupID")),
+                context.GetValueAsString(payload, "message"));
 
             context.SendResponse(requestID, true, result, null);
         }

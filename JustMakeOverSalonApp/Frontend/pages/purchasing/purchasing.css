@@ -391,6 +391,65 @@ dialog.purchasing-remove-dialog {
     border-left-color: #c83d32;
 }
 
+/* Email status pill inside PO table */
+.purchasing-email-status {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.purchasing-email-badge {
+    display: inline-block;
+    width: fit-content;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+}
+
+.purchasing-email-badge--sent {
+    background: #e6f6ee;
+    color: #166534;
+}
+
+.purchasing-email-badge--failed {
+    background: #fdecec;
+    color: #991b1b;
+}
+
+.purchasing-email-badge--pending {
+    background: #fff4db;
+    color: #92400e;
+}
+
+.purchasing-email-badge--none {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.purchasing-email-meta {
+    font-size: 11px;
+    color: #64748b;
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.purchasing-email-recipient {
+    display: block;
+    margin-top: 10px;
+    padding: 10px 12px;
+    border: 1px solid #dce3ec;
+    border-radius: 8px;
+    background: #f8fafc;
+    color: #10283f;
+    font-size: 13px;
+    font-weight: 600;
+    word-break: break-all;
+}
+
 /* Print only the shared business document host. */
 @media print {
     .purchasing-toast {
