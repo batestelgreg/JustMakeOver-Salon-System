@@ -1,6 +1,5 @@
-/* 
-   Kani nga utilities.css kay nagdala sa mga gamit nga helper
-   classes para sa spacing ug layout adjustments.
+/*
+   Shared spacing, grid, and layout utilities.
  */
 
 .u-hidden {
@@ -16,6 +15,7 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--space-4);
+    flex-wrap: wrap;
 }
 
 .u-flex--center {
@@ -28,6 +28,7 @@
     display: flex;
     align-items: center;
     gap: var(--space-3);
+    flex-wrap: wrap;
 }
 
 .u-stack {
@@ -38,41 +39,45 @@
 
 .u-grid-4 {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
     gap: var(--space-4);
 }
 
 .u-grid-2 {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
     gap: var(--space-4);
 }
 
 .u-mt-2 { margin-top: var(--space-2); }
 .u-mt-4 { margin-top: var(--space-4); }
-.u-mt-6 { margin-top: var(--space-6); }
+.u-mt-6 { margin-top: var(--space-5); }
+.u-mb-2 { margin-bottom: var(--space-2); }
 .u-mb-4 { margin-bottom: var(--space-4); }
-.u-mb-6 { margin-bottom: var(--space-6); }
+.u-mb-6 { margin-bottom: var(--space-5); }
 
 .u-text-muted { color: var(--color-text-muted); }
 .u-text-center { text-align: center; }
 .u-full-width { width: 100%; }
 
-/* Kani nga class kay para sa page headers sa matag module. */
+/* Consistent module page header across all workspaces. */
 .page-header {
     display: flex;
     align-items: flex-end;
     justify-content: space-between;
     gap: var(--space-4);
+    flex-wrap: wrap;
     margin-bottom: var(--space-5);
 }
 
 .page-header__title {
     font-size: 26px;
+    line-height: 1.25;
 }
 
 .page-header__subtitle {
     color: var(--color-text-muted);
     font-size: 14px;
-    margin-top: 4px;
+    line-height: 1.55;
+    margin-top: 6px;
 }

@@ -233,6 +233,119 @@ namespace JustMakeOverSalonApp.Purchasing.Services
             }
         }
 
+        public async Task<Dictionary<string, object>> SendReplacementRequestAsync(
+            CurrentUser actor,
+            int poID,
+            int drID,
+            int replacementQty,
+            string deliveryReference,
+            string customSubject,
+            string customBody,
+            CancellationToken cancellationToken = default(CancellationToken))
+        {
+            RequireActor(actor);
+
+            if (poID <= 0 || drID <= 0)
+            {
+                throw new BusinessException("A valid purchase order delivery record is required.");
+            }
+
+            if (string.IsNullOrWhiteSpace(customBody))
+            {
+                throw new BusinessException("Please enter an email message before sending.");
+            }
+
+            var order = repository.GetPurchaseOrderPrint(actor.UserID, poID);
+            if (order == null)
+            {
+                throw new BusinessException("The related purchase order could not be found.");
+            }
+
+            string poCode = "PO-" + poID.ToString("D4", CultureInfo.InvariantCulture);
+            string salonName = ReadString(order, "SalonName", EmailSettingsRepository.DefaultSenderName);
+            string supplierName = ReadString(order, "SupplierName", "Supplier");
+            string recipientRaw = ReadString(order, "SupplierEmail", string.Empty).Trim();
+
+            if (!TryParseEmail(recipientRaw, out MailboxAddress recipientAddress))
+            {
+                throw new BusinessException(
+                    string.IsNullOrWhiteSpace(recipientRaw)
+                        ? "This supplier has no email address on file. Update the supplier record under Suppliers first."
+                        : "The supplier email address (\"" + recipientRaw + "\") is not valid. Please update it under Suppliers.");
+            }
+
+            SmtpRuntimeConfig config = emailSettingsRepository.ResolveRuntimeConfig(actor.UserID, salonName);
+
+            string subject = string.IsNullOrWhiteSpace(customSubject)
+                ? string.Format(
+                    CultureInfo.InvariantCulture,
+                    "Replacement Request: {0} — {1}",
+                    poCode,
+                    salonName)
+                : customSubject.Trim();
+
+            if (subject.Length > 250)
+            {
+                subject = subject.Substring(0, 250);
+            }
+
+            long emailLogID;
+            try
+            {
+                var pending = repository.BeginEmailLog(
+                    actor.UserID,
+                    poID,
+                    "REPLACEMENT_REQUEST",
+                    null,
+                    subject);
+
+                emailLogID = Convert.ToInt64(pending["EmailLogID"], CultureInfo.InvariantCulture);
+            }
+            catch (SqlException sqlEx) when (sqlEx.Number >= 50000)
+            {
+                throw new BusinessException(sqlEx.Message);
+            }
+
+            try
+            {
+                var message = BuildReplacementMimeMessage(
+                    config,
+                    recipientAddress,
+                    supplierName,
+                    subject,
+                    poCode,
+                    order,
+                    drID,
+                    replacementQty,
+                    deliveryReference,
+                    customBody.Trim());
+
+                await SendViaSmtpAsync(config, message, cancellationToken).ConfigureAwait(false);
+
+                var completed = repository.CompleteEmailLog(
+                    actor.UserID,
+                    emailLogID,
+                    "Sent",
+                    null,
+                    markDispatched: false);
+
+                completed["Message"] = string.Format(
+                    CultureInfo.InvariantCulture,
+                    "Replacement request for {0} was emailed to {1} from {2}.",
+                    poCode,
+                    recipientAddress.Address,
+                    config.SenderEmail);
+
+                return completed;
+            }
+            catch (Exception ex)
+            {
+                string friendlyError = FormatSmtpError(ex);
+                TryRecordFailure(actor.UserID, emailLogID, friendlyError);
+                throw new BusinessException(friendlyError);
+            }
+        }
+
         // Shared MailKit transport entry point registered with Core so Settings Test Email
         // uses the exact same SMTP connection and friendly error formatting without duplication.
         public static async Task SendEmailDirectAsync(
@@ -546,6 +659,72 @@ namespace JustMakeOverSalonApp.Purchasing.Services
                 outstanding,
                 expectedDate,
                 salonName);
+            message.Body = builder.ToMessageBody();
+
+            return message;
+        }
+
+        private static MimeMessage BuildReplacementMimeMessage(
+            SmtpRuntimeConfig config,
+            MailboxAddress recipientAddress,
+            string supplierName,
+            string subject,
+            string poCode,
+            Dictionary<string, object> order,
+            int drID,
+            int replacementQty,
+            string deliveryReference,
+            string draftBody)
+        {
+            string salonName = ReadString(order, "SalonName", config.SenderName);
+            string salonTagline = ReadString(order, "SalonTagline", "Beauty Salon & Spa");
+            string itemName = ReadString(order, "ItemName", string.Empty);
+            string refCode = string.IsNullOrWhiteSpace(deliveryReference)
+                ? "DR-" + drID.ToString("D4", CultureInfo.InvariantCulture)
+                : deliveryReference.Trim();
+
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress(config.SenderName, config.SenderEmail));
+            message.To.Add(new MailboxAddress(supplierName, recipientAddress.Address));
+            message.Subject = subject;
+
+            var builder = new BodyBuilder();
+
+            string htmlMessage = H(draftBody)
+                .Replace("\r\n", "\n")
+                .Replace("\r", "\n")
+                .Replace("\n", "<br>");
+
+            var html = new StringBuilder(2048);
+            html.Append("<!DOCTYPE html><html><head><meta charset=\"UTF-8\"></head>");
+            html.Append("<body style=\"margin:0;padding:24px;background-color:#f4f6f9;font-family:'Segoe UI',Arial,Helvetica,sans-serif;color:#182538;\">");
+            html.Append("<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:620px;margin:0 auto;background-color:#ffffff;border:1px solid #dce3ec;border-radius:10px;overflow:hidden;\">");
+            html.Append("<tr><td style=\"background-color:#0f1d2e;padding:20px 26px;color:#ffffff;\">");
+            html.Append("<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\"><tr>");
+            EmailSettingsRepository.AppendBrandLogoCell(html, config.LogoUrl, salonName, 48);
+            html.Append("<td style=\"vertical-align:middle;\">");
+            html.Append("<div style=\"font-size:19px;font-weight:700;\">").Append(H(salonName)).Append("</div>");
+            if (!string.IsNullOrWhiteSpace(salonTagline))
+                html.Append("<div style=\"font-size:12px;color:#c7d4e2;margin-top:2px;\">").Append(H(salonTagline)).Append("</div>");
+            html.Append("</td></tr></table></td></tr>");
+            html.Append("<tr><td style=\"padding:24px 26px;\">");
+            html.Append("<div style=\"font-size:14px;line-height:1.65;color:#182638;margin-bottom:18px;\">").Append(htmlMessage).Append("</div>");
+            html.Append("<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"border:1px solid #dce3ec;border-radius:8px;background-color:#f8fafc;\"><tr><td style=\"padding:12px 16px;\">");
+            AppendMetaRow(html, "Purchase Order", poCode);
+            AppendMetaRow(html, "Delivery Reference", refCode);
+            AppendMetaRow(html, "Item", itemName);
+            if (replacementQty > 0)
+            {
+                AppendMetaRow(html, "Replacement Quantity Needed", replacementQty.ToString("N0", CultureInfo.InvariantCulture));
+            }
+            html.Append("</td></tr></table>");
+            html.Append("</td></tr>");
+            html.Append("<tr><td style=\"background-color:#f8fafc;border-top:1px solid #dce3ec;padding:12px 26px;font-size:11px;color:#64748b;text-align:center;\">");
+            html.Append(H(salonName)).Append(" &middot; Replacement Request");
+            html.Append("</td></tr></table></body></html>");
+
+            builder.HtmlBody = html.ToString();
+            builder.TextBody = draftBody;
             message.Body = builder.ToMessageBody();
 
             return message;

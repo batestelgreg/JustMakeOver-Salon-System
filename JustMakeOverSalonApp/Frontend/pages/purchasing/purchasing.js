@@ -621,11 +621,26 @@ function buttons(items) {
 
     group.className = 'purchasing-row-actions';
 
+    const buttonVariant = (action) => {
+        if (action === 'CreatePR' || action === 'ApprovePO' || action === 'RevisePR') {
+            return 'btn--primary';
+        }
+        if (action === 'SendPO' || action === 'SendFollowup'
+            || action === 'PrintPO' || action === 'PrintReturnSlip') {
+            return 'btn--secondary';
+        }
+        if (action === 'RejectPO' || action === 'RemovePR' || action === 'RemoveQuotation') {
+            return 'btn--tint-danger';
+        }
+        return 'btn--ghost';
+    };
+
     items.filter(Boolean).forEach(
         ([label, action, id, title]) => {
             const button = document.createElement('button');
 
             button.type = 'button';
+            button.className = 'btn btn--sm ' + buttonVariant(action);
             button.textContent = label;
             button.dataset.action = action;
             button.dataset.id = String(id);
@@ -647,6 +662,29 @@ function buttons(items) {
     );
 
     return group;
+}
+
+function statusBadge(status) {
+    const label = String(status || '—');
+    const normalized = label.toLowerCase();
+    const badge = document.createElement('span');
+
+    let variant = 'badge--neutral';
+    if (normalized === 'approved' || normalized === 'completed' || normalized === 'stocked') {
+        variant = 'badge--approved';
+    } else if (normalized === 'pending' || normalized === 'pending approval' || normalized === 'open') {
+        variant = 'badge--pending';
+    } else if (normalized === 'partially delivered' || normalized === 'revised') {
+        variant = 'badge--gold';
+    } else if (normalized === 'sent to supplier') {
+        variant = 'badge--info';
+    } else if (normalized === 'rejected' || normalized === 'cancelled') {
+        variant = 'badge--rejected';
+    }
+
+    badge.className = 'badge ' + variant;
+    badge.textContent = label;
+    return badge;
 }
 
 function selectOptions(select, rows, label, key) {
@@ -722,13 +760,13 @@ function confirmRemoval(
     const close = document.createElement('button');
 
     close.type = 'button';
-    close.className = 'purchasing-remove-cancel';
+    close.className = 'btn btn--ghost';
     close.textContent = 'Close';
 
     const confirm = document.createElement('button');
 
     confirm.type = 'button';
-    confirm.className = 'purchasing-remove-confirm';
+    confirm.className = 'btn btn--danger';
     confirm.textContent = 'Confirm Removal';
 
     close.addEventListener('click', () => {
@@ -826,7 +864,7 @@ function render(view) {
             r.RepFID,
             r.ItemName,
             r.QuantityNeeded,
-            r.Status,
+            statusBadge(r.Status),
             lastPoResult(rejectedPoByPr, r),
 
             buttons([
@@ -900,7 +938,7 @@ function render(view) {
             r.SupplierName + ' / ' + r.ItemName,
             r.QuantityOrdered,
             money(r.TotalAmount),
-            r.Status,
+            statusBadge(r.Status),
             emailStatusCell(r),
             date(r.ExpectedDate),
 
@@ -1727,26 +1765,7 @@ async function handleClick(view, event) {
 
         if (!po) return;
 
-        const replacementQty = Math.min(
-            receipt.QuantityRejected,
-            po.OutstandingQuantity
-        );
-
-        email(
-            view,
-            po.SupplierEmail,
-            'Replacement request: PO #' + po.POID,
-
-            `Please replace ${replacementQty} `
-            + 'outstanding rejected unit(s) '
-            + `of ${po.ItemName} for PO #${po.POID}.\n`
-
-            + 'Delivery reference: '
-            + `${receipt.SupplierDRNumber || receipt.DRID}\n`
-
-            + 'Discrepancy: '
-            + `${receipt.Notes || 'See delivery inspection record.'}`
-        );
+        promptAndSendReplacementEmail(view, receipt, po);
     }
 }
 
@@ -1866,12 +1885,12 @@ function confirmEmailSend(view, {
 
     const cancelBtn = document.createElement('button');
     cancelBtn.type = 'button';
-    cancelBtn.className = 'purchasing-remove-cancel';
+    cancelBtn.className = 'btn btn--ghost';
     cancelBtn.textContent = 'Cancel';
 
     const sendBtn = document.createElement('button');
     sendBtn.type = 'button';
-    sendBtn.className = 'purchasing-remove-confirm';
+    sendBtn.className = 'btn btn--primary';
     sendBtn.textContent = confirmLabel;
 
     cancelBtn.addEventListener('click', () => dialog.close());
@@ -2005,6 +2024,197 @@ function promptAndSendFollowupEmail(view, followup) {
             );
         }
     });
+}
+
+function promptAndSendReplacementEmail(view, receipt, po) {
+    if (view.root.querySelector('.purchasing-remove-dialog')) {
+        return;
+    }
+
+    const recipient = String(po.SupplierEmail || '').trim();
+    const poCode = 'PO-' + pad(po.POID);
+    const drCode = receipt.SupplierDRNumber || ('DR-' + pad(receipt.DRID));
+    const replacementQty = Math.max(
+        0,
+        Math.min(
+            Number(receipt.QuantityRejected || 0),
+            Number(po.OutstandingQuantity || 0)
+        )
+    );
+
+    const defaultSubject = `Replacement Request: ${poCode} — ${po.ItemName}`;
+    const defaultBody = [
+        `Dear ${po.SupplierName || 'Supplier'},`,
+        '',
+        `We are requesting a replacement for the rejected item(s) under ${poCode}.`,
+        '',
+        `Item: ${po.ItemName}`,
+        `Delivery Reference: ${drCode}`,
+        `Replacement Quantity Needed: ${replacementQty} unit(s)`,
+        `Discrepancy / Inspection Notes: ${receipt.Notes || 'Rejected upon delivery inspection.'}`,
+        '',
+        'Kindly confirm the earliest schedule for the replacement delivery.',
+        '',
+        'Thank you.'
+    ].join('\n');
+
+    const previousFocus = document.activeElement;
+    const dialog = document.createElement('dialog');
+    dialog.className = 'purchasing-remove-dialog purchasing-draft-dialog';
+
+    const content = document.createElement('div');
+    content.className = 'purchasing-remove-content';
+
+    const heading = document.createElement('h3');
+    heading.textContent = `Replacement Email Draft — ${poCode}`;
+
+    const intro = document.createElement('p');
+    intro.textContent =
+        'Review or customize the email draft below before sending to the supplier.';
+
+    content.append(heading, intro);
+
+    if (recipient) {
+        const recipientBox = document.createElement('span');
+        recipientBox.className = 'purchasing-email-recipient';
+        recipientBox.textContent =
+            `To: ${po.SupplierName || 'Supplier'} <${recipient}>`;
+        content.appendChild(recipientBox);
+    } else {
+        const warningBox = document.createElement('div');
+        warningBox.className = 'purchasing-email-warning';
+        warningBox.textContent =
+            'This supplier has no email address on file. Update the supplier record under Suppliers before sending.';
+        content.appendChild(warningBox);
+    }
+
+    const fields = document.createElement('div');
+    fields.className = 'purchasing-draft-fields';
+
+    const subjectLabel = document.createElement('label');
+    subjectLabel.textContent = 'Subject';
+    const subjectInput = document.createElement('input');
+    subjectInput.type = 'text';
+    subjectInput.maxLength = 250;
+    subjectInput.value = defaultSubject;
+    subjectLabel.appendChild(subjectInput);
+
+    const bodyLabel = document.createElement('label');
+    bodyLabel.textContent = 'Message Draft';
+    const bodyInput = document.createElement('textarea');
+    bodyInput.rows = 8;
+    bodyInput.maxLength = 4000;
+    bodyInput.value = defaultBody;
+    bodyLabel.appendChild(bodyInput);
+
+    fields.append(subjectLabel, bodyLabel);
+    content.appendChild(fields);
+
+    const actions = document.createElement('div');
+    actions.className = 'purchasing-remove-actions';
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'btn btn--ghost';
+    cancelBtn.textContent = 'Cancel';
+
+    const mailtoBtn = document.createElement('button');
+    mailtoBtn.type = 'button';
+    mailtoBtn.className = 'btn btn--ghost';
+    mailtoBtn.textContent = 'Open in Mail App';
+    mailtoBtn.disabled = !recipient;
+
+    const sendBtn = document.createElement('button');
+    sendBtn.type = 'button';
+    sendBtn.className = 'btn btn--primary';
+    sendBtn.textContent = 'Send Email';
+    sendBtn.disabled = !recipient;
+
+    cancelBtn.addEventListener('click', () => dialog.close());
+
+    mailtoBtn.addEventListener('click', () => {
+        const draftSubject = subjectInput.value.trim() || defaultSubject;
+        const draftBody = bodyInput.value.trim() || defaultBody;
+        dialog.close();
+        dialog.remove();
+        email(view, recipient, draftSubject, draftBody);
+    });
+
+    sendBtn.addEventListener('click', async () => {
+        const draftSubject = subjectInput.value.trim();
+        const draftBody = bodyInput.value.trim();
+
+        if (!draftSubject) {
+            subjectInput.focus();
+            showPurchasingToast(view, 'Please enter an email subject.', true, 'Missing subject');
+            return;
+        }
+        if (!draftBody) {
+            bodyInput.focus();
+            showPurchasingToast(view, 'Please enter the replacement message before sending.', true, 'Missing message');
+            return;
+        }
+        if (sendBtn.disabled || view.busy || view.closed) {
+            return;
+        }
+
+        sendBtn.disabled = true;
+        dialog.close();
+        dialog.remove();
+
+        lock(view, true);
+        say(view, `Sending replacement request for ${poCode} to ${recipient}...`);
+
+        let sentOk = false;
+        let feedback = '';
+
+        try {
+            const res = await invoke('PurchasingSendReplacementEmail', {
+                poID: po.POID,
+                drID: receipt.DRID,
+                replacementQty,
+                deliveryReference: drCode,
+                subject: draftSubject,
+                body: draftBody
+            });
+            sentOk = true;
+            feedback = res?.Message
+                || `Replacement request for ${poCode} was emailed to ${recipient}.`;
+        } catch (error) {
+            feedback = error.message
+                || `Unable to send replacement email for ${poCode}.`;
+        } finally {
+            lock(view, false);
+        }
+
+        if (view.closed) return;
+
+        await refresh(view, feedback);
+        showPurchasingToast(
+            view,
+            feedback,
+            !sentOk,
+            sentOk ? 'Replacement email sent' : 'Email failed'
+        );
+    });
+
+    dialog.addEventListener('close', () => {
+        dialog.remove();
+        if (!view.closed && previousFocus?.isConnected) {
+            previousFocus.focus();
+        }
+    }, { once: true });
+
+    actions.append(cancelBtn, mailtoBtn, sendBtn);
+    content.appendChild(actions);
+    dialog.appendChild(content);
+    view.root.appendChild(dialog);
+    dialog.showModal();
+    if (recipient) {
+        sendBtn.focus();
+    } else {
+        cancelBtn.focus();
+    }
 }
 
 function orderText(order) {

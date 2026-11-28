@@ -1,16 +1,15 @@
 ﻿<!-- Purchasing owns procurement and supplier delivery checks.
      Receiving owns RM processing and inventory updates. -->
 <section class="purchasing-page">
-    <header class="purchasing-toolbar">
+    <header class="page-header">
         <div>
-            <h2>Purchasing</h2>
-            <p>
-                Requests, quotations, purchase orders,
-                and supplier follow-ups.
+            <h2 class="page-header__title">Purchasing</h2>
+            <p class="page-header__subtitle">
+                Requests, quotations, purchase orders, and supplier follow-ups.
             </p>
         </div>
 
-        <button type="button" id="purchasingRefresh">
+        <button type="button" class="btn btn--ghost" id="purchasingRefresh">
             Refresh
         </button>
     </header>
@@ -19,17 +18,15 @@
        role="status"
        aria-live="polite"></p>
 
-    <section class="purchasing-panel">
+    <section class="purchasing-panel card">
         <h3>Pending replenishments</h3>
-
         <div id="replenishmentTable"></div>
 
         <h3>Purchase Requests</h3>
-
         <div id="requestTable"></div>
     </section>
 
-    <section class="purchasing-panel">
+    <section class="purchasing-panel card">
         <h3>Supplier quotations</h3>
 
         <p>
@@ -38,11 +35,12 @@
             With multiple quotations, compare again after editing.
         </p>
 
-        <label for="quotationPR">
-            Purchase Request
-        </label>
-
-        <select id="quotationPR"></select>
+        <div class="purchasing-field">
+            <label for="quotationPR">
+                Purchase Request
+            </label>
+            <select id="quotationPR"></select>
+        </div>
 
         <form id="quotationForm"
               class="purchasing-form">
@@ -64,11 +62,12 @@
                        required>
             </label>
 
-            <button type="submit" data-manage>
+            <button type="submit" class="btn btn--primary" data-manage>
                 Save quotation
             </button>
 
             <button type="button"
+                    class="btn btn--secondary"
                     id="compareSuppliers"
                     data-manage>
                 Compare &amp; recommend
@@ -90,13 +89,13 @@
                        required>
             </label>
 
-            <button type="submit" data-manage>
+            <button type="submit" class="btn btn--primary" data-manage>
                 Create PO
             </button>
         </form>
     </section>
 
-    <section class="purchasing-panel">
+    <section class="purchasing-panel card">
         <h3>Annual purchasing budget</h3>
 
         <div id="budgetTable"></div>
@@ -125,13 +124,13 @@
                        required>
             </label>
 
-            <button type="submit">
+            <button type="submit" class="btn btn--primary">
                 Save budget
             </button>
         </form>
     </section>
 
-    <section class="purchasing-panel">
+    <section class="purchasing-panel card">
         <h3>Purchase Orders</h3>
 
         <p>
@@ -143,7 +142,7 @@
         <div id="orderTable"></div>
     </section>
 
-    <section class="purchasing-panel">
+    <section class="purchasing-panel card">
         <h3>Supplier delivery check</h3>
 
         <p>
@@ -217,7 +216,7 @@
                           rows="3"></textarea>
             </label>
 
-            <button type="submit" data-manage>
+            <button type="submit" class="btn btn--primary" data-manage>
                 Record delivery check
             </button>
         </form>
@@ -225,7 +224,7 @@
         <div id="receiptTable"></div>
     </section>
 
-    <section class="purchasing-panel">
+    <section class="purchasing-panel card">
         <h3>Outstanding delivery follow-ups</h3>
 
         <p>
@@ -243,22 +242,24 @@
         <form id="decisionForm">
             <h3>Reject Purchase Order</h3>
 
-            <label>
-                Reason
-
+            <div class="purchasing-field">
+                <label for="decisionReason">
+                    Reason
+                </label>
                 <textarea id="decisionReason"
                           maxlength="1000"
                           rows="4"
                           required></textarea>
-            </label>
+            </div>
 
             <div class="purchasing-toolbar">
                 <button type="button"
+                        class="btn btn--ghost"
                         id="cancelDecision">
                     Cancel
                 </button>
 
-                <button type="submit">
+                <button type="submit" class="btn btn--danger">
                     Reject PO
                 </button>
             </div>

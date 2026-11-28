@@ -42,21 +42,9 @@ export function renderHeader() {
         );
     }
 
-    const signOutButton = document.getElementById(
-        'signOutButton'
-    );
-
     const bellButton = document.getElementById(
         'notificationBell'
     );
-
-    if (signOutButton) {
-        signOutButton.addEventListener('click', () => {
-            closeUserMenu();
-            closeChangeOwnPasswordModal(true);
-            publish(AppEvents.LogoutRequested, {});
-        });
-    }
 
     wireAccountMenu();
     wireChangeOwnPasswordModal();

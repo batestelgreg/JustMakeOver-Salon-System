@@ -374,6 +374,10 @@ function renderItems(root, searchText = '') {
                 <td colspan="5">No matching items found.</td>
             </tr>
         `;
+        applyVisibleRowLimit(
+            tableBody.closest('.available-items-scroll'),
+            HISTORY_VISIBLE_ROWS
+        );
         return;
     }
 
@@ -393,6 +397,12 @@ function renderItems(root, searchText = '') {
             </td>
         </tr>
     `).join('');
+
+    // Auto-scroll when Available Items exceeds 10 visible rows.
+    applyVisibleRowLimit(
+        tableBody.closest('.available-items-scroll'),
+        HISTORY_VISIBLE_ROWS
+    );
 
     // Get all Select buttons from the available items table.
     const selectButtons = tableBody.querySelectorAll('.select-item-btn');
@@ -481,7 +491,7 @@ function renderSelectedItems(root) {
             </td>
             <td>
                 <button type="button"
-                        class="btn btn--sm remove-item-btn"
+                        class="btn btn--tint-danger btn--sm remove-item-btn"
                         data-item-id="${Number(item.ItemID)}">
                     Remove
                 </button>
@@ -631,17 +641,19 @@ function renderPendingRequisitions(root) {
                 <td>${escapeHtml(requisition.Justification || '-')}</td>
                 <td>${requestedItems || 'No items'}</td>
                 <td>
-                    <button type="button"
-                            class="btn btn--primary btn--sm approve-requisition-btn"
-                            data-requisition-id="${Number(requisition.RequisitionID)}">
-                        Approve
-                    </button>
+                    <div class="table-actions">
+                        <button type="button"
+                                class="btn btn--primary btn--sm approve-requisition-btn"
+                                data-requisition-id="${Number(requisition.RequisitionID)}">
+                            Approve
+                        </button>
 
-                    <button type="button"
-                            class="btn btn--danger btn--sm reject-requisition-btn"
-                            data-requisition-id="${Number(requisition.RequisitionID)}">
-                        Reject
-                    </button>
+                        <button type="button"
+                                class="btn btn--tint-danger btn--sm reject-requisition-btn"
+                                data-requisition-id="${Number(requisition.RequisitionID)}">
+                            Reject
+                        </button>
+                    </div>
                 </td>
             </tr>
         `;
@@ -1033,7 +1045,7 @@ function renderRequisitionHistory(root) {
         if (canCancel) {
             actionButtons.push(`
                 <button type="button"
-                        class="btn btn--danger btn--sm cancel-requisition-btn"
+                        class="btn btn--tint-danger btn--sm cancel-requisition-btn"
                         data-requisition-id="${requisitionId}">
                     Cancel
                 </button>
@@ -1063,7 +1075,7 @@ function renderRequisitionHistory(root) {
         }
 
         const actionButton = actionButtons.length > 0
-            ? actionButtons.join(' ')
+            ? `<div class="table-actions">${actionButtons.join('')}</div>`
             : '-';
 
         // Return the HTML row containing the requisition information.
@@ -1073,7 +1085,7 @@ function renderRequisitionHistory(root) {
                 <td>${escapeHtml(requestDate)}</td>
                 <td>${escapeHtml(requiredDate)}</td>
                 <td>${escapeHtml(requisition.Justification || '-')}</td>
-                <td>${escapeHtml(requisition.Status)}${archivedNote}</td>
+                <td>${renderStatusBadge(requisition.Status)}${archivedNote}</td>
                 <td>${items || 'No items'}</td>
                 <td>${actionButton}</td>
             </tr>
@@ -1404,7 +1416,7 @@ function renderAllRequisitionHistory(root, requisitions) {
                 <td>${escapeHtml(requisition.RequestorName || '-')}</td>
                 <td>${escapeHtml(requestDate)}</td>
                 <td>${escapeHtml(requiredDate)}</td>
-                <td>${escapeHtml(requisition.Status)}</td>
+                <td>${renderStatusBadge(requisition.Status)}</td>
                 <td>${escapeHtml(requisition.Justification || '-')}</td>
                 <td>${items || 'No items'}</td>
                 <td>${escapeHtml(rejectionReason)}</td>
@@ -1742,6 +1754,22 @@ async function confirmRequisitionCancellation(root) {
         // Enable the button again after processing.
         confirmButton.disabled = false;
     }
+}
+
+function renderStatusBadge(status) {
+    const label = String(status || '-');
+    const normalized = label.toLowerCase();
+    let badgeClass = 'badge--neutral';
+
+    if (normalized === 'approved' || normalized === 'fulfilled') {
+        badgeClass = 'badge--approved';
+    } else if (normalized === 'pending') {
+        badgeClass = 'badge--pending';
+    } else if (normalized === 'rejected') {
+        badgeClass = 'badge--rejected';
+    }
+
+    return `<span class="badge ${badgeClass}">${escapeHtml(label)}</span>`;
 }
 
 function escapeHtml(value) {
