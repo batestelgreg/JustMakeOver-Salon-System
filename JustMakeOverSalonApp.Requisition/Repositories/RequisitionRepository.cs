@@ -236,6 +236,7 @@ namespace JustMakeOverSalonApp.Requisition.Repositories
                         INNER JOIN ROLE_PERMISSIONS rp ON rp.RoleID = u.RoleID
                         INNER JOIN PERMISSIONS p ON p.PermissionID = rp.PermissionID
                         WHERE u.IsActive = 1
+                          AND u.UserID <> @RequestorUserID
                           AND p.PermissionCode = 'requisitions.approve';
                     ", connection, transaction))
                     {
@@ -245,6 +246,9 @@ namespace JustMakeOverSalonApp.Requisition.Repositories
 
                         command.Parameters.Add("@RequisitionID", SqlDbType.Int)
                             .Value = requisitionID;
+
+                        command.Parameters.Add("@RequestorUserID", SqlDbType.Int)
+                            .Value = requestorUserID;
 
                         command.ExecuteNonQuery();
                     }
@@ -914,6 +918,7 @@ namespace JustMakeOverSalonApp.Requisition.Repositories
                         INNER JOIN ROLE_PERMISSIONS rp ON rp.RoleID = u.RoleID
                         INNER JOIN PERMISSIONS p ON p.PermissionID = rp.PermissionID
                         WHERE u.IsActive = 1
+                          AND u.UserID <> @RequestorUserID
                           AND p.PermissionCode = 'requisitions.approve';
                     ", connection, transaction))
                     {
@@ -922,6 +927,8 @@ namespace JustMakeOverSalonApp.Requisition.Repositories
                                 + " was revised and resubmitted for review.";
                         command.Parameters.Add("@RequisitionID", SqlDbType.Int)
                             .Value = requisitionID;
+                        command.Parameters.Add("@RequestorUserID", SqlDbType.Int)
+                            .Value = requestorUserID;
                         command.ExecuteNonQuery();
                     }
 

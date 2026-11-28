@@ -7,7 +7,7 @@
  */
 import { invoke } from './bridge.js';
 import { publish, AppEvents } from './events.js';
-import { getUser, hasPermission } from './state.js';
+import { hasPermission } from './state.js';
 import { showToast } from '../components/toast.js';
 
 // Informational notifications are marked read when opened.
@@ -21,9 +21,9 @@ const INFO_ONLY_TYPES = new Set([
     'REQUISITION_FULFILLED',
     'REQUISITION_CANCELLED',
     'DELIVERY_REISSUED',
-    'DELIVERY_ISSUED',
     'DELIVERY_COMPLETED',
-    'PO_APPROVED'
+    'PO_APPROVED',
+    'PO_RECEIVED'
 ]);
 
 function decrementUnreadBadge() {
@@ -92,9 +92,7 @@ export function navigateToNotification(notification) {
     const entityID =
         Number(notification?.RelatedEntityID) || 0;
 
-    const userRole = String(getUser()?.role || '');
-    const canManageDelivery = hasPermission('delivery.manage')
-        && ['Admin', 'Inventory Staff'].includes(userRole);
+    const canManageDelivery = hasPermission('delivery.manage');
 
     let name = null;
     let params = {};
@@ -147,7 +145,14 @@ export function navigateToNotification(notification) {
             permission = 'delivery.view';
         }
     } else if (type === 'STOCK_SHORTAGE') {
-        if (hasPermission('purchasing.view')) {
+        if (entityType === 'REQUISITION') {
+            name = 'requisitions';
+            params = entityID > 0
+                ? { highlight: { type: 'requisition', id: entityID } }
+                : {};
+            permission = 'requisitions.view';
+            markReadAsInfo = true;
+        } else if (hasPermission('purchasing.view')) {
             name = 'purchasing';
             params = entityID > 0
                 ? { highlight: { type: 'repf', id: entityID } }
@@ -178,6 +183,7 @@ export function navigateToNotification(notification) {
     } else if (
         type === 'PO_PENDING_APPROVAL'
         || type === 'PO_APPROVED'
+        || type === 'PO_RECEIVED'
     ) {
         name = 'purchasing';
         params = entityID > 0

@@ -136,8 +136,7 @@ async function reloadAll(root) {
 }
 
 function canManageDelivery() {
-    return hasPermission('delivery.manage') &&
-        ['Admin', 'Inventory Staff'].includes(getUser()?.role);
+    return hasPermission('delivery.manage');
 }
 
 function renderAllocatedTable(root) {
