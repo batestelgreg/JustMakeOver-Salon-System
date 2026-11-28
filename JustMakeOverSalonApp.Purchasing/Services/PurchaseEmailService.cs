@@ -281,23 +281,28 @@ namespace JustMakeOverSalonApp.Purchasing.Services
             message.To.Add(new MailboxAddress(supplierName, recipientAddress.Address));
             message.Subject = subject;
 
+            var builder = new BodyBuilder();
+
             var html = new StringBuilder(4096);
             html.Append("<!DOCTYPE html><html><head><meta charset=\"UTF-8\"></head>");
             html.Append("<body style=\"margin:0;padding:24px;background-color:#f4f6f9;font-family:'Segoe UI',Arial,Helvetica,sans-serif;color:#182538;\">");
             html.Append("<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:680px;margin:0 auto;background-color:#ffffff;border:1px solid #dce3ec;border-radius:10px;overflow:hidden;\">");
 
-            // Business header banner
-            html.Append("<tr><td style=\"background-color:#132436;padding:24px 28px;color:#ffffff;\">");
+            // Business header banner with gold-outlined hosted logo (zero image attachments)
+            html.Append("<tr><td style=\"background-color:#132436;padding:22px 28px;color:#ffffff;\">");
             html.Append("<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\"><tr>");
-            html.Append("<td style=\"vertical-align:top;\">");
+            html.Append("<td style=\"vertical-align:middle;\">");
+            html.Append("<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\"><tr>");
+            AppendBrandLogoCell(html, config.LogoUrl, salonName, 54);
+            html.Append("<td style=\"vertical-align:middle;\">");
             html.Append("<div style=\"font-size:21px;font-weight:700;letter-spacing:0.3px;\">").Append(H(salonName)).Append("</div>");
             if (!string.IsNullOrWhiteSpace(salonTagline))
             {
                 html.Append("<div style=\"font-size:12px;color:#c7d4e2;margin-top:3px;\">").Append(H(salonTagline)).Append("</div>");
             }
-            html.Append("</td>");
-            html.Append("<td style=\"text-align:right;vertical-align:top;\">");
-            html.Append("<div style=\"font-size:11px;text-transform:uppercase;letter-spacing:1.2px;color:#ffb43b;font-weight:700;\">Purchase Order</div>");
+            html.Append("</td></tr></table></td>");
+            html.Append("<td style=\"text-align:right;vertical-align:middle;\">");
+            html.Append("<div style=\"font-size:11px;text-transform:uppercase;letter-spacing:1.2px;color:#f2a832;font-weight:700;\">Purchase Order</div>");
             html.Append("<div style=\"font-size:20px;font-weight:700;margin-top:2px;\">").Append(H(poCode)).Append("</div>");
             html.Append("</td></tr></table></td></tr>");
 
@@ -397,11 +402,8 @@ namespace JustMakeOverSalonApp.Purchasing.Services
             plainText.AppendLine("Requested By: " + requestedBy);
             plainText.AppendLine("Authorized Signatory: " + approvedBy);
 
-            var builder = new BodyBuilder
-            {
-                HtmlBody = html.ToString(),
-                TextBody = plainText.ToString()
-            };
+            builder.HtmlBody = html.ToString();
+            builder.TextBody = plainText.ToString();
             message.Body = builder.ToMessageBody();
 
             return message;
@@ -436,15 +438,20 @@ namespace JustMakeOverSalonApp.Purchasing.Services
             message.To.Add(new MailboxAddress(supplierName, recipientAddress.Address));
             message.Subject = subject;
 
+            var builder = new BodyBuilder();
+
             var html = new StringBuilder(2048);
             html.Append("<!DOCTYPE html><html><head><meta charset=\"UTF-8\"></head>");
             html.Append("<body style=\"margin:0;padding:24px;background-color:#f4f6f9;font-family:'Segoe UI',Arial,Helvetica,sans-serif;color:#182538;\">");
             html.Append("<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:620px;margin:0 auto;background-color:#ffffff;border:1px solid #dce3ec;border-radius:10px;overflow:hidden;\">");
             html.Append("<tr><td style=\"background-color:#132436;padding:20px 26px;color:#ffffff;\">");
+            html.Append("<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\"><tr>");
+            AppendBrandLogoCell(html, config.LogoUrl, salonName, 48);
+            html.Append("<td style=\"vertical-align:middle;\">");
             html.Append("<div style=\"font-size:19px;font-weight:700;\">").Append(H(salonName)).Append("</div>");
             if (!string.IsNullOrWhiteSpace(salonTagline))
                 html.Append("<div style=\"font-size:12px;color:#c7d4e2;margin-top:2px;\">").Append(H(salonTagline)).Append("</div>");
-            html.Append("</td></tr>");
+            html.Append("</td></tr></table></td></tr>");
             html.Append("<tr><td style=\"padding:24px 26px;\">");
             html.Append("<p style=\"margin:0 0 12px;font-size:14px;\">Dear <strong>").Append(H(supplierName)).Append("</strong>,</p>");
             html.Append("<p style=\"margin:0 0 16px;font-size:14px;line-height:1.6;color:#394b61;\">").Append(H(bodyNote)).Append("</p>");
@@ -460,23 +467,64 @@ namespace JustMakeOverSalonApp.Purchasing.Services
             html.Append(H(salonName)).Append(" &middot; Delivery Follow-Up");
             html.Append("</td></tr></table></body></html>");
 
-            var builder = new BodyBuilder
-            {
-                HtmlBody = html.ToString(),
-                TextBody = string.Format(
-                    CultureInfo.InvariantCulture,
-                    "Dear {0},\n\n{1}\n\nPurchase Order: {2}\nItem: {3}\nOutstanding Quantity: {4}\nExpected Delivery: {5}\n\nThank you,\n{6}",
-                    supplierName,
-                    bodyNote,
-                    poCode,
-                    itemName,
-                    outstanding,
-                    expectedDate,
-                    salonName)
-            };
+            builder.HtmlBody = html.ToString();
+            builder.TextBody = string.Format(
+                CultureInfo.InvariantCulture,
+                "Dear {0},\n\n{1}\n\nPurchase Order: {2}\nItem: {3}\nOutstanding Quantity: {4}\nExpected Delivery: {5}\n\nThank you,\n{6}",
+                supplierName,
+                bodyNote,
+                poCode,
+                itemName,
+                outstanding,
+                expectedDate,
+                salonName);
             message.Body = builder.ToMessageBody();
 
             return message;
+        }
+
+        // Renders the salon logo via a hosted HTTPS URL (zero MIME image
+        // attachments so Gmail never shows logo.png / noname pills), with a
+        // pure HTML/CSS gold-outlined JM monogram fallback if LogoUrl is empty.
+        private static void AppendBrandLogoCell(StringBuilder html, string logoUrl, string salonName, int sizePx)
+        {
+            if (!string.IsNullOrWhiteSpace(logoUrl)
+                && Uri.TryCreate(logoUrl, UriKind.Absolute, out Uri parsed)
+                && (parsed.Scheme == Uri.UriSchemeHttps || parsed.Scheme == Uri.UriSchemeHttp))
+            {
+                html.Append("<td style=\"padding-right:14px;vertical-align:middle;\">");
+                html.Append("<img src=\"").Append(H(logoUrl))
+                    .Append("\" alt=\"").Append(H(salonName))
+                    .Append("\" width=\"").Append(sizePx)
+                    .Append("\" height=\"").Append(sizePx)
+                    .Append("\" style=\"display:block;width:").Append(sizePx)
+                    .Append("px;height:").Append(sizePx)
+                    .Append("px;border-radius:50%;border:2px solid #f2a832;box-sizing:border-box;\" />");
+                html.Append("</td>");
+                return;
+            }
+
+            int fontSize = sizePx >= 50 ? 20 : 18;
+            int innerLineHeight = sizePx - 4;
+
+            html.Append("<td style=\"padding-right:14px;vertical-align:middle;\">");
+            html.Append("<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" width=\"")
+                .Append(sizePx)
+                .Append("\" height=\"")
+                .Append(sizePx)
+                .Append("\" style=\"width:")
+                .Append(sizePx)
+                .Append("px;height:")
+                .Append(sizePx)
+                .Append("px;border-radius:50%;border:2px solid #f2a832;background-color:#0d1b2a;border-collapse:separate;\"><tr>");
+            html.Append("<td align=\"center\" valign=\"middle\" style=\"width:")
+                .Append(sizePx)
+                .Append("px;height:")
+                .Append(innerLineHeight)
+                .Append("px;text-align:center;vertical-align:middle;font-family:Georgia,'Times New Roman',serif;font-size:")
+                .Append(fontSize)
+                .Append("px;font-weight:700;letter-spacing:1px;color:#f2a832;line-height:1;\">JM</td>");
+            html.Append("</tr></table></td>");
         }
 
         private static void AppendMetaRow(StringBuilder html, string label, string value)
@@ -498,6 +546,8 @@ namespace JustMakeOverSalonApp.Purchasing.Services
             string startTlsRaw = (ConfigurationManager.AppSettings["SmtpUseStartTls"] ?? "true").Trim();
             string senderEmail = (ConfigurationManager.AppSettings["SmtpSenderEmail"] ?? string.Empty).Trim();
             string senderName = (ConfigurationManager.AppSettings["SmtpSenderName"] ?? fallbackSenderName).Trim();
+            string logoUrl = (ConfigurationManager.AppSettings["SmtpLogoUrl"]
+                ?? "https://raw.githubusercontent.com/batestelgreg/JustMakeOverSalonSystem-App/main/JustMakeOverSalonApp/Frontend/images/logo.png").Trim();
             string appPassword = (ConfigurationManager.AppSettings["SmtpAppPassword"] ?? string.Empty).Replace(" ", string.Empty).Trim();
             string timeoutRaw = (ConfigurationManager.AppSettings["SmtpTimeoutMs"] ?? "20000").Trim();
             string paymentTerms = (ConfigurationManager.AppSettings["PoPaymentTerms"] ?? "Net 30 Days upon delivery and inspection").Trim();
@@ -541,6 +591,7 @@ namespace JustMakeOverSalonApp.Purchasing.Services
                 UseStartTls = !string.Equals(startTlsRaw, "false", StringComparison.OrdinalIgnoreCase),
                 SenderEmail = senderEmail,
                 SenderName = string.IsNullOrWhiteSpace(senderName) ? "Just MakeOver Beauty Salon & Spa" : senderName,
+                LogoUrl = logoUrl,
                 AppPassword = appPassword,
                 TimeoutMs = timeoutMs,
                 PaymentTerms = string.IsNullOrWhiteSpace(paymentTerms) ? "Net 30 Days upon delivery and inspection" : paymentTerms
@@ -701,6 +752,7 @@ namespace JustMakeOverSalonApp.Purchasing.Services
             public bool UseStartTls { get; set; }
             public string SenderEmail { get; set; }
             public string SenderName { get; set; }
+            public string LogoUrl { get; set; }
             public string AppPassword { get; set; }
             public int TimeoutMs { get; set; }
             public string PaymentTerms { get; set; }
