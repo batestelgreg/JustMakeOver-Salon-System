@@ -6,9 +6,16 @@ import { invoke } from '../core/bridge.js';
 import { getUser, isLoggedIn } from '../core/state.js';
 import { publish, AppEvents } from '../core/events.js';
 import { navigateToNotification } from '../core/notification-nav.js';
+import {
+    submitPasswordChange,
+    wirePasswordChecklist,
+    wirePasswordVisibilityToggles,
+    resetPasswordForm
+} from './password-change.js';
 
 let notificationPollingStarted = false;
 let notificationRefreshBusy = false;
+let checklistRefresh = null;
 
 export function renderHeader() {
     // Refresh the badge while the user remains signed in.
@@ -45,9 +52,14 @@ export function renderHeader() {
 
     if (signOutButton) {
         signOutButton.addEventListener('click', () => {
+            closeUserMenu();
+            closeChangeOwnPasswordModal(true);
             publish(AppEvents.LogoutRequested, {});
         });
     }
+
+    wireAccountMenu();
+    wireChangeOwnPasswordModal();
 
     if (bellButton) {
         bellButton.addEventListener('click', () => {
@@ -481,6 +493,150 @@ export function updateHeaderUser(user) {
     if (role) {
         role.textContent = user.role || '';
     }
+
+    const menuName = document.getElementById('userMenuName');
+    const menuRole = document.getElementById('userMenuRole');
+    if (menuName) {
+        menuName.textContent = user.fullName || user.username || '';
+    }
+    if (menuRole) {
+        menuRole.textContent = user.role || '';
+    }
+}
+
+function wireAccountMenu() {
+    const accountButton = document.getElementById('userAccountButton');
+    const menu = document.getElementById('userAccountMenu');
+    const changePasswordBtn = document.getElementById('btnOpenChangeOwnPassword');
+    const menuSignOutBtn = document.getElementById('userMenuSignOut');
+
+    if (!accountButton || !menu) {
+        return;
+    }
+
+    accountButton.addEventListener('click', () => {
+        if (!isLoggedIn()) {
+            return;
+        }
+        const opening = menu.classList.contains('u-hidden');
+        closeNotifPopover();
+        menu.classList.toggle('u-hidden', !opening);
+        accountButton.setAttribute('aria-expanded', opening ? 'true' : 'false');
+    });
+
+    changePasswordBtn?.addEventListener('click', () => {
+        closeUserMenu();
+        openChangeOwnPasswordModal();
+    });
+
+    menuSignOutBtn?.addEventListener('click', () => {
+        closeUserMenu();
+        closeChangeOwnPasswordModal(true);
+        publish(AppEvents.LogoutRequested, {});
+    });
+
+    document.addEventListener('click', (event) => {
+        if (!event.target.closest('.topbar__user-anchor')) {
+            closeUserMenu();
+        }
+    });
+}
+
+function closeUserMenu() {
+    const accountButton = document.getElementById('userAccountButton');
+    const menu = document.getElementById('userAccountMenu');
+    menu?.classList.add('u-hidden');
+    accountButton?.setAttribute('aria-expanded', 'false');
+}
+
+function wireChangeOwnPasswordModal() {
+    const modal = document.getElementById('changeOwnPasswordModal');
+    const form = document.getElementById('changeOwnPasswordForm');
+    const closeBtn = document.getElementById('btnCloseChangeOwnPassword');
+    const cancelBtn = document.getElementById('btnCancelChangeOwnPassword');
+    const submitBtn = document.getElementById('btnSubmitChangeOwnPassword');
+    const checklist = document.getElementById('ownPasswordChecklist');
+
+    if (!modal || !form || !submitBtn) {
+        return;
+    }
+
+    wirePasswordVisibilityToggles(modal);
+    checklistRefresh = wirePasswordChecklist(form, checklist);
+
+    closeBtn?.addEventListener('click', () => closeChangeOwnPasswordModal(false));
+    cancelBtn?.addEventListener('click', () => closeChangeOwnPasswordModal(false));
+
+    modal.addEventListener('click', (event) => {
+        if (event.target === modal) {
+            closeChangeOwnPasswordModal(false);
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !modal.classList.contains('u-hidden')) {
+            closeChangeOwnPasswordModal(false);
+        }
+    });
+
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        await submitPasswordChange({
+            form,
+            submitButton: submitBtn,
+            busyLabel: 'Updating…',
+            successMessage: 'Your password has been updated.',
+            onSuccess: () => closeChangeOwnPasswordModal(true)
+        });
+    });
+}
+
+function openChangeOwnPasswordModal() {
+    if (!isLoggedIn()) {
+        return;
+    }
+
+    const modal = document.getElementById('changeOwnPasswordModal');
+    const form = document.getElementById('changeOwnPasswordForm');
+    const banner = document.getElementById('changeOwnPasswordAccount');
+    const user = getUser();
+
+    if (!modal || !form) {
+        return;
+    }
+
+    resetPasswordForm(form, checklistRefresh);
+
+    if (banner && user) {
+        banner.textContent = '';
+        banner.append('Signed in as ');
+        const strongName = document.createElement('strong');
+        strongName.textContent = user.fullName || user.username || 'User';
+        banner.appendChild(strongName);
+        if (user.role) {
+            banner.append(' (' + user.role + ')');
+        }
+    }
+
+    modal.classList.remove('u-hidden');
+    document.getElementById('ownCurrentPassword')?.focus();
+}
+
+function closeChangeOwnPasswordModal(force = false) {
+    const modal = document.getElementById('changeOwnPasswordModal');
+    const form = document.getElementById('changeOwnPasswordForm');
+    const submitBtn = document.getElementById('btnSubmitChangeOwnPassword');
+
+    if (!modal || modal.classList.contains('u-hidden')) {
+        return;
+    }
+
+    if (!force && submitBtn?.disabled) {
+        return;
+    }
+
+    modal.classList.add('u-hidden');
+    resetPasswordForm(form, checklistRefresh);
 }
 
 async function refreshNotificationBadge() {
