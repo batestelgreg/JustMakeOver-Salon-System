@@ -14158,7 +14158,7 @@ GO
 
 -- Seed dbo.USERS (1 rows)
 SET IDENTITY_INSERT [dbo].[USERS] ON;
-INSERT INTO [dbo].[USERS] ([UserID], [LastName], [FirstName], [MiddleName], [Username], [PasswordHash], [Email], [RoleID], [IsActive], [FailedLoginAttempts], [LockoutEnd], [MustChangePassword], [PasswordChangedAt], [DateCreated], [LastLogin]) VALUES (1, N'Salon', N'Administrator', NULL, N'admin', N'PBKDF2-SHA256:100000:Z1JZjXq1BmqAW5uBuM3OyKLTqTgoP5lO5p4FmrN9KxQ=:vI5R1v//4OCz0Nvb2ijoyElsgLWjZgC8GMtrrrfIG1F+Zv08+sK8sRpVCt/cppAz+3MJqHOnHCQNdM9gNCKg2w==', N'admin@justmakeover.local', 1, 1, 0, NULL, 0, '2026-11-10T12:25:33', '2026-11-10T11:42:04', NULL);
+INSERT INTO [dbo].[USERS] ([UserID], [LastName], [FirstName], [MiddleName], [Username], [PasswordHash], [Email], [RoleID], [IsActive], [FailedLoginAttempts], [LockoutEnd], [MustChangePassword], [PasswordChangedAt], [DateCreated], [LastLogin]) VALUES (1, N'Salon', N'Administrator', NULL, N'admin', N'PBKDF2-SHA256:100000:+Ir8XfwFr8Cc5YDFtshYcTXYY31Y4eWKUZKgxDDZIsM=:U/NZZfjH7k9V+VmCyKvIGwYDM8FmLuMOhYRPSVG/kqAe+vuPsePZXaIa0trAHLaNzpUTf293GMZLsUAkrMV79w==', N'admin@justmakeover.local', 1, 1, 0, NULL, 1, NULL, '2026-11-10T11:42:04', NULL);
 SET IDENTITY_INSERT [dbo].[USERS] OFF;
 GO
 
