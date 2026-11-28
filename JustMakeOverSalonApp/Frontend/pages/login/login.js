@@ -7,6 +7,7 @@ import { invoke } from '../../assets/js/core/bridge.js';
 import { publish, AppEvents } from '../../assets/js/core/events.js';
 import { validateForm, clearErrors } from '../../assets/js/components/form-validation.js';
 import { showToast } from '../../assets/js/components/toast.js';
+import { submitPasswordChange, showFieldError } from '../../assets/js/components/password-change.js';
 
 let loginHandler = null;
 let changeHandler = null;
@@ -55,7 +56,7 @@ export async function init(root) {
                 // Kani nga block kay nagpakita ug validation message sa form
                 // (inline + toast) — dili exception, friendly nga English lang.
                 showToast('error', error.message);
-                showInlineError(loginForm, 'password', error.message);
+                showFieldError(loginForm, 'password', error.message);
             }
         });
     };
@@ -64,40 +65,12 @@ export async function init(root) {
     changeHandler = async (event) => {
         event.preventDefault();
 
-        const newPassword = changeForm.elements.newPassword.value;
-        const confirmPassword = changeForm.elements.confirmPassword.value;
-
-        const isValid = validateForm(changeForm, {
-            currentPassword: { required: true },
-            newPassword: { required: true, strongPassword: true },
-            confirmPassword: {
-                required: {
-                    message: 'Please confirm your new password.'
-                }
-            }
-        });
-
-        if (!isValid) {
-            return;
-        }
-
-        if (newPassword !== confirmPassword) {
-            const confirmError = changeForm.querySelector('[data-error-for="confirmPassword"]');
-            confirmError.textContent = 'The confirmed password does not match the new password.';
-            changeForm.elements.confirmPassword.closest('.form-field')
-                .classList.add('form-field--error');
-            return;
-        }
-
-        await runOperation(changeSubmit, async () => {
-            try {
-                await invoke('ChangePassword', {
-                    currentPassword: changeForm.elements.currentPassword.value,
-                    newPassword
-                });
-
-                showToast('success', 'Your password has been updated. Welcome to the salon system.');
-
+        await submitPasswordChange({
+            form: changeForm,
+            submitButton: changeSubmit,
+            busyLabel: 'Please wait…',
+            successMessage: 'Your password has been updated. Welcome to the salon system.',
+            onSuccess: () => {
                 // Kani nga publish kay mo-continue sa session human sa password change.
                 const pendingSession =
                     JSON.parse(changeForm.dataset.pendingSession || 'null') ||
@@ -108,10 +81,6 @@ export async function init(root) {
                 }
 
                 publish(AppEvents.LoginSucceeded, pendingSession);
-            } catch (error) {
-                // Kani nga block kay validation message ra — dili exception.
-                showToast('error', error.message);
-                showInlineError(changeForm, 'currentPassword', error.message);
             }
         });
     };
@@ -119,22 +88,6 @@ export async function init(root) {
     // Kani nga wiring kay nagdugang sa form event listeners.
     loginForm.addEventListener('submit', loginHandler);
     changeForm.addEventListener('submit', changeHandler);
-}
-
-/**
- * Kani nga helper kay nagpakita ug inline validation message sa form field.
- * Kini kay para ang mali nga credentials dili mo-ingon nga exception,
- * validation message ra nga English.
- */
-function showInlineError(form, fieldName, message) {
-    const errorElement = form.querySelector('[data-error-for="' + fieldName + '"]');
-    const field = form.elements[fieldName]?.closest('.form-field');
-    if (errorElement) {
-        errorElement.textContent = message;
-    }
-    if (field) {
-        field.classList.add('form-field--error');
-    }
 }
 
 /**

@@ -434,6 +434,10 @@
     justify-content: center;
 }
 
+.topbar__user-anchor {
+    position: relative;
+}
+
 .user-chip {
     display: flex;
     align-items: center;
@@ -442,6 +446,33 @@
     border-radius: var(--radius-pill);
     border: 1px solid var(--color-border);
     background: var(--color-white);
+    text-align: left;
+}
+
+.user-chip--interactive {
+    cursor: pointer;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.user-chip--interactive:hover,
+.user-chip--interactive[aria-expanded="true"] {
+    border-color: var(--color-teal);
+    box-shadow: 0 0 0 3px rgba(20, 82, 115, 0.1);
+}
+
+.user-chip__text {
+    display: flex;
+    flex-direction: column;
+}
+
+.user-chip__chevron {
+    color: var(--color-text-muted);
+    flex-shrink: 0;
+    transition: transform var(--transition-fast);
+}
+
+.user-chip--interactive[aria-expanded="true"] .user-chip__chevron {
+    transform: rotate(180deg);
 }
 
 .user-chip__avatar {
@@ -467,6 +498,68 @@
 .user-chip__role {
     font-size: 11px;
     color: var(--color-text-muted);
+}
+
+.user-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 220px;
+    background: var(--color-white);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: 0 12px 32px rgba(16, 29, 45, 0.18);
+    overflow: hidden;
+    z-index: 85;
+}
+
+.user-menu__header {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-bg);
+}
+
+.user-menu__name {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--color-text);
+    line-height: 1.3;
+}
+
+.user-menu__role {
+    font-size: 11px;
+    color: var(--color-text-muted);
+}
+
+.user-menu__item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 14px;
+    border: none;
+    background: none;
+    color: var(--color-text);
+    font-size: 13px;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.user-menu__item:hover {
+    background: var(--color-teal-tint);
+    color: var(--color-teal);
+}
+
+.user-menu__item--danger {
+    border-top: 1px solid var(--color-border);
+    color: var(--color-error);
+}
+
+.user-menu__item--danger:hover {
+    background: var(--color-error-tint);
+    color: var(--color-error);
 }
 
 /* Kani nga main content area kay mo-scroll sa page content. */

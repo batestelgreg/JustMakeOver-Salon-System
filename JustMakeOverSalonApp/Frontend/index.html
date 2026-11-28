@@ -79,11 +79,38 @@
                             <div class="notif-popover__list" id="notifPopoverList"></div>
                         </div>
                     </div>
-                    <div class="user-chip">
-                        <div class="user-chip__avatar" id="userAvatar"></div>
-                        <div>
-                            <div class="user-chip__name" id="userName"></div>
-                            <div class="user-chip__role" id="userRole"></div>
+                    <div class="topbar__user-anchor">
+                        <button type="button" class="user-chip user-chip--interactive"
+                                id="userAccountButton"
+                                aria-haspopup="menu"
+                                aria-expanded="false"
+                                title="Account options &amp; Change password">
+                            <span class="user-chip__avatar" id="userAvatar"></span>
+                            <span class="user-chip__text">
+                                <span class="user-chip__name" id="userName"></span>
+                                <span class="user-chip__role" id="userRole"></span>
+                            </span>
+                            <svg class="user-chip__chevron" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+                                <path fill="currentColor" d="M7 10l5 5 5-5H7z"/>
+                            </svg>
+                        </button>
+                        <div class="user-menu u-hidden" id="userAccountMenu" role="menu" aria-label="Account menu">
+                            <div class="user-menu__header">
+                                <div class="user-menu__name" id="userMenuName"></div>
+                                <div class="user-menu__role" id="userMenuRole"></div>
+                            </div>
+                            <button type="button" class="user-menu__item" id="btnOpenChangeOwnPassword" role="menuitem">
+                                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+                                    <path fill="currentColor" d="M18 8h-1V6a5 5 0 00-10 0v2H6a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V10a2 2 0 00-2-2zM9 6a3 3 0 016 0v2H9V6zm3 11a2 2 0 110-4 2 2 0 010 4z"/>
+                                </svg>
+                                Change Password
+                            </button>
+                            <button type="button" class="user-menu__item user-menu__item--danger" id="userMenuSignOut" role="menuitem">
+                                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+                                    <path fill="currentColor" d="M16 17v-3H9v-4h7V7l5 5-5 5zM14 2a2 2 0 012 2v2h-2V4H5v16h9v-2h2v2a2 2 0 01-2 2H5a2 2 0 01-2-2V4a2 2 0 012-2h9z"/>
+                                </svg>
+                                Sign out
+                            </button>
                         </div>
                     </div>
                     <button type="button" class="btn btn--ghost" id="signOutButton">
@@ -98,6 +125,66 @@
                     Loading the salon workspace&hellip;
                 </div>
             </main>
+        </div>
+    </div>
+
+    <!-- Self-service Change Password modal accessible to all signed-in users. -->
+    <div id="changeOwnPasswordModal" class="modal-overlay u-hidden"
+         role="dialog" aria-modal="true" aria-labelledby="changeOwnPasswordTitle">
+        <div class="modal">
+            <div class="modal__header">
+                <h3 class="modal__title" id="changeOwnPasswordTitle">Change Password</h3>
+                <button type="button" class="modal__close" id="btnCloseChangeOwnPassword" aria-label="Close">&times;</button>
+            </div>
+            <form id="changeOwnPasswordForm" novalidate>
+                <div class="modal__body">
+                    <div class="account-banner" id="changeOwnPasswordAccount"></div>
+
+                    <div class="form-field">
+                        <label class="form-field__label" for="ownCurrentPassword">Current password</label>
+                        <div class="password-input-wrap">
+                            <input type="password" id="ownCurrentPassword" name="currentPassword"
+                                   class="form-field__input" autocomplete="current-password">
+                            <button type="button" class="btn btn--ghost btn--sm password-toggle-btn"
+                                    data-password-toggle="ownCurrentPassword" aria-pressed="false">Show</button>
+                        </div>
+                        <span class="form-field__error" data-error-for="currentPassword" role="alert"></span>
+                    </div>
+
+                    <div class="form-field">
+                        <label class="form-field__label" for="ownNewPassword">New password</label>
+                        <div class="password-input-wrap">
+                            <input type="password" id="ownNewPassword" name="newPassword"
+                                   class="form-field__input" autocomplete="new-password">
+                            <button type="button" class="btn btn--ghost btn--sm password-toggle-btn"
+                                    data-password-toggle="ownNewPassword" aria-pressed="false">Show</button>
+                        </div>
+                        <div class="password-checklist" id="ownPasswordChecklist" aria-live="polite">
+                            <span class="password-rule" data-rule="length">8+ chars</span>
+                            <span class="password-rule" data-rule="upper">Uppercase</span>
+                            <span class="password-rule" data-rule="lower">Lowercase</span>
+                            <span class="password-rule" data-rule="digit">Number</span>
+                            <span class="password-rule" data-rule="special">Special char</span>
+                        </div>
+                        <span class="form-field__error" data-error-for="newPassword" role="alert"></span>
+                    </div>
+
+                    <div class="form-field" style="margin-bottom: 0;">
+                        <label class="form-field__label" for="ownConfirmPassword">Confirm new password</label>
+                        <div class="password-input-wrap">
+                            <input type="password" id="ownConfirmPassword" name="confirmPassword"
+                                   class="form-field__input" autocomplete="new-password">
+                            <button type="button" class="btn btn--ghost btn--sm password-toggle-btn"
+                                    data-password-toggle="ownConfirmPassword" aria-pressed="false">Show</button>
+                        </div>
+                        <span class="form-field__error" data-error-for="confirmPassword" role="alert"></span>
+                    </div>
+                </div>
+                <div class="modal__footer">
+                    <button type="button" class="btn btn--ghost" id="btnCancelChangeOwnPassword">Cancel</button>
+                    <button type="submit" class="btn btn--primary" id="btnSubmitChangeOwnPassword">Update Password</button>
+                </div>
+            </form>
         </div>
     </div>
 </body>
