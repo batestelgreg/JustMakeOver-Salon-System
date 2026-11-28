@@ -380,14 +380,14 @@ function renderItems(root, searchText = '') {
     // Display the filtered items and their Select buttons.
     tableBody.innerHTML = filteredItems.map(item => `
         <tr>
-            <td>${item.ItemCode}</td>
-            <td>${item.ItemName}</td>
-            <td>${item.UnitOfMeasure}</td>
+            <td>${escapeHtml(item.ItemCode)}</td>
+            <td>${escapeHtml(item.ItemName)}</td>
+            <td>${escapeHtml(item.UnitOfMeasure)}</td>
             <td>${Number(item.UnitPrice).toFixed(2)}</td>
             <td>
                 <button type="button"
                         class="btn btn--primary btn--sm select-item-btn"
-                        data-item-id="${item.ItemID}">
+                        data-item-id="${Number(item.ItemID)}">
                     Select
                 </button>
             </td>
@@ -469,20 +469,20 @@ function renderSelectedItems(root) {
     // Display each selected item, its quantity input, and Remove button.
     tableBody.innerHTML = selectedItems.map(item => `
         <tr>
-            <td>${item.ItemName}</td>
-            <td>${item.UnitOfMeasure}</td>
+            <td>${escapeHtml(item.ItemName)}</td>
+            <td>${escapeHtml(item.UnitOfMeasure)}</td>
             <td>
                 <input type="number"
                        class="form-field__input selected-quantity"
-                       data-item-id="${item.ItemID}"
+                       data-item-id="${Number(item.ItemID)}"
                        min="1"
-                       value="${item.QuantityRequested}"
+                       value="${Number(item.QuantityRequested)}"
                        style="width: 80px;">
             </td>
             <td>
                 <button type="button"
                         class="btn btn--sm remove-item-btn"
-                        data-item-id="${item.ItemID}">
+                        data-item-id="${Number(item.ItemID)}">
                     Remove
                 </button>
             </td>
@@ -619,27 +619,27 @@ function renderPendingRequisitions(root) {
 
         // Display the requested items and quantities.
         const requestedItems = requisition.Items.map(item =>
-            item.ItemName + ' (Qty: ' + item.QuantityRequested + ')'
+            escapeHtml(item.ItemName) + ' (Qty: ' + Number(item.QuantityRequested) + ')'
         ).join('<br>');
 
         return `
-            <tr data-requisition-id="${requisition.RequisitionID}">
-                <td>#${requisition.RequisitionID}</td>
-                <td>${requisition.RequestorName || 'Unknown'}</td>
-                <td>${requestDate}</td>
-                <td>${requiredDate}</td>
-                <td>${requisition.Justification || '-'}</td>
+            <tr data-requisition-id="${Number(requisition.RequisitionID)}">
+                <td>#${Number(requisition.RequisitionID)}</td>
+                <td>${escapeHtml(requisition.RequestorName || 'Unknown')}</td>
+                <td>${escapeHtml(requestDate)}</td>
+                <td>${escapeHtml(requiredDate)}</td>
+                <td>${escapeHtml(requisition.Justification || '-')}</td>
                 <td>${requestedItems || 'No items'}</td>
                 <td>
                     <button type="button"
                             class="btn btn--primary btn--sm approve-requisition-btn"
-                            data-requisition-id="${requisition.RequisitionID}">
+                            data-requisition-id="${Number(requisition.RequisitionID)}">
                         Approve
                     </button>
 
                     <button type="button"
                             class="btn btn--danger btn--sm reject-requisition-btn"
-                            data-requisition-id="${requisition.RequisitionID}">
+                            data-requisition-id="${Number(requisition.RequisitionID)}">
                         Reject
                     </button>
                 </td>
@@ -975,10 +975,11 @@ function renderRequisitionHistory(root) {
 
     // Convert each requisition record into a table row.
     tableBody.innerHTML = requisitionHistoryData.map(requisition => {
+        const requisitionId = Number(requisition.RequisitionID);
 
         // Get the item names and requested quantities for this requisition.
         const items = requisition.Items.map(item =>
-            item.ItemName + ' (Qty: ' + item.QuantityRequested + ')'
+            `${escapeHtml(item.ItemName)} (Qty: ${Number(item.QuantityRequested)})`
         ).join('<br>');
 
         // Convert the request date into a JavaScript Date object.
@@ -1006,7 +1007,7 @@ function renderRequisitionHistory(root) {
         const archivedValue = parseRequisitionDate(requisition.ArchivedAt);
         const archivedNote = archivedValue
             ? '<br><span class="u-text-muted" style="font-size: 11px;">Archived ' +
-              archivedValue.toLocaleDateString() + '</span>'
+              escapeHtml(archivedValue.toLocaleDateString()) + '</span>'
             : '';
 
         // Kani nga actions kay status-based sa requisition mismo:
@@ -1023,7 +1024,7 @@ function renderRequisitionHistory(root) {
             actionButtons.push(`
                 <button type="button"
                         class="btn btn--primary btn--sm revise-requisition-btn"
-                        data-requisition-id="${requisition.RequisitionID}">
+                        data-requisition-id="${requisitionId}">
                     Revise
                 </button>
             `);
@@ -1033,7 +1034,7 @@ function renderRequisitionHistory(root) {
             actionButtons.push(`
                 <button type="button"
                         class="btn btn--danger btn--sm cancel-requisition-btn"
-                        data-requisition-id="${requisition.RequisitionID}">
+                        data-requisition-id="${requisitionId}">
                     Cancel
                 </button>
             `);
@@ -1043,7 +1044,7 @@ function renderRequisitionHistory(root) {
             actionButtons.push(`
                 <button type="button"
                         class="btn btn--ghost btn--sm reason-requisition-btn"
-                        data-requisition-id="${requisition.RequisitionID}">
+                        data-requisition-id="${requisitionId}">
                     Reason
                 </button>
             `);
@@ -1055,7 +1056,7 @@ function renderRequisitionHistory(root) {
             actionButtons.push(`
                 <button type="button"
                         class="btn btn--secondary btn--sm print-requisition-btn"
-                        data-requisition-id="${requisition.RequisitionID}">
+                        data-requisition-id="${requisitionId}">
                     Print RF
                 </button>
             `);
@@ -1067,12 +1068,12 @@ function renderRequisitionHistory(root) {
 
         // Return the HTML row containing the requisition information.
         return `
-            <tr data-requisition-id="${requisition.RequisitionID}">
-                <td>#${requisition.RequisitionID}</td>
-                <td>${requestDate}</td>
-                <td>${requiredDate}</td>
-                <td>${requisition.Justification || '-'}</td>
-                <td>${requisition.Status}${archivedNote}</td>
+            <tr data-requisition-id="${requisitionId}">
+                <td>#${requisitionId}</td>
+                <td>${escapeHtml(requestDate)}</td>
+                <td>${escapeHtml(requiredDate)}</td>
+                <td>${escapeHtml(requisition.Justification || '-')}</td>
+                <td>${escapeHtml(requisition.Status)}${archivedNote}</td>
                 <td>${items || 'No items'}</td>
                 <td>${actionButton}</td>
             </tr>
@@ -1153,12 +1154,12 @@ function openReviseModal(root, requisitionID) {
     const itemsHost = root.querySelector('#reviseItems');
     itemsHost.innerHTML = requisition.Items.map(item => `
         <div class="revise-item">
-            <span class="revise-item__name">${item.ItemName}</span>
+            <span class="revise-item__name">${escapeHtml(item.ItemName)}</span>
             <input type="number"
                    class="form-field__input revise-item__qty revise-qty"
-                   data-item-id="${item.ItemID}"
+                   data-item-id="${Number(item.ItemID)}"
                    min="1"
-                   value="${item.QuantityRequested}">
+                   value="${Number(item.QuantityRequested)}">
         </div>
     `).join('');
 
@@ -1355,11 +1356,11 @@ function renderAllRequisitionHistory(root, requisitions) {
 
     // Convert every requisition into a read-only table row.
     tableBody.innerHTML = requisitions.map(requisition => {
+        const requisitionId = Number(requisition.RequisitionID);
 
         // Get the requested item names and quantities.
         const items = requisition.Items.map(item =>
-            item.ItemName + ' (Requested: ' + item.QuantityRequested +
-            ', Approved: ' + (item.QuantityApproved ?? '-') + ')'
+            `${escapeHtml(item.ItemName)} (Requested: ${Number(item.QuantityRequested)}, Approved: ${escapeHtml(item.QuantityApproved ?? '-')})`
         ).join('<br>');
 
         // Convert the request date.
@@ -1390,23 +1391,23 @@ function renderAllRequisitionHistory(root, requisitions) {
             .includes(requisition.Status)
             ? `<button type="button"
                        class="btn btn--secondary btn--sm print-requisition-btn"
-                       data-requisition-id="${requisition.RequisitionID}">
+                       data-requisition-id="${requisitionId}">
                    Print RF
                </button>`
             : '-';
 
         // Return the completed history row.
         return `
-            <tr data-requisition-id="${requisition.RequisitionID}">
-                <td>#${requisition.RequisitionID}</td>
-                <td>${requisition.RequestorUserID}</td>
-                <td>${requisition.RequestorName || '-'}</td>
-                <td>${requestDate}</td>
-                <td>${requiredDate}</td>
-                <td>${requisition.Status}</td>
-                <td>${requisition.Justification || '-'}</td>
+            <tr data-requisition-id="${requisitionId}">
+                <td>#${requisitionId}</td>
+                <td>${Number(requisition.RequestorUserID)}</td>
+                <td>${escapeHtml(requisition.RequestorName || '-')}</td>
+                <td>${escapeHtml(requestDate)}</td>
+                <td>${escapeHtml(requiredDate)}</td>
+                <td>${escapeHtml(requisition.Status)}</td>
+                <td>${escapeHtml(requisition.Justification || '-')}</td>
                 <td>${items || 'No items'}</td>
-                <td>${rejectionReason}</td>
+                <td>${escapeHtml(rejectionReason)}</td>
                 <td>${printButton}</td>
             </tr>
         `;
@@ -1741,4 +1742,13 @@ async function confirmRequisitionCancellation(root) {
         // Enable the button again after processing.
         confirmButton.disabled = false;
     }
+}
+
+function escapeHtml(value) {
+    return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
 }
