@@ -120,17 +120,16 @@ function renderSuppliersTable(root) {
 
         const actionsCell = document.createElement('td');
         if (canManage) {
-            // Kani nga mga action buttons kay boxed ug small: grey
-            // ang Edit, red ang Deactivate, green ang Activate.
+            const actionGroup = document.createElement('div');
+            actionGroup.className = 'table-actions';
+
             const button = document.createElement('button');
             button.type = 'button';
             button.className = 'btn-action btn-action--grey';
             button.textContent = 'Edit';
             button.addEventListener('click', () => openSupplierModal(root, supplier));
-            actionsCell.appendChild(button);
+            actionGroup.appendChild(button);
 
-            // Kani nga status toggle kay mo-ilis ang word (Deactivate/
-            // Activate) ug ang color base sa current status.
             const statusButton = document.createElement('button');
             statusButton.type = 'button';
             statusButton.className = 'btn-action ' +
@@ -139,7 +138,9 @@ function renderSuppliersTable(root) {
             statusButton.addEventListener('click', () => {
                 openSupplierStatusModal(root, supplier, !supplier.IsActive);
             });
-            actionsCell.appendChild(statusButton);
+            actionGroup.appendChild(statusButton);
+
+            actionsCell.appendChild(actionGroup);
         } else {
             actionsCell.textContent = '\u2014';
         }

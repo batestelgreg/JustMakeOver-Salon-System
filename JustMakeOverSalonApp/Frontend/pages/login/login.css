@@ -15,9 +15,9 @@
     align-items: center;
     justify-content: center;
     background:
-        radial-gradient(900px 500px at 15% 85%, rgba(20, 82, 115, 0.55), transparent 60%),
-        radial-gradient(700px 420px at 85% 12%, rgba(246, 168, 50, 0.16), transparent 55%),
-        linear-gradient(160deg, var(--color-navy) 0%, #0B1522 100%);
+        radial-gradient(900px 500px at 15% 85%, rgba(22, 84, 117, 0.58), transparent 60%),
+        radial-gradient(700px 420px at 85% 12%, rgba(242, 165, 51, 0.18), transparent 55%),
+        linear-gradient(160deg, var(--color-navy) 0%, #091321 100%);
     padding: var(--space-7);
 }
 
@@ -27,11 +27,13 @@
 }
 
 .login__logo {
-    width: 140px;
+    width: 148px;
+    height: 148px;
+    object-fit: cover;
     margin: 0 auto var(--space-5);
-    background: var(--color-white);
-    padding: 10px;
-    border-radius: var(--radius-lg);
+    background: var(--color-navy);
+    border-radius: 50%;
+    border: 3px solid rgba(242, 165, 51, 0.65);
     box-shadow: var(--shadow-lg);
 }
 

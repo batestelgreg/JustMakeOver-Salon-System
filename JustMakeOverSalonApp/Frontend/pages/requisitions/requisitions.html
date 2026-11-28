@@ -4,8 +4,8 @@
     <!-- Page title and short description. -->
     <div class="page-header">
         <div>
-            <h1>Requisitions</h1>
-            <p>Request items and track requisition approvals.</p>
+            <h1 class="page-header__title">Requisitions</h1>
+            <p class="page-header__subtitle">Request items and track requisition approvals.</p>
         </div>
     </div>
 
@@ -26,7 +26,7 @@
         </div>
 
         <!-- Table containing the available items from the database. -->
-        <div class="table-responsive">
+        <div class="table-responsive available-items-scroll">
             <table class="data-table">
                 <thead>
                     <tr>
@@ -230,7 +230,7 @@
             <div class="modal-actions">
                 <button type="button"
                         id="closeAllRequisitionHistoryModal"
-                        class="btn">
+                        class="btn btn--ghost">
                     Close
                 </button>
             </div>
@@ -258,13 +258,13 @@
             <div class="modal-actions">
                 <button type="button"
                         id="closeCancellationModal"
-                        class="btn">
+                        class="btn btn--ghost">
                     Close
                 </button>
 
                 <button type="button"
                         id="confirmCancellation"
-                        class="btn btn--primary">
+                        class="btn btn--danger">
                     Confirm Cancellation
                 </button>
             </div>
@@ -293,13 +293,13 @@
             <div class="modal-actions">
                 <button type="button"
                         id="closeRejectionModal"
-                        class="btn">
+                        class="btn btn--ghost">
                     Close
                 </button>
 
                 <button type="button"
                         id="confirmRejection"
-                        class="btn btn--primary">
+                        class="btn btn--danger">
                     Confirm Rejection
                 </button>
             </div>
@@ -340,7 +340,7 @@
             <div class="modal-actions">
                 <button type="button"
                         id="closeApprovalModal"
-                        class="btn">
+                        class="btn btn--ghost">
                     Cancel
                 </button>
 
@@ -384,7 +384,7 @@
             <span class="form-field__error" id="reviseError"></span>
 
             <div class="modal-actions">
-                <button type="button" id="closeReviseModal" class="btn">Cancel</button>
+                <button type="button" id="closeReviseModal" class="btn btn--ghost">Cancel</button>
                 <button type="button" id="confirmRevise" class="btn btn--primary">Resubmit Requisition</button>
             </div>
         </div>
@@ -401,7 +401,7 @@
             <p id="reasonModalText" style="white-space: pre-wrap;"></p>
 
             <div class="modal-actions">
-                <button type="button" id="closeReasonModal" class="btn">Close</button>
+                <button type="button" id="closeReasonModal" class="btn btn--ghost">Close</button>
             </div>
         </div>
     </div>

@@ -1,119 +1,119 @@
-﻿
-/* Styles specific to the Requisition page. */
+﻿/* Styles scoped strictly to the Requisitions page. */
 
-.inventory-toolbar {
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border, #e5e7eb);
+.requisitions-page {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
 }
 
-.inventory-toolbar__search {
+.requisitions-page .page-header {
+    margin-bottom: 0;
+}
+
+.requisitions-page .inventory-toolbar {
+    padding: 0 0 var(--space-4) 0;
+    margin-bottom: var(--space-3);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.requisitions-page .inventory-toolbar__search {
     max-width: 420px;
     width: 100%;
 }
 
-.table-responsive {
+.requisitions-page .table-responsive {
     width: 100%;
     overflow-x: auto;
 }
 
-.data-table td,
-.data-table th {
+.requisitions-page .data-table td,
+.requisitions-page .data-table th {
     white-space: nowrap;
 }
 
-.data-table tbody tr:hover {
-    background-color: #f9fafb;
-}
-
-#availableItemsBody td {
+.requisitions-page #availableItemsBody td {
     vertical-align: middle;
 }
 
-#requisitionSearch:focus {
+.requisitions-page #requisitionSearch:focus {
     outline: none;
-    border-color: var(--primary, #6366f1);
+    border-color: var(--color-teal);
+    box-shadow: 0 0 0 3px rgba(22, 84, 117, 0.14);
 }
 
-/* Kani nga .btn--sm kay para sa Reject ug Cancel buttons sa table
-   (page-scoped tungod kay ang .btn--sm kay wala sa global components.css). */
-.requisitions-page .btn--sm {
-    padding: 4px 10px;
-    font-size: 12px;
-}
-
-
-/* Requisition details form styling. */
-#requiredDate,
-#justification {
+/* Requisition details form styling */
+.requisitions-page #requiredDate,
+.requisitions-page #justification {
     width: 100%;
-    max-width: 600px;
+    max-width: 620px;
     box-sizing: border-box;
 }
 
-#justification {
+.requisitions-page #justification {
     resize: vertical;
 }
 
-#submitRequisition {
-    margin-top: 8px;
+.requisitions-page #submitRequisition {
+    margin-top: var(--space-2);
 }
 
-/* Kani nga mga style kay para sa Revise modal items list. */
-.revise-items {
+/* Revise modal items list */
+.requisitions-page .revise-items {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
 }
 
-.revise-item {
+.requisitions-page .revise-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    padding: 8px 12px;
-    border: 1px solid var(--border, #e5e7eb);
-    border-radius: 8px;
+    gap: 14px;
+    padding: 10px 14px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-bg);
 }
 
-.revise-item__name {
+.requisitions-page .revise-item__name {
     font-size: 14px;
+    font-weight: 500;
+    color: var(--color-text);
 }
 
-.revise-item__qty {
+.requisitions-page .revise-item__qty {
     width: 96px;
     flex: 0 0 auto;
 }
 
-/* Kani nga history table wrapper kay 10 ka rows ra ang gitas-on.
-   Kung molapas, dinhi ra mo-gawas ang vertical auto-scroll, dili
-   ang tibuok page. Ang JS mag-set sa aktwal nga max-height. */
-.requisition-history-scroll {
-    max-height: 700px; /* fallback kung wala pa ma-set sa JS */
+/* Available Items & Requisition History auto-scroll after 10 rows */
+.requisitions-page .available-items-scroll,
+.requisitions-page .requisition-history-scroll {
+    max-height: 700px;
     overflow-y: auto;
 }
 
-/* Kani nga override kay para ang wrapper (dili ang <table>) maoy
-   mo-scroll; dinhi motapot ang sticky header. Fixed layout + wrapped
-   cells para mo-fit gyud sa card width (walay horizontal overflow). */
-.requisition-history-scroll .data-table {
+.requisitions-page .available-items-scroll .data-table,
+.requisitions-page .requisition-history-scroll .data-table {
     max-height: none;
     overflow: visible;
+}
+
+.requisitions-page .requisition-history-scroll .data-table {
     table-layout: fixed;
 }
 
-.requisition-history-scroll .data-table th,
-.requisition-history-scroll .data-table td {
+.requisitions-page .requisition-history-scroll .data-table th,
+.requisitions-page .requisition-history-scroll .data-table td {
     white-space: normal;
     overflow-wrap: break-word;
     word-break: normal;
 }
 
-/* Kani nga column widths kay para dili ma-compress ang Status ug
-   Action samtang ang Justification/Items ra ang mo-wrap. */
-.requisition-history-scroll .data-table th:nth-child(1) { width: 8%; }
-.requisition-history-scroll .data-table th:nth-child(2) { width: 14%; }
-.requisition-history-scroll .data-table th:nth-child(3) { width: 11%; }
-.requisition-history-scroll .data-table th:nth-child(4) { width: 23%; }
-.requisition-history-scroll .data-table th:nth-child(5) { width: 12%; }
-.requisition-history-scroll .data-table th:nth-child(6) { width: 20%; }
-.requisition-history-scroll .data-table th:nth-child(7) { width: 12%; }
+.requisitions-page .requisition-history-scroll .data-table th:nth-child(1) { width: 8%; }
+.requisitions-page .requisition-history-scroll .data-table th:nth-child(2) { width: 14%; }
+.requisitions-page .requisition-history-scroll .data-table th:nth-child(3) { width: 11%; }
+.requisitions-page .requisition-history-scroll .data-table th:nth-child(4) { width: 22%; }
+.requisitions-page .requisition-history-scroll .data-table th:nth-child(5) { width: 12%; }
+.requisitions-page .requisition-history-scroll .data-table th:nth-child(6) { width: 19%; }
+.requisitions-page .requisition-history-scroll .data-table th:nth-child(7) { width: 14%; }

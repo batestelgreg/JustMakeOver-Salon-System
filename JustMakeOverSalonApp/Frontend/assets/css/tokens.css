@@ -1,44 +1,60 @@
-/* 
-   Kani nga tokens.css kay nagdala sa tanang brand colors ug
-   shared design tokens sa Just MakeOver Salon System.
+/*
+   Logo-derived design tokens for Just MakeOver Salon System.
+   Palette extracted directly from Frontend/images/logo.png:
+     - Deep Navy background circle: #0F1D2E
+     - Rich JM Monogram Teal:      #165475
+     - Warm Silhouette & Script Gold: #F2A533
  */
 
 :root {
-    /* Kani mga color tokens kay base sa logo ug brand palette. */
-    --color-navy: #101D2D;
-    --color-navy-soft: #16263A;
-    --color-teal: #145273;
+    /* Core Brand Palette (from logo) */
+    --color-navy: #0F1D2E;
+    --color-navy-soft: #172B42;
+    --color-teal: #165475;
     --color-teal-dark: #0E3D57;
-    --color-gold: #F6A832;
-    --color-gold-soft: #F8BC5C;
+    --color-gold: #F2A533;
+    --color-gold-soft: #F7B955;
+    --color-gold-dark: #D98E1E;
+    --color-gold-ink: #8E5707;
+
+    /* Clean Surfaces & Typography */
     --color-white: #FFFFFF;
-    --color-bg: #F5F7FA;
-    --color-text: #202B38;
-    --color-text-muted: #667085;
-    --color-border: #E1E6EC;
-    --color-success: #218653;
-    --color-warning: #C98216;
-    --color-error: #C63C3C;
+    --color-bg: #F6F8FB;
+    --color-bg-subtle: #EEF2F7;
+    --color-text: #182638;
+    --color-text-muted: #5A697B;
+    --color-border: #DCE3EC;
+    --color-border-strong: #C6D1DF;
 
-    /* Kani mga tints kay para sa soft backgrounds ug status badges. */
-    --color-teal-tint: #E8F1F6;
-    --color-gold-tint: #FDF2DF;
-    --color-success-tint: #E7F3EC;
-    --color-warning-tint: #FBF0DC;
-    --color-error-tint: #FAE9E9;
+    /* Semantic Status Colors */
+    --color-success: #1D7A4B;
+    --color-warning: #A66509;
+    --color-error: #C23939;
 
-    /* Kani mga shadows kay para sa cards ug floating panels. */
-    --shadow-sm: 0 1px 3px rgba(16, 29, 45, 0.08);
-    --shadow-md: 0 4px 14px rgba(16, 29, 45, 0.10);
-    --shadow-lg: 0 16px 40px rgba(16, 29, 45, 0.18);
+    /* Soft Tints & Borders for Badges, Tinted Actions, and Highlights */
+    --color-teal-tint: #EAF3F8;
+    --color-teal-border: #C3DCEB;
+    --color-gold-tint: #FEF5E6;
+    --color-gold-border: #F2D399;
+    --color-success-tint: #E7F5EE;
+    --color-success-border: #BCE2CE;
+    --color-warning-tint: #FEF4E2;
+    --color-warning-border: #F2D399;
+    --color-error-tint: #FDECEC;
+    --color-error-border: #F3C2C2;
 
-    /* Kani mga radius tokens kay para sa consistent card shapes. */
+    /* Elevation */
+    --shadow-sm: 0 1px 3px rgba(15, 29, 46, 0.06), 0 1px 2px rgba(15, 29, 46, 0.04);
+    --shadow-md: 0 4px 16px rgba(15, 29, 46, 0.09);
+    --shadow-lg: 0 16px 40px rgba(15, 29, 46, 0.16);
+
+    /* Radii */
     --radius-sm: 8px;
     --radius-md: 12px;
-    --radius-lg: 18px;
+    --radius-lg: 16px;
     --radius-pill: 999px;
 
-    /* Kani nga spacing tokens kay para sa consistent gaps. */
+    /* Spacing Scale */
     --space-1: 4px;
     --space-2: 8px;
     --space-3: 12px;
@@ -47,11 +63,11 @@
     --space-6: 32px;
     --space-7: 48px;
 
-    /* Kani nga font stacks kay para sa premium salon typography. */
+    /* Typography */
     --font-display: "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
     --font-body: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
 
-    --sidebar-width: 264px;
-    --topbar-height: 64px;
+    --sidebar-width: 268px;
+    --topbar-height: 68px;
     --transition-fast: 160ms ease;
 }

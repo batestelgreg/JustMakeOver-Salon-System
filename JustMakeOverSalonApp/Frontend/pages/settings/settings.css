@@ -1,42 +1,14 @@
-/* Kani nga styles kay para sa settings page. */
+/* Page-scoped styles for Settings. Base badges/buttons inherit from components.css. */
+
+.settings-page .card + .card {
+    margin-top: var(--space-5);
+}
 
 .settings-page .data-table td,
 .settings-page .data-table th {
     white-space: nowrap;
 }
 
-/* Kani nga badges kay para sa category status. */
-.status-badge {
-    display: inline-block;
-    padding: 2px 10px;
-    border-radius: 999px;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.3px;
-}
-
-.status-badge--success {
-    background: #e7f6ec;
-    color: #1d7a3e;
-}
-
-.status-badge--danger {
-    background: #fdecea;
-    color: #b3261e;
-}
-
-.status-badge--muted {
-    background: #eef0f3;
-    color: #5f6b7a;
-}
-
-.btn--sm {
-    padding: 4px 10px;
-    font-size: 12px;
-}
-
-/* Kani nga grid kay para sa preferences form (side-by-side fields
-   para dili mo-taas ang Settings page). */
 .settings-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -46,13 +18,14 @@
 
 .settings-email-hint {
     margin: 4px 0 0;
-    font-size: 13px;
+    font-size: 13.5px;
+    line-height: 1.55;
     color: var(--color-text-muted);
 }
 
 .settings-email-meta {
     margin: 0 0 var(--space-3);
-    font-size: 12px;
+    font-size: 12.5px;
     color: var(--color-text-muted);
 }
 
@@ -72,20 +45,13 @@
     white-space: nowrap;
 }
 
-.form-field__hint {
-    display: block;
-    margin-top: 4px;
-    font-size: 11px;
-    color: var(--color-text-muted);
-}
-
 .settings-email-actions {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: var(--space-3);
-    padding-top: var(--space-2);
+    padding-top: var(--space-3);
     border-top: 1px solid var(--color-border);
 }
 

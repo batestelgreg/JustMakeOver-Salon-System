@@ -1,56 +1,62 @@
-/* Kani nga styles kay para lang sa Suppliers page
-   (page-scoped kay iya ra sa Suppliers developer). */
+/* Page-scoped styles for Suppliers. Action button geometry unified with global .btn--sm. */
 
-/* Kani nga grid kay para sa side-by-side form fields
-   sa supplier modal (para dili mo-taas ang modal). */
 .suppliers-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: var(--space-3);
 }
 
-/* Kani mga action buttons kay para sa table row actions (boxed,
-   small size): grey ang Edit, red ang Deactivate, green ang
-   Activate - outline style para visible ra ang text ug naay box. */
 .suppliers-page .btn-action {
-    padding: 4px 12px;
-    font-size: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 31px;
+    padding: 5px 12px;
+    font-family: inherit;
+    font-size: 12.5px;
     font-weight: 600;
+    line-height: 1.3;
+    white-space: nowrap;
     background: var(--color-white);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border-strong);
+    border-radius: 7px;
     cursor: pointer;
-    transition: background var(--transition-fast), border-color var(--transition-fast);
+    transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
 }
 
 .suppliers-page .btn-action:disabled {
-    opacity: 0.55;
+    opacity: 0.5;
     cursor: not-allowed;
 }
 
 .suppliers-page .btn-action--grey {
-    color: var(--color-text-muted);
-}
-
-.suppliers-page .btn-action--grey:hover:not(:disabled) {
-    background: var(--color-bg);
     color: var(--color-text);
 }
 
+.suppliers-page .btn-action--grey:hover:not(:disabled) {
+    background: var(--color-teal-tint);
+    border-color: var(--color-teal);
+    color: var(--color-teal-dark);
+}
+
 .suppliers-page .btn-action--danger {
+    background: var(--color-error-tint);
     color: var(--color-error);
-    border-color: var(--color-error);
+    border-color: var(--color-error-border);
 }
 
 .suppliers-page .btn-action--danger:hover:not(:disabled) {
-    background: var(--color-error-tint);
+    background: #F9DADA;
+    border-color: var(--color-error);
 }
 
 .suppliers-page .btn-action--success {
+    background: var(--color-success-tint);
     color: var(--color-success);
-    border-color: var(--color-success);
+    border-color: var(--color-success-border);
 }
 
 .suppliers-page .btn-action--success:hover:not(:disabled) {
-    background: var(--color-success-tint);
+    background: #D6ECE0;
+    border-color: var(--color-success);
 }

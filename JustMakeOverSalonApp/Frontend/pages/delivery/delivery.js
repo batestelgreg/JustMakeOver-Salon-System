@@ -168,7 +168,7 @@ function renderAllocatedTable(root) {
         '<td>' +
         (canManage
             ? '<button type="button" ' +
-            'class="btn btn--primary btn-generate" ' +
+            'class="btn btn--primary btn--sm btn-generate" ' +
             'data-requisition-id="' + requisition.RequisitionID + '">' +
             'Generate AR</button>'
             : '\u2014') +
@@ -257,7 +257,7 @@ function renderDeliveriesTable(root) {
         if (canManage && delivery.Status === 'Generated') {
             parts.push(
                 '<button type="button" ' +
-                'class="btn btn-action-box btn-mark-issued" ' +
+                'class="btn btn--sm btn--tint-teal btn-mark-issued" ' +
                 'data-delivery-id="' + delivery.DeliveryID + '" ' +
                 'title="Issue the items to the requesting department.">' +
                 'Issue items</button>'
@@ -266,7 +266,7 @@ function renderDeliveriesTable(root) {
             if (canAcknowledge) {
                 parts.push(
                     '<button type="button" ' +
-                    'class="btn btn-action-box btn-discrepancy" ' +
+                    'class="btn btn--sm btn--tint-warning btn-discrepancy" ' +
                     'data-delivery-id="' + delivery.DeliveryID + '">' +
                     'Note discrepancy</button>'
                 );
@@ -275,7 +275,7 @@ function renderDeliveriesTable(root) {
             if (canManage && hasOpenDiscrepancy && !hasCorrection) {
                 parts.push(
                     '<button type="button" ' +
-                    'class="btn btn-action-box btn-correction" ' +
+                    'class="btn btn--sm btn--tint-teal btn-correction" ' +
                     'data-delivery-id="' + delivery.DeliveryID + '">' +
                     'Record correction</button>'
                 );
@@ -284,7 +284,7 @@ function renderDeliveriesTable(root) {
             if (canManage && hasOpenDiscrepancy && hasCorrection) {
                 parts.push(
                     '<button type="button" ' +
-                    'class="btn btn-action-box btn-reissue" ' +
+                    'class="btn btn--sm btn--tint-teal btn-reissue" ' +
                     'data-delivery-id="' + delivery.DeliveryID + '">' +
                     'Re-issue</button>'
                 );
@@ -294,7 +294,7 @@ function renderDeliveriesTable(root) {
                 if (hasOpenDiscrepancy) {
                     parts.push(
                         '<button type="button" ' +
-                        'class="btn btn-action-box btn-sign-blocked" ' +
+                        'class="btn btn--sm btn--ghost btn-sign-blocked" ' +
                         'disabled aria-disabled="true" ' +
                         'data-delivery-id="' + delivery.DeliveryID + '" ' +
                         'title="Record the correction and re-issue the ' +
@@ -304,7 +304,7 @@ function renderDeliveriesTable(root) {
                 } else {
                     parts.push(
                         '<button type="button" ' +
-                        'class="btn btn-action-box btn-sign" ' +
+                        'class="btn btn--sm btn--primary btn-sign" ' +
                         'data-delivery-id="' + delivery.DeliveryID + '">' +
                         'Sign &amp; complete</button>'
                     );
@@ -314,7 +314,7 @@ function renderDeliveriesTable(root) {
 
         parts.push(
             '<button type="button" ' +
-            'class="btn btn-action-box btn-print-ar" ' +
+            'class="btn btn--sm btn--secondary btn-print-ar" ' +
             'data-delivery-id="' + delivery.DeliveryID + '" ' +
             'title="Print this acknowledgement receipt.">' +
             'Print AR</button>'
@@ -325,7 +325,7 @@ function renderDeliveriesTable(root) {
         if (delivery.DiscrepancyNotes || hasCorrection) {
             parts.push(
                 '<button type="button" ' +
-                'class="btn btn-action-box btn-print-correction" ' +
+                'class="btn btn--sm btn--ghost btn-print-correction" ' +
                 'data-delivery-id="' + delivery.DeliveryID + '" ' +
                 'title="Print the discrepancy and correction report.">' +
                 'Print correction</button>'
@@ -353,12 +353,14 @@ function renderDeliveriesTable(root) {
                 '</span>'
                 : '\u2014') +
             '</td>' +
-            '<td class="delivery-status-cell">' +
+            '<td>' +
+            '<div class="delivery-status-stack">' +
             '<span class="' + badgeClass + '">' +
             escapeHtml(delivery.Status) + '</span>' +
             discrepancyFlag +
+            '</div>' +
             '</td>' +
-            '<td class="delivery-actions">' + actions + '</td>' +
+            '<td><div class="table-actions delivery-actions">' + actions + '</div></td>' +
             '</tr>';
     }).join('');
 

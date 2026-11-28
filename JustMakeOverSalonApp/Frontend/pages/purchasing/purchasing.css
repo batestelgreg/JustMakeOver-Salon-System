@@ -1,46 +1,65 @@
-﻿/* Purchasing page */
+﻿/*
+   Page-scoped styles for the Purchasing workspace.
+   All base colors, cards, tables, buttons, and badges inherit from
+   assets/css/tokens.css and assets/css/components.css.
+ */
+
 .purchasing-page {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 24px;
-    color: #10283f;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
 }
 
 .purchasing-toolbar,
 .purchasing-actions {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 12px;
+    justify-content: flex-end;
+    gap: var(--space-3);
     flex-wrap: wrap;
 }
 
 .purchasing-panel {
-    margin-top: 24px;
-    padding: 24px;
-    border: 1px solid #dce3ec;
-    border-radius: 12px;
-    background: white;
+    background: var(--color-white);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    padding: var(--space-5);
 }
 
-    .purchasing-panel h3 {
-        margin: 20px 0 12px;
-    }
-
-    .purchasing-panel > h3:first-child {
-        margin-top: 0;
-    }
-
-.purchasing-page p {
-    line-height: 1.5;
+.purchasing-panel h3 {
+    font-size: 17px;
+    color: var(--color-navy);
+    margin: var(--space-5) 0 var(--space-2);
 }
 
-/* Tables */
+.purchasing-panel > h3:first-child {
+    margin-top: 0;
+}
+
+.purchasing-panel > p {
+    color: var(--color-text-muted);
+    font-size: 13.5px;
+    line-height: 1.6;
+    margin-bottom: var(--space-4);
+}
+
+#purchasingMessage {
+    min-height: 20px;
+    margin: calc(var(--space-2) * -1) 0;
+    font-size: 13.5px;
+    color: var(--color-teal-dark);
+    font-weight: 500;
+}
+
+/* Tables aligned identically to global .data-table */
 .purchasing-table-wrapper {
+    width: 100%;
     overflow-x: auto;
-    margin: 16px 0;
-    border: 1px solid #dce3ec;
-    border-radius: 8px;
+    margin: var(--space-3) 0;
+    background: var(--color-white);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
 }
 
 .purchasing-table {
@@ -48,390 +67,390 @@
     border-collapse: collapse;
 }
 
-    .purchasing-table th,
-    .purchasing-table td {
-        padding: 12px;
-        text-align: left;
-        vertical-align: top;
-        border-bottom: 1px solid #e5eaf0;
-    }
+.purchasing-table th,
+.purchasing-table td {
+    padding: 13px 16px;
+    text-align: left;
+    vertical-align: middle;
+    line-height: 1.55;
+    font-size: 13.5px;
+}
 
-    .purchasing-table th {
-        background: #f3f6fa;
-        white-space: nowrap;
-    }
+.purchasing-table th {
+    background: var(--color-teal-tint);
+    color: var(--color-teal-dark);
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--color-teal-border);
+}
 
-    .purchasing-table tr:last-child td {
-        border-bottom: 0;
-    }
+.purchasing-table td {
+    border-top: 1px solid var(--color-border);
+    color: var(--color-text);
+}
 
-/* JavaScript applies this class only above ten data rows.
-   Its measured max-height includes the header and ten rows. */
+.purchasing-table tbody tr:hover {
+    background: #F9FBFE;
+}
+
+/* JavaScript applies this class above ten data rows. */
 .purchasing-table-scroll {
     overflow-y: auto;
     overscroll-behavior: contain;
 }
 
-    .purchasing-table-scroll thead th {
-        position: sticky;
-        top: 0;
-        z-index: 1;
-        background: #f3f6fa;
-    }
+.purchasing-table-scroll thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--color-teal-tint);
+}
 
 .purchasing-table-wrapper:focus-visible {
-    outline: 3px solid #155e86;
+    outline: 2px solid var(--color-gold);
     outline-offset: 2px;
 }
 
-/* Notification target row */
 .purchasing-table tr.is-highlighted > td {
-    background: #fff0b8;
-    box-shadow: inset 0 2px #ffb43b, inset 0 -2px #ffb43b;
+    background: #FEF0C7;
+    box-shadow: inset 0 2px var(--color-gold), inset 0 -2px var(--color-gold);
 }
 
 @media (prefers-reduced-motion: reduce) {
     .purchasing-table tr.is-highlighted > td {
         animation-duration: 0.01ms;
-        background: #fff0b8;
+        background: #FEF0C7;
     }
 }
 
-/* Forms */
-.purchasing-page label {
-    display: block;
+/* Purchasing inline forms */
+.purchasing-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: var(--space-3);
+}
+
+.purchasing-field > label,
+.purchasing-form > label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--color-navy);
 }
 
 .purchasing-form {
     display: flex;
     align-items: flex-end;
-    gap: 16px;
+    gap: var(--space-4);
     flex-wrap: wrap;
-    margin: 16px 0;
+    margin: var(--space-4) 0;
 }
 
-    .purchasing-form label {
-        flex: 1 1 180px;
-    }
+.purchasing-form label {
+    flex: 1 1 200px;
+}
 
-    .purchasing-form .purchasing-wide {
-        flex-basis: 100%;
-    }
+.purchasing-form .purchasing-wide {
+    flex-basis: 100%;
+}
 
 .purchasing-page input,
 .purchasing-page select,
 .purchasing-page textarea {
     box-sizing: border-box;
-    display: block;
     width: 100%;
-    padding: 10px;
-    margin-top: 6px;
-    border: 1px solid #ccd6e0;
-    border-radius: 7px;
-    background: white;
-    color: #10283f;
+    min-height: 40px;
+    padding: 9px 14px;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--color-white);
+    color: var(--color-text);
     font: inherit;
+    line-height: 1.5;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.purchasing-page textarea {
+    min-height: 84px;
+    resize: vertical;
+}
+
+.purchasing-page input:focus,
+.purchasing-page select:focus,
+.purchasing-page textarea:focus {
+    border-color: var(--color-teal);
+    box-shadow: 0 0 0 3px rgba(22, 84, 117, 0.14);
+    outline: none;
 }
 
 #quotationPR {
-    max-width: 500px;
+    max-width: 520px;
 }
 
-#purchasingMessage {
-    min-height: 24px;
-}
-
-/* Outstanding quantity and replacement instructions */
 #receiptOutstanding {
-    padding: 10px 12px;
-    background: #f3f6fa;
-    border-radius: 7px;
+    padding: 11px 14px;
+    margin-bottom: var(--space-3);
+    background: var(--color-teal-tint);
+    border: 1px solid var(--color-teal-border);
+    color: var(--color-teal-dark);
+    border-radius: var(--radius-sm);
+    font-size: 13.5px;
+    font-weight: 600;
 }
 
-/* System-generated reference */
 .purchasing-page #deliveryReference {
-    background: #f3f6fa;
-    color: #526477;
+    background: var(--color-bg);
+    color: var(--color-text-muted);
     cursor: default;
     pointer-events: none;
 }
 
-/* Orange action buttons */
-.purchasing-page button,
-.purchasing-page a.purchasing-email {
-    display: inline-block;
-    padding: 9px 14px;
-    margin: 3px;
-    border: 1px solid #ffb43b;
-    border-radius: 10px;
-    background: #ffb43b;
-    color: #172333;
-    font: inherit;
-    font-size: 13px;
-    font-weight: 500;
-    text-decoration: none;
-    cursor: pointer;
-    box-shadow: 0 3px 9px rgb(255 180 59 / 28%);
-    transition: background-color 150ms ease, box-shadow 150ms ease;
-}
-
-    .purchasing-page button:hover:not(:disabled),
-    .purchasing-page a.purchasing-email:hover {
-        background: #f5a623;
-        border-color: #f5a623;
-        box-shadow: 0 4px 12px rgb(245 166 35 / 35%);
-    }
-
-    .purchasing-page button:disabled {
-        background: #f1f3f5;
-        border-color: #dce3ec;
-        color: #8a97a6;
-        opacity: 1;
-        cursor: not-allowed;
-        box-shadow: none;
-    }
-
-    .purchasing-page button:focus-visible,
-    .purchasing-page a.purchasing-email:focus-visible {
-        outline: 3px solid #155e86;
-        outline-offset: 3px;
-    }
-
-/* Table action alignment */
+/* Unified table row actions spacing */
 .purchasing-row-actions {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 8px;
 }
 
-.purchasing-page button.purchasing-remove-trigger {
+/* Rejection native dialog aligned to global .modal */
+#purchasingDecision {
+    box-sizing: border-box;
+    width: min(480px, calc(100vw - 40px));
+    max-height: calc(100vh - 40px);
+    margin: auto;
+    padding: var(--space-5);
+    overflow-y: auto;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background: var(--color-white);
+    color: var(--color-text);
+    box-shadow: var(--shadow-lg);
+}
+
+#purchasingDecision h3 {
+    font-size: 19px;
+    margin-bottom: var(--space-3);
+}
+
+#purchasingDecision::backdrop {
+    background: rgba(15, 29, 46, 0.56);
+}
+
+/* Removal & email confirmation dialog aligned to global .modal */
+dialog.purchasing-remove-dialog {
+    box-sizing: border-box;
+    width: min(460px, calc(100vw - 40px));
+    max-height: calc(100vh - 40px);
+    margin: auto;
+    padding: 0;
+    overflow-y: auto;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background: var(--color-white);
+    color: var(--color-text);
+    font: inherit;
+    box-shadow: var(--shadow-lg);
+}
+
+dialog.purchasing-remove-dialog::backdrop {
+    background: rgba(15, 29, 46, 0.56);
+}
+
+dialog.purchasing-remove-dialog .purchasing-remove-content {
+    padding: var(--space-5);
+}
+
+dialog.purchasing-remove-dialog h3 {
+    margin: 0 0 var(--space-2);
+    font-size: 19px;
+    color: var(--color-navy);
+}
+
+dialog.purchasing-remove-dialog p {
     margin: 0;
-    padding: 8px 14px;
+    color: var(--color-text-muted);
+    font-size: 14px;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+}
+
+dialog.purchasing-remove-dialog.purchasing-draft-dialog {
+    width: min(560px, calc(100vw - 40px));
+}
+
+dialog.purchasing-remove-dialog .purchasing-draft-fields {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin-top: var(--space-4);
+}
+
+dialog.purchasing-remove-dialog .purchasing-draft-fields label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-navy);
+}
+
+dialog.purchasing-remove-dialog .purchasing-draft-fields input,
+dialog.purchasing-remove-dialog .purchasing-draft-fields textarea {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--color-white);
+    color: var(--color-text);
+    font: inherit;
+    font-size: 13.5px;
+    line-height: 1.55;
+}
+
+dialog.purchasing-remove-dialog .purchasing-draft-fields textarea {
+    min-height: 168px;
+    resize: vertical;
+}
+
+dialog.purchasing-remove-dialog .purchasing-email-warning {
+    margin-top: var(--space-3);
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-error-border);
+    background: var(--color-error-tint);
+    color: var(--color-error);
+    font-size: 13px;
     font-weight: 600;
 }
 
-/* PO rejection dialog */
-#purchasingDecision {
-    box-sizing: border-box;
-    width: min(480px, 85vw);
-    max-height: calc(100vh - 40px);
-    margin: auto;
-    padding: 24px;
-    overflow-y: auto;
-    border: 1px solid #ccd6e0;
-    border-radius: 12px;
-    background: white;
-    color: #10283f;
+dialog.purchasing-remove-dialog .purchasing-remove-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin-top: var(--space-5);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--color-border);
 }
 
-    #purchasingDecision::backdrop {
-        background: rgb(0 0 0 / 40%);
-    }
-
-/* Respect hidden controls */
-.purchasing-page [hidden] {
-    display: none !important;
-}
-
-/* Removal confirmation dialog.
-   Direct selectors support either page or root mounting. */
-dialog.purchasing-remove-dialog {
-    box-sizing: border-box !important;
-    width: 450px !important;
-    max-width: calc(100vw - 32px) !important;
-    max-height: calc(100vh - 40px) !important;
-    margin: auto !important;
-    padding: 0 !important;
-    overflow-y: auto;
-    border: none !important;
-    border-radius: 12px !important;
-    background: white !important;
-    color: #182538;
-    font: inherit;
-    box-shadow: 0 16px 48px rgb(0 0 0 / 20%);
-}
-
-    dialog.purchasing-remove-dialog::backdrop {
-        background: rgb(0 0 0 / 48%);
-    }
-
-    dialog.purchasing-remove-dialog .purchasing-remove-content {
-        padding: 24px;
-    }
-
-    dialog.purchasing-remove-dialog h3 {
-        margin: 0 0 10px;
-        font-family: Georgia, 'Times New Roman', serif;
-        font-size: 23px;
-        font-weight: 700;
-        color: #182538;
-    }
-
-    dialog.purchasing-remove-dialog p {
-        margin: 0;
-        color: #666;
-        font-size: 14px;
-        line-height: 1.6;
-        overflow-wrap: anywhere;
-    }
-
-    dialog.purchasing-remove-dialog .purchasing-remove-actions {
-        display: flex;
-        justify-content: flex-end;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 12px;
-        margin-top: 26px;
-    }
-
-    dialog.purchasing-remove-dialog button {
-        display: inline-block;
-        margin: 0;
-        padding: 12px 18px;
-        border-radius: 9px;
-        font-family: inherit;
-        font-size: 14px;
-        font-weight: 600;
-        cursor: pointer;
-    }
-
-        dialog.purchasing-remove-dialog button.purchasing-remove-cancel {
-            border: 1px solid transparent;
-            background: transparent;
-            color: #263449;
-            box-shadow: none;
-        }
-
-            dialog.purchasing-remove-dialog button.purchasing-remove-cancel:hover {
-                background: #f3f4f6;
-                border-color: transparent;
-                box-shadow: none;
-            }
-
-        dialog.purchasing-remove-dialog button.purchasing-remove-confirm {
-            border: 1px solid #ffb43b;
-            background: #ffb43b;
-            color: #172333;
-            box-shadow: 0 3px 9px rgb(255 180 59 / 28%);
-        }
-
-            dialog.purchasing-remove-dialog button.purchasing-remove-confirm:hover {
-                background: #f5a623;
-                border-color: #f5a623;
-            }
-
-        dialog.purchasing-remove-dialog button:focus-visible {
-            outline: 3px solid #155e86;
-            outline-offset: 3px;
-        }
-
-/* Upper-right Purchasing notification */
+/* Toast aligned to global .toast */
 .purchasing-toast {
     position: fixed;
-    top: 96px;
-    right: 24px;
-    z-index: 10000;
+    top: var(--space-5);
+    right: var(--space-5);
+    z-index: 1100;
     box-sizing: border-box;
     display: flex;
     align-items: flex-start;
-    gap: 16px;
-    width: min(380px, calc(100vw - 32px));
-    padding: 18px 20px;
-    border: 1px solid #dce3ec;
-    border-left: 5px solid #23935d;
-    border-radius: 10px;
-    background: white;
-    color: #10283f;
-    font-family: inherit;
-    box-shadow: 0 8px 28px rgb(15 23 42 / 16%);
+    gap: var(--space-3);
+    width: min(390px, calc(100vw - 32px));
+    padding: var(--space-4);
+    border: 1px solid var(--color-border);
+    border-left: 4px solid var(--color-success);
+    border-radius: var(--radius-md);
+    background: var(--color-white);
+    color: var(--color-text);
+    box-shadow: var(--shadow-lg);
 }
 
-    .purchasing-toast > div {
-        flex: 1;
-        min-width: 0;
-    }
+.purchasing-toast > div {
+    flex: 1;
+    min-width: 0;
+}
 
-    .purchasing-toast strong {
-        display: block;
-        margin-bottom: 6px;
-        font-size: 15px;
-    }
-
-    .purchasing-toast p {
-        margin: 0;
-        color: #526477;
-        font-size: 14px;
-        line-height: 1.5;
-        overflow-wrap: anywhere;
-    }
-
-    .purchasing-toast > button {
-        flex-shrink: 0;
-        margin: 0;
-        padding: 0 4px;
-        border: 0;
-        background: transparent;
-        color: #64748b;
-        font-size: 24px;
-        line-height: 1;
-        cursor: pointer;
-    }
-
-        .purchasing-toast > button:hover {
-            color: #10283f;
-        }
-
-        .purchasing-toast > button:focus-visible {
-            outline: 2px solid #155e86;
-            outline-offset: 3px;
-        }
+.purchasing-toast strong {
+    display: block;
+    margin-bottom: 3px;
+    font-size: 13.5px;
+    color: var(--color-success);
+}
 
 .purchasing-toast-error {
-    border-left-color: #c83d32;
+    border-left-color: var(--color-error);
+}
+
+.purchasing-toast-error strong {
+    color: var(--color-error);
+}
+
+.purchasing-toast p {
+    margin: 0;
+    color: var(--color-text);
+    font-size: 13.5px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.purchasing-toast > button {
+    flex-shrink: 0;
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--color-text-muted);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.purchasing-toast > button:hover {
+    background: var(--color-bg);
+    color: var(--color-navy);
 }
 
 /* Email status pill inside PO table */
 .purchasing-email-status {
     display: inline-flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 4px;
 }
 
 .purchasing-email-badge {
     display: inline-block;
     width: fit-content;
-    padding: 2px 8px;
-    border-radius: 999px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.2px;
+    padding: 3px 10px;
+    border-radius: var(--radius-pill);
+    font-size: 11.5px;
+    font-weight: 600;
+    border: 1px solid transparent;
 }
 
 .purchasing-email-badge--sent {
-    background: #e6f6ee;
-    color: #166534;
+    background: var(--color-success-tint);
+    border-color: var(--color-success-border);
+    color: var(--color-success);
 }
 
 .purchasing-email-badge--failed {
-    background: #fdecec;
-    color: #991b1b;
+    background: var(--color-error-tint);
+    border-color: var(--color-error-border);
+    color: var(--color-error);
 }
 
 .purchasing-email-badge--pending {
-    background: #fff4db;
-    color: #92400e;
+    background: var(--color-warning-tint);
+    border-color: var(--color-warning-border);
+    color: var(--color-warning);
 }
 
 .purchasing-email-badge--none {
-    background: #f1f5f9;
-    color: #64748b;
+    background: var(--color-bg-subtle);
+    border-color: var(--color-border);
+    color: var(--color-text-muted);
 }
 
 .purchasing-email-meta {
-    font-size: 11px;
-    color: #64748b;
-    max-width: 160px;
+    font-size: 11.5px;
+    color: var(--color-text-muted);
+    max-width: 170px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -439,18 +458,17 @@ dialog.purchasing-remove-dialog {
 
 .purchasing-email-recipient {
     display: block;
-    margin-top: 10px;
+    margin-top: var(--space-3);
     padding: 10px 12px;
-    border: 1px solid #dce3ec;
-    border-radius: 8px;
-    background: #f8fafc;
-    color: #10283f;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-bg);
+    color: var(--color-navy);
     font-size: 13px;
     font-weight: 600;
     word-break: break-all;
 }
 
-/* Print only the shared business document host. */
 @media print {
     .purchasing-toast {
         display: none !important;

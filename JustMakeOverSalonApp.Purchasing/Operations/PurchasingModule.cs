@@ -44,6 +44,10 @@ namespace JustMakeOverSalonApp.Purchasing.Operations
                 "PurchasingSendFollowupEmail",
                 HandleSendFollowupEmailAsync);
 
+            registry.Register(
+                "PurchasingSendReplacementEmail",
+                HandleSendReplacementEmailAsync);
+
             // Kani nga operations kay ON-DEMAND print calls. Wala ni
             // ma-apil sa page load, so one DB call gihapon ang page.
             registry.Register(
@@ -186,6 +190,46 @@ namespace JustMakeOverSalonApp.Purchasing.Operations
                 ParseID(context.GetValueAsString(payload, "poID")),
                 ParseID(context.GetValueAsString(payload, "followupID")),
                 context.GetValueAsString(payload, "message"));
+
+            context.SendResponse(requestID, true, result, null);
+        }
+
+        // Sends a drafted replacement request email asynchronously via MailKit SMTP
+        // and records ReplacementRequestedAt if not yet marked.
+        private async Task HandleSendReplacementEmailAsync(
+            Dictionary<string, object> payload,
+            string requestID)
+        {
+            var actor = context.RequireUser();
+            int poID = ParseID(context.GetValueAsString(payload, "poID"));
+            int drID = ParseID(context.GetValueAsString(payload, "drID"));
+            int replacementQty = ParseID(context.GetValueAsString(payload, "replacementQty"));
+            string deliveryReference = context.GetValueAsString(payload, "deliveryReference");
+            string subject = context.GetValueAsString(payload, "subject");
+            string body = context.GetValueAsString(payload, "body");
+
+            var result = await emailService.SendReplacementRequestAsync(
+                actor,
+                poID,
+                drID,
+                replacementQty,
+                deliveryReference,
+                subject,
+                body);
+
+            if (drID > 0)
+            {
+                try
+                {
+                    var serializer = new JavaScriptSerializer();
+                    string json = serializer.Serialize(new { drID });
+                    await service.ExecuteAsync(actor, "ReplacementSent", json);
+                }
+                catch
+                {
+                    // Ignore if replacement request timestamp was already recorded.
+                }
+            }
 
             context.SendResponse(requestID, true, result, null);
         }

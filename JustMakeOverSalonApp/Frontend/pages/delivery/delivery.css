@@ -1,73 +1,67 @@
-/* Kani nga styles kay para lang sa Delivery page
-   (page-scoped kay iya ra sa Delivery developer). */
+/* Page-scoped styles for Delivery. Button sizing unified with global .btn--sm. */
 
-/* Kani nga panel headings kay para sa duha ka cards sa page. */
 .delivery-panel-title {
-    margin: 0 0 4px;
-    font-size: 16px;
+    margin: 0 0 6px;
+    font-size: 17px;
+    color: var(--color-navy);
 }
 
 .delivery-panel-subtitle {
     margin: 0 0 var(--space-4);
     color: var(--color-text-muted);
-    font-size: 13px;
+    font-size: 13.5px;
+    line-height: 1.55;
 }
 
-/* Kani nga wrapper kay para dili ma-squish ang mga table
-   sa gubang nga tan-aw. */
 .delivery-page .data-table {
     overflow-x: auto;
 }
 
-/* Kani nga boxed action buttons kay para sa AR row actions
-   (parehas sa Suppliers nga compact nga outline buttons). */
 .delivery-page .btn-action-box {
-    padding: 4px 10px;
-    font-size: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 31px;
+    padding: 5px 12px;
+    font-size: 12.5px;
     font-weight: 600;
+    line-height: 1.3;
+    white-space: nowrap;
     background: var(--color-white);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
-    color: var(--color-text-muted);
+    border: 1px solid var(--color-border-strong);
+    border-radius: 7px;
+    color: var(--color-text);
     cursor: pointer;
-    transition: background var(--transition-fast), border-color var(--transition-fast);
+    transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
 }
 
 .delivery-page .btn-action-box:hover:not(:disabled) {
+    background: var(--color-teal-tint);
     border-color: var(--color-teal);
-    color: var(--color-teal);
+    color: var(--color-teal-dark);
 }
 
 .delivery-page .btn-action-box:disabled {
-    opacity: 0.55;
+    opacity: 0.5;
     cursor: not-allowed;
 }
 
-/* Kani nga blocked sign button kay naa pa'y open discrepancy:
-   parehas og tan-aw sa disabled pero pwede i-click para makita
-   ang rason (toast) imbes nga mo-open sa sign modal. */
 .delivery-page .btn-action-box.btn-sign-blocked {
-    opacity: 0.55;
+    opacity: 0.5;
     cursor: not-allowed;
 }
 
 .delivery-page .btn-action-box.btn-sign-blocked:hover {
-    border-color: var(--color-border);
+    background: var(--color-white);
+    border-color: var(--color-border-strong);
     color: var(--color-text-muted);
 }
 
-/* Kani nga gap kay para sa duha ka action buttons sa usa ka cell. */
 .delivery-page .delivery-actions {
     white-space: nowrap;
 }
 
-.delivery-page .delivery-actions .btn-action-box + .btn-action-box {
-    margin-left: var(--space-2);
-}
-
-/* Kani nga status cell kay para dili mag-bungkag ang badges sa sigpit
-   nga column: vertical stack, walay text wrap, left aligned. */
-.delivery-page .delivery-status-cell {
+.delivery-page .delivery-status-stack {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
@@ -75,19 +69,17 @@
     white-space: nowrap;
 }
 
-.delivery-page .delivery-status-cell .badge {
+.delivery-page .delivery-status-stack .badge {
     white-space: nowrap;
 }
 
-/* Kani nga compact chip kay outline style para limpyo tan-awon ug
-   dili mo-duha ka linya (dili parehas sa lingin nga pink nga oval). */
 .delivery-page .delivery-discrepancy-chip {
-    padding: 2px 9px 2px 6px;
-    font-size: 11px;
+    padding: 3px 10px 3px 7px;
+    font-size: 11.5px;
     font-weight: 600;
-    line-height: 1.6;
-    border: 1px solid var(--color-error);
-    background: var(--color-white);
+    line-height: 1.4;
+    border: 1px solid var(--color-error-border);
+    background: var(--color-error-tint);
     color: var(--color-error);
     border-radius: var(--radius-pill);
 }
@@ -97,28 +89,22 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 12px;
-    height: 12px;
-    margin-right: 4px;
+    width: 13px;
+    height: 13px;
+    margin-right: 5px;
     border-radius: 50%;
     background: var(--color-error);
     color: var(--color-white);
-    font-size: 9px;
+    font-size: 9.5px;
     font-weight: 700;
     line-height: 1;
 }
 
 .delivery-page .delivery-discrepancy-chip:hover,
 .delivery-page .delivery-discrepancy-chip:focus-visible {
-    background: var(--color-error-tint);
+    background: #F9DADA;
+    border-color: var(--color-error);
     text-decoration: none;
-}
-
-/* Kani nga .btn--sm kay para sa compact nga Clear button sa
-   signature pad (wala kini sa global components.css). */
-.delivery-page .btn--sm {
-    padding: 4px 10px;
-    font-size: 12px;
 }
 
 /* ============================================================

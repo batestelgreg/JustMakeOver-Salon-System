@@ -1,73 +1,172 @@
-/* 
-   Kani nga components.css kay nagdala sa reusable UI components:
-   buttons, cards, tables, forms, modal, toast ug status badges.
+/*
+   Unified UI components for Just MakeOver Salon System:
+   buttons, cards, tables, forms, badges, modals, toasts, and signature pads.
  */
 
-/* Kani mga buttons kay para sa tanang actions sa app. */
+/* ============================================================
+   Unified Button System (consistent across all modules)
+   ============================================================ */
 .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: var(--space-2);
-    padding: 10px 18px;
+    min-height: 38px;
+    padding: 8px 18px;
     border-radius: var(--radius-sm);
-    font-size: 14px;
+    font-size: 13.5px;
     font-weight: 600;
-    border: 1px solid transparent;
+    line-height: 1.3;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    border: 1px solid var(--color-border-strong);
+    background: var(--color-white);
+    color: var(--color-text);
+    cursor: pointer;
     transition: background var(--transition-fast), box-shadow var(--transition-fast),
-        transform var(--transition-fast), border-color var(--transition-fast);
+        transform var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
 }
 
-.btn:active {
+.btn:hover:not(:disabled) {
+    background: var(--color-bg);
+    border-color: var(--color-teal);
+    color: var(--color-teal-dark);
+}
+
+.btn:active:not(:disabled) {
     transform: translateY(1px);
 }
 
 .btn:disabled {
-    opacity: 0.55;
+    opacity: 0.5;
     cursor: not-allowed;
     transform: none;
+    box-shadow: none;
 }
 
+.btn--sm {
+    min-height: 31px;
+    padding: 5px 12px;
+    font-size: 12.5px;
+    border-radius: 7px;
+}
+
+/* Primary CTA: Logo Gold with high-contrast Navy ink */
 .btn--primary {
     background: linear-gradient(135deg, var(--color-gold), var(--color-gold-soft));
+    border-color: var(--color-gold-dark);
     color: var(--color-navy);
-    box-shadow: 0 2px 8px rgba(246, 168, 50, 0.35);
+    box-shadow: 0 2px 6px rgba(242, 165, 51, 0.28);
 }
 
 .btn--primary:hover:not(:disabled) {
-    box-shadow: 0 4px 14px rgba(246, 168, 50, 0.45);
+    background: linear-gradient(135deg, #EA9922, var(--color-gold));
+    border-color: #C77E14;
+    color: var(--color-navy);
+    box-shadow: 0 4px 12px rgba(242, 165, 51, 0.36);
 }
 
+/* Secondary Action: Logo Teal with crisp White ink */
 .btn--secondary {
     background: var(--color-teal);
+    border-color: var(--color-teal-dark);
     color: var(--color-white);
+    box-shadow: 0 2px 6px rgba(22, 84, 117, 0.22);
 }
 
 .btn--secondary:hover:not(:disabled) {
     background: var(--color-teal-dark);
+    border-color: var(--color-navy);
+    color: var(--color-white);
+    box-shadow: 0 4px 12px rgba(22, 84, 117, 0.28);
 }
 
+/* Neutral Utility / Cancel / Refresh */
 .btn--ghost {
     background: var(--color-white);
-    border-color: var(--color-border);
+    border-color: var(--color-border-strong);
     color: var(--color-text);
 }
 
 .btn--ghost:hover:not(:disabled) {
+    background: var(--color-teal-tint);
     border-color: var(--color-teal);
-    color: var(--color-teal);
+    color: var(--color-teal-dark);
 }
 
+/* Solid Destructive Confirm */
 .btn--danger {
     background: var(--color-error);
+    border-color: #A62B2B;
     color: var(--color-white);
 }
 
 .btn--danger:hover:not(:disabled) {
-    background: #A93030;
+    background: #A92D2D;
+    border-color: #8E2424;
+    color: var(--color-white);
 }
 
-/* Kani nga card kay para sa summary tiles ug content panels. */
+/* Calm, readable tinted row-action buttons */
+.btn--tint-teal {
+    background: var(--color-teal-tint);
+    border-color: var(--color-teal-border);
+    color: var(--color-teal-dark);
+}
+
+.btn--tint-teal:hover:not(:disabled) {
+    background: #DCECF5;
+    border-color: var(--color-teal);
+    color: var(--color-teal-dark);
+}
+
+.btn--tint-success {
+    background: var(--color-success-tint);
+    border-color: var(--color-success-border);
+    color: var(--color-success);
+}
+
+.btn--tint-success:hover:not(:disabled) {
+    background: #D6ECE0;
+    border-color: var(--color-success);
+    color: var(--color-success);
+}
+
+.btn--tint-warning {
+    background: var(--color-gold-tint);
+    border-color: var(--color-gold-border);
+    color: var(--color-gold-ink);
+}
+
+.btn--tint-warning:hover:not(:disabled) {
+    background: #FCEAD0;
+    border-color: var(--color-gold-dark);
+    color: var(--color-gold-ink);
+}
+
+.btn--tint-danger {
+    background: var(--color-error-tint);
+    border-color: var(--color-error-border);
+    color: var(--color-error);
+}
+
+.btn--tint-danger:hover:not(:disabled) {
+    background: #F9DADA;
+    border-color: var(--color-error);
+    color: var(--color-error);
+}
+
+/* Shared wrapper for multiple buttons inside table action cells */
+.table-actions {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* ============================================================
+   Cards & Section Headers
+   ============================================================ */
 .card {
     background: var(--color-white);
     border: 1px solid var(--color-border);
@@ -76,17 +175,35 @@
     padding: var(--space-5);
 }
 
+.card-header {
+    margin-bottom: var(--space-4);
+}
+
+.card-header h2,
+.card-header h3 {
+    font-size: 18px;
+    color: var(--color-navy);
+    margin-bottom: 4px;
+}
+
+.card-header p {
+    font-size: 13.5px;
+    color: var(--color-text-muted);
+    line-height: 1.55;
+}
+
 .card--clickable {
     cursor: pointer;
-    transition: box-shadow var(--transition-fast), transform var(--transition-fast);
+    transition: box-shadow var(--transition-fast), transform var(--transition-fast), border-color var(--transition-fast);
 }
 
 .card--clickable:hover {
     box-shadow: var(--shadow-md);
+    border-color: var(--color-teal-border);
     transform: translateY(-2px);
 }
 
-/* Kani nga stat card kay para sa dashboard summary numbers. */
+/* Dashboard Summary Stat Cards */
 .stat-card {
     display: flex;
     align-items: center;
@@ -107,16 +224,20 @@
     font-size: 26px;
     font-weight: 700;
     color: var(--color-navy);
-    line-height: 1.1;
+    line-height: 1.15;
     font-variant-numeric: tabular-nums;
 }
 
 .stat-card__label {
     font-size: 13px;
     color: var(--color-text-muted);
+    margin-top: 3px;
+    line-height: 1.4;
 }
 
-/* Kani nga form controls kay para sa tanang input fields. */
+/* ============================================================
+   Forms & Inputs
+   ============================================================ */
 .form-field {
     display: flex;
     flex-direction: column;
@@ -124,44 +245,64 @@
     margin-bottom: var(--space-4);
 }
 
-.form-field__label {
-    font-size: 13px;
+.form-field__label,
+.form-field > label {
+    font-size: 13.5px;
     font-weight: 600;
-    color: var(--color-text);
+    color: var(--color-navy);
+    line-height: 1.45;
 }
 
 .form-field__input {
-    padding: 10px 14px;
-    border: 1px solid var(--color-border);
+    min-height: 40px;
+    padding: 9px 14px;
+    border: 1px solid var(--color-border-strong);
     border-radius: var(--radius-sm);
     background: var(--color-white);
+    color: var(--color-text);
+    line-height: 1.5;
     transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .form-field__input:focus {
     border-color: var(--color-teal);
-    box-shadow: 0 0 0 3px rgba(20, 82, 115, 0.12);
+    box-shadow: 0 0 0 3px rgba(22, 84, 117, 0.14);
     outline: none;
+}
+
+.form-field__input[readonly] {
+    background: var(--color-bg);
+    color: var(--color-text-muted);
+    cursor: default;
 }
 
 .form-field--error .form-field__input {
     border-color: var(--color-error);
 }
 
+.form-field__hint {
+    display: block;
+    margin-top: 2px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--color-text-muted);
+}
+
 .form-field__error {
     font-size: 12px;
     color: var(--color-error);
     min-height: 14px;
+    line-height: 1.4;
 }
 
-/* Self-service password field controls & live requirement checklist */
+/* Self-service password controls */
 .account-banner {
-    padding: 10px 12px;
+    padding: 11px 14px;
     margin-bottom: var(--space-4);
     border-radius: var(--radius-sm);
     border: 1px solid var(--color-border);
     background: var(--color-bg);
-    font-size: 13px;
+    font-size: 13.5px;
     color: var(--color-text-muted);
 }
 
@@ -182,8 +323,6 @@
 
 .password-toggle-btn {
     flex: 0 0 auto;
-    padding: 6px 12px;
-    font-size: 12px;
     white-space: nowrap;
 }
 
@@ -191,18 +330,18 @@
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
-    margin-top: 2px;
+    margin-top: 4px;
 }
 
 .password-rule {
     display: inline-flex;
     align-items: center;
-    padding: 2px 8px;
+    padding: 3px 9px;
     border-radius: var(--radius-pill);
     border: 1px solid var(--color-border);
     background: var(--color-bg);
     color: var(--color-text-muted);
-    font-size: 11px;
+    font-size: 11.5px;
     font-weight: 600;
     transition: background var(--transition-fast), color var(--transition-fast),
         border-color var(--transition-fast);
@@ -210,161 +349,270 @@
 
 .password-rule.is-met {
     background: var(--color-success-tint);
-    border-color: rgba(29, 122, 62, 0.28);
+    border-color: var(--color-success-border);
     color: var(--color-success);
 }
 
-/* Kani nga table styles kay para sa data tables sa tanang modules. */
+/* ============================================================
+   Unified Data Tables (comfortable padding & clear hierarchy)
+   ============================================================ */
 .data-table {
     width: 100%;
     background: var(--color-white);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
-    /* Kani nga overflow-x kay para kung mokabat ang columns (nowrap cells),
-       mo-gawas ang horizontal scroll instead nga ma-clip ang katapusang
-       column (Actions) — mao to nga dili makita ang uban nga buttons. */
     overflow-x: auto;
-    /* Kani nga vertical auto-scroll kay para dili magkaanam og kadako
-       ang box kung daghang rows: ~10 rows ang visible, pag-lapas kay
-       mo-activate ang scroll (tanang modules, shared). */
-    max-height: 540px;
+    max-height: 560px;
     overflow-y: auto;
 }
 
 .data-table table {
     width: 100%;
+    border-collapse: collapse;
 }
 
 .data-table th {
     text-align: left;
-    padding: 12px var(--space-4);
+    padding: 13px 16px;
     background: var(--color-teal-tint);
     color: var(--color-teal-dark);
-    font-size: 12px;
+    font-size: 11.5px;
     font-weight: 700;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
-    /* Kani nga sticky header kay para magpabilin ang column labels
-       while nag-scroll vertically ang tbody. */
+    white-space: nowrap;
+    border-bottom: 1px solid var(--color-teal-border);
     position: sticky;
     top: 0;
     z-index: 1;
 }
 
 .data-table td {
-    padding: 12px var(--space-4);
+    padding: 13px 16px;
     border-top: 1px solid var(--color-border);
-    font-size: 14px;
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--color-text);
+    vertical-align: middle;
 }
 
 .data-table tbody tr:hover {
-    background: var(--color-bg);
+    background: #F9FBFE;
 }
 
 .data-table__empty {
     padding: var(--space-6);
     text-align: center;
     color: var(--color-text-muted);
+    font-size: 13.5px;
 }
 
-/* Kani nga status badges kay para sa record states. */
-.badge {
+/* ============================================================
+   Unified Status Badges (.badge and .status-badge aliases)
+   ============================================================ */
+.badge,
+.status-badge {
     display: inline-flex;
     align-items: center;
-    padding: 3px 10px;
+    padding: 4px 11px;
     border-radius: var(--radius-pill);
     font-size: 12px;
     font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    border: 1px solid transparent;
 }
 
-.badge--pending { background: var(--color-warning-tint); color: var(--color-warning); }
-.badge--approved,
-.badge--success { background: var(--color-success-tint); color: var(--color-success); }
-.badge--rejected,
-.badge--error { background: var(--color-error-tint); color: var(--color-error); }
-.badge--info { background: var(--color-teal-tint); color: var(--color-teal); }
-.badge--neutral { background: var(--color-bg); color: var(--color-text-muted); }
-.badge--gold { background: var(--color-gold-tint); color: var(--color-warning); }
+.badge--pending,
+.status-badge--warning {
+    background: var(--color-warning-tint);
+    border-color: var(--color-warning-border);
+    color: var(--color-warning);
+}
 
-/* Kani nga badge-button kay para sa clickable badges (PANanglitan
-   discrepancy note): same look sa badge pero interactive. */
+.badge--approved,
+.badge--success,
+.status-badge--success {
+    background: var(--color-success-tint);
+    border-color: var(--color-success-border);
+    color: var(--color-success);
+}
+
+.badge--rejected,
+.badge--error,
+.status-badge--danger {
+    background: var(--color-error-tint);
+    border-color: var(--color-error-border);
+    color: var(--color-error);
+}
+
+.badge--info {
+    background: var(--color-teal-tint);
+    border-color: var(--color-teal-border);
+    color: var(--color-teal-dark);
+}
+
+.badge--neutral,
+.status-badge--muted {
+    background: var(--color-bg-subtle);
+    border-color: var(--color-border);
+    color: var(--color-text-muted);
+}
+
+.badge--gold {
+    background: var(--color-gold-tint);
+    border-color: var(--color-gold-border);
+    color: var(--color-gold-ink);
+}
+
 .badge-button {
-    border: none;
     cursor: pointer;
     font-family: inherit;
-    line-height: inherit;
+    line-height: 1.3;
 }
 
 .badge-button:hover,
 .badge-button:focus-visible {
-    filter: brightness(0.94);
+    filter: brightness(0.95);
     text-decoration: underline;
 }
 
-/* Kani nga modal kay para sa confirmations ug dialogs. */
+/* ============================================================
+   Unified Modals (.modal and legacy .modal-box)
+   ============================================================ */
 .modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(16, 29, 45, 0.55);
+    background: rgba(15, 29, 46, 0.56);
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 900;
+    z-index: 950;
+    padding: 20px;
     animation: fadeIn var(--transition-fast);
 }
 
+.modal-overlay[hidden] {
+    display: none;
+}
+
 .modal {
-    width: min(480px, calc(100vw - 48px));
+    width: min(500px, calc(100vw - 40px));
+    max-height: calc(100vh - 40px);
+    display: flex;
+    flex-direction: column;
     background: var(--color-white);
+    border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-lg);
     overflow: hidden;
     animation: slideUp var(--transition-fast);
 }
 
+.modal > form {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    flex: 1 1 auto;
+}
+
 .modal__header {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: var(--space-3);
     padding: var(--space-4) var(--space-5);
     border-bottom: 1px solid var(--color-border);
+    background: var(--color-white);
 }
 
 .modal__title {
     font-size: 18px;
+    color: var(--color-navy);
 }
 
 .modal__close {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
+    font-size: 20px;
     color: var(--color-text-muted);
+    transition: background var(--transition-fast), color var(--transition-fast);
 }
 
 .modal__close:hover {
-    background: var(--color-bg);
-    color: var(--color-text);
+    background: var(--color-bg-subtle);
+    color: var(--color-navy);
 }
 
 .modal__body {
     padding: var(--space-5);
     font-size: 14px;
+    line-height: 1.6;
     color: var(--color-text);
+    overflow-y: auto;
 }
 
 .modal__footer {
     display: flex;
     justify-content: flex-end;
+    align-items: center;
     gap: var(--space-3);
     padding: var(--space-4) var(--space-5);
     background: var(--color-bg);
     border-top: 1px solid var(--color-border);
 }
 
-/* Kani nga toasts kay para sa operation feedback. */
+/* Requisitions module modal containers aligned to shared .modal style */
+.modal-box {
+    background: var(--color-white);
+    width: min(480px, calc(100vw - 40px));
+    max-height: calc(100vh - 40px);
+    padding: var(--space-5);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    overflow-y: auto;
+    animation: slideUp var(--transition-fast);
+}
+
+.modal-header {
+    margin-bottom: var(--space-4);
+}
+
+.modal-header h2 {
+    font-size: 19px;
+    margin-bottom: 6px;
+}
+
+.modal-header p {
+    margin-bottom: 0;
+    color: var(--color-text-muted);
+    font-size: 13.5px;
+    line-height: 1.55;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: var(--space-3);
+    margin-top: var(--space-5);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--color-border);
+}
+
+[hidden] {
+    display: none !important;
+}
+
+/* ============================================================
+   Toasts
+   ============================================================ */
 .toast-container {
     position: fixed;
     top: var(--space-5);
@@ -372,14 +620,14 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-3);
-    z-index: 1000;
+    z-index: 1100;
 }
 
 .toast {
     display: flex;
     align-items: flex-start;
     gap: var(--space-3);
-    min-width: 300px;
+    min-width: 310px;
     max-width: 420px;
     padding: var(--space-4);
     border-radius: var(--radius-md);
@@ -396,8 +644,8 @@
 
 .toast__title {
     font-weight: 700;
-    font-size: 13px;
-    margin-bottom: 2px;
+    font-size: 13.5px;
+    margin-bottom: 3px;
 }
 
 .toast--success .toast__title { color: var(--color-success); }
@@ -406,14 +654,15 @@
 .toast--info .toast__title { color: var(--color-teal); }
 
 .toast__message {
-    font-size: 13px;
+    font-size: 13.5px;
+    line-height: 1.5;
     color: var(--color-text);
 }
 
 .toast__dismiss {
     margin-left: auto;
     color: var(--color-text-muted);
-    font-size: 16px;
+    font-size: 18px;
     line-height: 1;
     padding: 2px 6px;
     border-radius: var(--radius-sm);
@@ -421,7 +670,7 @@
 
 .toast__dismiss:hover {
     background: var(--color-bg);
-    color: var(--color-text);
+    color: var(--color-navy);
 }
 
 @keyframes fadeIn {
@@ -430,7 +679,7 @@
 }
 
 @keyframes slideUp {
-    from { transform: translateY(16px); opacity: 0; }
+    from { transform: translateY(14px); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
 }
 
@@ -439,82 +688,26 @@
     to { transform: translateX(0); opacity: 1; }
 }
 
-
-
-/* Requisition Cancellation Modal */
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-    padding: 20px;
-}
-
-    .modal-overlay[hidden] {
-        display: none;
-    }
-
-.modal-box {
-    background: #ffffff;
-    width: 100%;
-    max-width: 450px;
-    padding: 24px;
-    border-radius: 10px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-}
-
-.modal-header h2 {
-    margin-bottom: 8px;
-}
-
-.modal-header p {
-    margin-bottom: 20px;
-    color: #666666;
-}
-
-.modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 20px;
-}
-
-/* Make sure hidden elements stay hidden, even when they have display styles. */
-[hidden] {
-    display: none !important;
-}
-
-/* Requisition History button alignment. */
+/* Requisition history full-view modal */
 .requisition-history-toolbar {
     display: flex;
     justify-content: flex-end;
     margin: 0 0 12px 0;
 }
 
-/* Larger popup for viewing all requisition history. */
 .all-requisition-history-modal {
-    padding: clamp(16px, 5vw, 96px);
+    padding: clamp(16px, 5vw, 72px);
 }
 
-/* Kini nga box kay fixed (dili mo-scroll): ang table ra ang mo-scroll
-   vertically, para makita gihapon ang header ug ang Close button. */
 .all-requisition-history-modal__box {
     width: 100%;
-    max-width: none;
+    max-width: 1320px;
     max-height: 100%;
     display: flex;
     flex-direction: column;
     overflow: hidden;
 }
 
-/* Keep the history table readable inside the large popup.
-   Kini nga wrapper maoy mo-own sa vertical scroll sa table. */
 .all-requisition-history-modal__box .table-responsive {
     width: 100%;
     flex: 1 1 auto;
@@ -522,19 +715,17 @@
     overflow: auto;
 }
 
-/* Kani nga override kay para usa ra ka scroll container:
-   ang wrapper na ang mo-scroll, dili ang table element. */
 .all-requisition-history-modal__box .table-responsive .data-table {
     max-height: none;
     overflow: visible;
 }
 
-/* Align Requisition History heading and button in one row. */
 .requisition-history-card-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 16px;
+    flex-wrap: wrap;
 }
 
 .requisition-history-card-header > div {
@@ -547,9 +738,8 @@
 }
 
 /* ============================================================
-   Shared signature pad (Requisition approval + Delivery sign)
+   Shared Signature Pad (Requisition Approval, Receiving, Delivery)
    ============================================================ */
-
 .signature-pad {
     margin-top: var(--space-4);
 }
@@ -562,16 +752,17 @@
 }
 
 .signature-pad__label {
-    font-size: 13px;
+    font-size: 13.5px;
     font-weight: 600;
+    color: var(--color-navy);
 }
 
 .signature-pad__canvas {
     display: block;
     width: 100%;
-    height: 200px;
+    height: 190px;
     background: var(--color-white);
-    border: 1px dashed var(--color-border);
+    border: 1px dashed var(--color-border-strong);
     border-radius: var(--radius-sm);
     cursor: crosshair;
     touch-action: none;
@@ -579,7 +770,7 @@
 
 .signature-signer-meta {
     margin: 0 0 var(--space-3);
-    padding: 8px 12px;
+    padding: 9px 12px;
     border-radius: var(--radius-sm);
     background: var(--color-teal-tint);
     color: var(--color-teal-dark);
@@ -602,20 +793,21 @@
 .signature-confirm-check {
     display: flex;
     align-items: flex-start;
-    gap: 8px;
+    gap: 10px;
     margin-top: var(--space-3);
-    padding: 10px 12px;
+    padding: 11px 14px;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
     background: var(--color-bg);
     font-size: 13px;
     font-weight: 600;
+    line-height: 1.5;
     color: var(--color-text);
     cursor: pointer;
 }
 
 .signature-confirm-check input[type="checkbox"] {
-    margin-top: 2px;
+    margin-top: 3px;
     flex-shrink: 0;
 }
 
@@ -642,7 +834,7 @@
 
 .signature-stage-card__meta {
     margin: 0 0 8px;
-    font-size: 12px;
+    font-size: 12.5px;
     color: var(--color-text-muted);
 }
 
@@ -653,7 +845,7 @@
     object-fit: contain;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
-    background: #ffffff;
+    background: var(--color-white);
     padding: 4px;
     margin-bottom: 8px;
 }
