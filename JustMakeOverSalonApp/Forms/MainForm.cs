@@ -27,6 +27,14 @@ namespace JustMakeOverSalonApp
             WindowState = FormWindowState.Maximized;
             MinimumSize = new System.Drawing.Size(1200, 720);
             BackColor = System.Drawing.Color.FromArgb(16, 29, 45);
+            try
+            {
+                Icon = System.Drawing.Icon.ExtractAssociatedIcon(Application.ExecutablePath);
+            }
+            catch
+            {
+                // Ignore if executable icon cannot be extracted.
+            }
 
             webView = new WebView2
             {

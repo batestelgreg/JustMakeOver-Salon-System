@@ -12,16 +12,41 @@ namespace JustMakeOverSalonApp.Core.Data
         string ConnectionString { get; }
     }
 
-    // Diri naggikan ang connection string gikan sa App.config sa desktop project.
+    // Diri naggikan ang connection string gikan sa App.config (o auto-detected LocalDB/SQLEXPRESS).
     public sealed class SqlConnectionFactory : ISqlConnectionFactory
     {
         private const string ConnectionName = "SalonDb";
+        private static readonly object SyncRoot = new object();
+        private static string resolvedConnectionString;
 
         public string ConnectionString { get; }
 
         public SqlConnectionFactory()
         {
-            // Kani nga connection string kinahanglan naa sa App.config aron molarga ang app.
+            string raw;
+            lock (SyncRoot)
+            {
+                raw = resolvedConnectionString;
+            }
+
+            if (string.IsNullOrWhiteSpace(raw))
+            {
+                raw = ReadConfiguredConnectionString();
+            }
+
+            // Kani nga tuning kay para dili mo-hang ang app kung busy ang SQL:
+            // fast-fail nga 5 seconds ra, walay 15-second nga default timeout.
+            var builder = new SqlConnectionStringBuilder(raw)
+            {
+                ConnectTimeout = 5,
+                Pooling = true
+            };
+
+            ConnectionString = builder.ConnectionString;
+        }
+
+        public static string ReadConfiguredConnectionString()
+        {
             var settings = ConfigurationManager.ConnectionStrings[ConnectionName];
             if (settings == null || string.IsNullOrWhiteSpace(settings.ConnectionString))
             {
@@ -30,15 +55,20 @@ namespace JustMakeOverSalonApp.Core.Data
                     ConnectionName + "' in the application configuration file.");
             }
 
-            // Kani nga tuning kay para dili mo-hang ang app kung busy ang SQL:
-            // fast-fail nga 5 seconds ra, walay 15-second nga default timeout.
-            var builder = new SqlConnectionStringBuilder(settings.ConnectionString)
-            {
-                ConnectTimeout = 5,
-                Pooling = true
-            };
+            return settings.ConnectionString;
+        }
 
-            ConnectionString = builder.ConnectionString;
+        public static void SetResolvedConnectionString(string connectionString)
+        {
+            if (string.IsNullOrWhiteSpace(connectionString))
+            {
+                throw new ArgumentException("Connection string cannot be empty.", nameof(connectionString));
+            }
+
+            lock (SyncRoot)
+            {
+                resolvedConnectionString = connectionString;
+            }
         }
 
         public SqlConnection CreateOpenConnection()
