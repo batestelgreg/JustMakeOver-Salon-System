@@ -42,13 +42,24 @@ if ($DownloadPrereqs) {
     }
 
     $localDbPath = Join-Path $prereqsDir "SqlLocalDB.msi"
-    if (-not (Test-Path $localDbPath)) {
-        Write-Host "Downloading SQL Server Express LocalDB (x64)..." -ForegroundColor Cyan
-        Invoke-WebRequest -Uri "https://go.microsoft.com/fwlink/?linkid=2215158" -OutFile $localDbPath
+    $needsLocalDbDownload = -not (Test-Path $localDbPath)
+    if (-not $needsLocalDbDownload) {
+        $header = [System.IO.File]::ReadAllBytes($localDbPath)
+        $isValidMsi = $header.Length -gt 20000000 -and $header[0] -eq 0xD0 -and $header[1] -eq 0xCF -and $header[2] -eq 0x11 -and $header[3] -eq 0xE0
+        if (-not $isValidMsi) {
+            Write-Warning "Existing SqlLocalDB.msi is not a valid MSI package; re-downloading official MSI..."
+            $needsLocalDbDownload = $true
+        }
+    }
+    if ($needsLocalDbDownload) {
+        Write-Host "Downloading SQL Server 2022 Express LocalDB (x64 MSI)..." -ForegroundColor Cyan
+        Invoke-WebRequest -Uri "https://download.microsoft.com/download/3/8/d/38de7036-2433-4207-8eae-06e247e17b25/SqlLocalDB.msi" -OutFile $localDbPath -UseBasicParsing
     }
 }
 
 $isccCandidates = @(
+    "C:\Program Files\Inno Setup 7\ISCC.exe",
+    "C:\Program Files (x86)\Inno Setup 7\ISCC.exe",
     "C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
     "C:\Program Files\Inno Setup 6\ISCC.exe"
 )

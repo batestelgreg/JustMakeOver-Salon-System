@@ -62,10 +62,13 @@ Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChang
 
 [Code]
 function NeedsLocalDbInstall(): Boolean;
+var
+  Versions: TArrayOfString;
 begin
-  Result := not RegKeyExists(HKLM, 'SOFTWARE\Microsoft\Microsoft SQL Server Local DB\Installed Versions')
-        and not RegValueExists(HKLM, 'SOFTWARE\Microsoft\Microsoft SQL Server\Instance Names\SQL', 'SQLEXPRESS')
-        and not RegKeyExists(HKLM, 'SYSTEM\CurrentControlSet\Services\MSSQL$SQLEXPRESS');
+  if RegGetSubkeyNames(HKLM, 'SOFTWARE\Microsoft\Microsoft SQL Server Local DB\Installed Versions', Versions) then
+    Result := (GetArrayLength(Versions) = 0)
+  else
+    Result := True;
 end;
 
 function NeedsWebView2Install(): Boolean;
