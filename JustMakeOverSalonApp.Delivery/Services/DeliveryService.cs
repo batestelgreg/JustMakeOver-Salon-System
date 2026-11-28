@@ -277,13 +277,6 @@ namespace JustMakeOverSalonApp.Delivery.Services
 
             actor.RequirePermission(
                 PermissionCodes.DeliveryManage);
-
-            if (actor.RoleName != "Admin" &&
-                actor.RoleName != "Inventory Staff")
-            {
-                throw new BusinessException(
-                    "Only Inventory Staff or Admin can manage delivery issuance and corrections.");
-            }
         }
     }
 }

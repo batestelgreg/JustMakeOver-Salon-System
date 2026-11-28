@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Threading.Tasks;
+using JustMakeOverSalonApp.Core.Contracts;
 using JustMakeOverSalonApp.Core.Models;
 using JustMakeOverSalonApp.Core.Services;
 using JustMakeOverSalonApp.Core.Validation;
@@ -112,11 +113,10 @@ namespace JustMakeOverSalonApp.Purchasing.Services
         {
             RequireActor(actor);
 
-            if (!string.Equals(actor.RoleName, "Admin", StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(actor.RoleName, "Manager", StringComparison.OrdinalIgnoreCase))
+            if (!actor.HasPermission(PermissionCodes.RequisitionsApprove))
             {
                 throw new BusinessException(
-                    "Only an Admin or Manager can approve a purchase order.");
+                    "You do not have permission to approve a purchase order.");
             }
 
             if (poID <= 0)
