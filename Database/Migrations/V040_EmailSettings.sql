@@ -1,25 +1,9 @@
-/*
-    V040_EmailSettings.sql
-
-    Centralizes the Official Salon Email (SMTP) configuration inside SQL Server
-    so Purchasing Staff, Managers, and Admins can send Purchase Orders and
-    Follow-Up reminders using one official company email configured by Admin
-    in Settings — with zero manual App.config / Secrets.config edits required
-    after single-click installation.
-
-    Idempotent: guarded by OBJECT_ID / IF NOT EXISTS + CREATE OR ALTER.
-    THROW range: 50370 - 50379.
-*/
-
 USE JustMakeOverSalonDB;
 GO
 SET ANSI_NULLS ON;
 SET QUOTED_IDENTIFIER ON;
 GO
 
-/* ============================================================
-   1. dbo.EMAIL_SETTINGS — single-row Official Salon SMTP config
-   ============================================================ */
 
 IF OBJECT_ID(N'dbo.EMAIL_SETTINGS', N'U') IS NULL
 BEGIN
@@ -91,9 +75,6 @@ BEGIN
 END;
 GO
 
-/* ============================================================
-   2. GET EMAIL SETTINGS (Admin Settings UI — never exposes secret)
-   ============================================================ */
 
 CREATE OR ALTER PROCEDURE dbo.usp_Settings_GetEmailSettings
     @ActorUserID INT
@@ -134,9 +115,6 @@ BEGIN
 END;
 GO
 
-/* ============================================================
-   3. SAVE EMAIL SETTINGS (Admin only — stores DPAPI ciphertext)
-   ============================================================ */
 
 CREATE OR ALTER PROCEDURE dbo.usp_Settings_SaveEmailSettings
     @ActorUserID INT,
@@ -283,9 +261,7 @@ BEGIN
 END;
 GO
 
-/* ============================================================
-   4. GET RUNTIME SMTP CONFIG (C# backend only for authorized dispatchers)
-   ============================================================ */
+
 
 CREATE OR ALTER PROCEDURE dbo.usp_Email_GetRuntimeConfig
     @ActorUserID INT

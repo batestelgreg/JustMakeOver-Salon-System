@@ -1,35 +1,3 @@
-/*
-    V041_PermissionAuditFixes.sql
-
-    Aligns role permissions and backend gates with the real-life internal
-    company requisition-to-handover business flow while keeping Admin's
-    Users & Roles permission editing 100% dynamic:
-
-    1. Role-Permission Matrix Cleanup:
-       - Manager: remove inventory.update (approval auto-reserve uses
-         requisitions.approve instead of allowing Manager to edit items
-         or manually issue warehouse stock).
-       - Purchasing Staff: remove delivery.view and requisitions.view
-         (Purchasing handles Replenishment/PR/Quotation/PO/DR Check and
-         Suppliers, not internal staff deliveries or general requisitions).
-       - Staff: remove inventory.view (keeps reports.view so Staff sees
-         only their own row-scoped Requisition & Delivery reports without
-         accessing warehouse inventory or Inventory Reports).
-
-    2. Maker-Checker Self-Approval / Self-Rejection Guards:
-       - Requisitions: requestor cannot approve or reject their own RF.
-       - Purchase Orders: PO/PR creator cannot approve or reject their own PO.
-
-    3. Dynamic Permission Gates (Remove Hardcoded RoleName Bypasses):
-       - Requisition approval & auto-reserve, PO approval/rejection/budget,
-         PO pending notifications, Delivery management (fn_DeliveryCanManage),
-         Email dispatch config/logging, and Role assignment now follow live
-         ROLE_PERMISSIONS instead of hardcoded role names, so Admin's
-         temporary or custom role permission edits take effect immediately.
-
-    Idempotent: guarded DELETEs + CREATE OR ALTER.
-*/
-
 USE JustMakeOverSalonDB;
 GO
 SET ANSI_NULLS ON;
@@ -37,9 +5,6 @@ GO
 SET QUOTED_IDENTIFIER ON;
 GO
 
-/* ============================================================
-   1. ROLE_PERMISSIONS CLEANUP (REAL-LIFE INTERNAL FLOW)
-   ============================================================ */
 
 DELETE rp
 FROM dbo.ROLE_PERMISSIONS rp
@@ -50,9 +15,6 @@ WHERE (r.RoleName = N'Manager' AND p.PermissionCode = N'inventory.update')
    OR (r.RoleName = N'Staff' AND p.PermissionCode = N'inventory.view');
 GO
 
-/* ============================================================
-   2. ISSUE STOCK — ALLOW AUTO-RESERVE DURING RF APPROVAL
-   ============================================================ */
 
 CREATE OR ALTER PROCEDURE dbo.usp_Inventory_IssueStock
     @ActorUserID INT,
@@ -254,10 +216,6 @@ BEGIN
 END;
 GO
 
-/* ============================================================
-   3. REQUISITION APPROVAL & REJECTION — SELF-DECISION GUARD
-      AND NO inventory.update REQUIREMENT
-   ============================================================ */
 
 CREATE OR ALTER PROCEDURE dbo.usp_Requisition_Approve
     @RequisitionID INT,
@@ -526,10 +484,6 @@ BEGIN
 END;
 GO
 
-/* ============================================================
-   4. DELIVERY MANAGEMENT — RESPECT DYNAMIC delivery.manage PERMISSION
-   ============================================================ */
-
 CREATE OR ALTER FUNCTION dbo.fn_DeliveryCanManage
 (
     @ActorUserID INT
@@ -559,10 +513,6 @@ BEGIN
     RETURN @Allowed;
 END;
 GO
-
-/* ============================================================
-   5. PURCHASING BUDGET, PO APPROVAL & SELF-APPROVAL GUARDS
-   ============================================================ */
 
 CREATE OR ALTER PROCEDURE dbo.usp_Purchasing_SetBudget
     @BudgetYear INT,
@@ -1790,9 +1740,6 @@ BEGIN
 END;
 GO
 
-/* ============================================================
-   6. PURCHASING WORKSPACE LOAD — PERMISSION-BASED FLAGS
-   ============================================================ */
 
 CREATE OR ALTER PROCEDURE dbo.usp_PurchasingWorkspace_Load
     @ActorUserID INT
@@ -2118,10 +2065,6 @@ BEGIN
 END;
 GO
 
-/* ============================================================
-   7. PO NOTIFICATIONS — NOTIFY ANY USER WITH requisitions.approve
-      & purchasing.view (PRESERVES V030 PO_APPROVED / PO_REJECTED)
-   ============================================================ */
 
 CREATE OR ALTER TRIGGER dbo.trg_Purchasing_PONotifications
 ON dbo.PURCHASE_ORDERS
@@ -2338,9 +2281,6 @@ BEGIN
 END;
 GO
 
-/* ============================================================
-   8. EMAIL LOGGING & RUNTIME CONFIG — PERMISSION-BASED GATES
-   ============================================================ */
 
 CREATE OR ALTER PROCEDURE dbo.usp_Purchasing_BeginEmailLog
     @ActorUserID INT,
@@ -2471,11 +2411,6 @@ BEGIN
     WHERE es.SettingID = 1;
 END;
 GO
-
-/* ============================================================
-   9. ROLE ASSIGNMENT — RESPECT users.assign_role AND ALLOW
-      CUSTOM ROLES CREATED BY ADMIN (BLOCKING ONLY Admin ESCALATION)
-   ============================================================ */
 
 CREATE OR ALTER PROCEDURE dbo.usp_User_AssignRole
     @ActorUserID INT,
