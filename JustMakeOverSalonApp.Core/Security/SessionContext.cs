@@ -6,14 +6,25 @@ namespace JustMakeOverSalonApp.Core.Security
     // Kini ra ang authoritative nga source sa permissions, dili ang frontend.
     public sealed class SessionContext
     {
-        private static SessionContext instance;
+        private static readonly SessionContext instance = new SessionContext();
+        private readonly object syncRoot = new object();
+        private CurrentUser currentUser;
 
         public static SessionContext Instance
         {
-            get { return instance ?? (instance = new SessionContext()); }
+            get { return instance; }
         }
 
-        public CurrentUser CurrentUser { get; private set; }
+        public CurrentUser CurrentUser
+        {
+            get
+            {
+                lock (syncRoot)
+                {
+                    return currentUser;
+                }
+            }
+        }
 
         private SessionContext()
         {
@@ -22,23 +33,32 @@ namespace JustMakeOverSalonApp.Core.Security
         public void SignIn(CurrentUser user)
         {
             // Kani nga method kay tawagon lang human ma-verify ang credentials sa backend.
-            CurrentUser = user;
+            lock (syncRoot)
+            {
+                currentUser = user;
+            }
         }
 
         public CurrentUser RequireUser()
         {
-            if (CurrentUser == null)
+            lock (syncRoot)
             {
-                throw new Validation.BusinessException("Your session has ended. Please sign in again.");
-            }
+                if (currentUser == null)
+                {
+                    throw new Validation.BusinessException("Your session has ended. Please sign in again.");
+                }
 
-            return CurrentUser;
+                return currentUser;
+            }
         }
 
         public void SignOut()
         {
             // Kani nga method kay nag-clear sa authenticated state sa memory.
-            CurrentUser = null;
+            lock (syncRoot)
+            {
+                currentUser = null;
+            }
         }
     }
 }

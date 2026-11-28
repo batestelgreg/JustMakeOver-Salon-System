@@ -135,15 +135,16 @@ namespace JustMakeOverSalonApp
             // Kani nga guard kay nagdili sa navigation sa gawas sa approved host.
             core.NavigationStarting += (sender, navigationArgs) =>
             {
-                var allowedHosts = new[]
-                {
-                    VirtualHostName,
-                    "about:blank"
-                };
+                var target = navigationArgs.Uri ?? string.Empty;
+                var isAllowed = target.Equals("about:blank", StringComparison.OrdinalIgnoreCase);
 
-                var host = navigationArgs.Uri;
-                var isAllowed = host.StartsWith("https://" + VirtualHostName, StringComparison.OrdinalIgnoreCase)
-                    || host.Equals("about:blank", StringComparison.OrdinalIgnoreCase);
+                if (!isAllowed
+                    && Uri.TryCreate(target, UriKind.Absolute, out var navUri)
+                    && navUri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)
+                    && navUri.Host.Equals(VirtualHostName, StringComparison.OrdinalIgnoreCase))
+                {
+                    isAllowed = true;
+                }
 
                 if (!isAllowed)
                 {
@@ -218,9 +219,12 @@ namespace JustMakeOverSalonApp
                 var relativePath = uri.AbsolutePath.TrimStart('/');
 
                 // Kani nga guard kay nagdili sa path traversal gikan sa frontend folder.
-                var localPath = Path.GetFullPath(Path.Combine(frontendPath, relativePath));
+                var frontendRoot = Path.GetFullPath(frontendPath)
+                    .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                    + Path.DirectorySeparatorChar;
+                var localPath = Path.GetFullPath(Path.Combine(frontendRoot, relativePath));
                 if (!localPath.StartsWith(
-                        Path.GetFullPath(frontendPath),
+                        frontendRoot,
                         StringComparison.OrdinalIgnoreCase) ||
                     !File.Exists(localPath))
                 {

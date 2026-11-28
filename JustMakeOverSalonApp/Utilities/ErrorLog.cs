@@ -33,18 +33,30 @@ namespace JustMakeOverSalonApp.Utilities
         {
             try
             {
+                var safeSource = SanitizeLogText(source);
+                var safeMessage = SanitizeLogText(message);
                 lock (FileLock)
                 {
                     File.AppendAllText(
                         LogFilePath,
-                        DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + " [" + source + "] " +
-                        message + Environment.NewLine + Environment.NewLine);
+                        DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + " [" + safeSource + "] " +
+                        safeMessage + Environment.NewLine + Environment.NewLine);
                 }
             }
             catch
             {
                 // Kani nga catch kay lisod na kaayo og error sa logging mismo.
             }
+        }
+
+        private static string SanitizeLogText(string value)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return string.Empty;
+            }
+
+            return value.Replace("\r", " ").Replace("\n", " ");
         }
 
         public static void Write(string source, Exception exception)
